@@ -1,0 +1,13 @@
+{
+  "name": "Noto - Journal de bord",
+  "short_name": "Noto",
+  "start_url": "/Noto/",
+  "scope": "/Noto/",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "icons": [
+    { "src": "/Noto/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/Noto/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
