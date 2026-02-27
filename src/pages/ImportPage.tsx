@@ -85,8 +85,10 @@ export default function ImportPage() {
     const errors: ImportReport["errors"] = [];
 
     if (parsed.errors?.length) {
-      parsed.errors.forEach((e) => errors.push({ row: e.row ?? -1, reason: e.message }));
-    }
+      parsed.errors.forEach((e: Papa.ParseError) => {
+		  errors.push({ row: e.row ?? -1, reason: e.message });
+    });
+	}
 
     const data = parsed.data as any[];
     const rowsTotal = data.length;
@@ -125,7 +127,6 @@ export default function ImportPage() {
     try {
       for (let i = 0; i < body.length; i++) {
         const row = body[i];
-        const rowNumber = headerIndex + 2 + i; // human-ish
 
         const dateRaw = idxDate >= 0 ? row[idxDate] : row[0];
         const dateISO = parseFRDateToISO(dateRaw);
