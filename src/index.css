@@ -2,7 +2,6 @@
 
 @theme {
   --color-menthe: #00ffa3;
-  --color-mineral-900: #111818;
   --color-mineral-950: #050707;
 }
 
@@ -11,7 +10,6 @@
   --card-bg: rgba(20, 26, 26, 0.8);
   --text-primary: #f1f7f5;
   --text-secondary: #00ffa3;
-  --nav-bg: rgba(10, 12, 12, 0.9);
   color-scheme: dark;
 }
 
@@ -20,29 +18,29 @@ body {
   background: var(--app-bg);
   background-attachment: fixed;
   color: var(--text-primary);
-  font-family: 'Inter', system-ui, sans-serif;
-  min-height: 100vh;
-}
-
-/* Force la visibilité globale */
-* {
-  border-color: rgba(255, 255, 255, 0.1);
+  font-family: 'Inter', sans-serif;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .glass-card {
   background: var(--card-bg);
   backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-input, select, textarea {
-  background: transparent;
-  outline: none;
+/* Titre de page standardisé */
+.page-title {
+  @apply text-4xl font-black tracking-tighter uppercase italic text-center;
   color: var(--text-primary);
-  font-weight: 900;
 }
 
-input::placeholder {
-  color: rgba(255, 255, 255, 0.2);
+.page-subtitle {
+  @apply text-[10px] font-black tracking-[0.3em] text-menthe uppercase mb-2 text-center block;
+}
+
+/* Cache les flèches des inputs number */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }

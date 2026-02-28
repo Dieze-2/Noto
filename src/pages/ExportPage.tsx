@@ -5,7 +5,7 @@ export default function ExportPage() {
   return (
     <div className="max-w-xl mx-auto px-4 pt-8 pb-24 space-y-8">
       <header className="px-2">
-        <button onClick={() => window.history.back()} className="text-indigo-500 font-bold text-sm mb-4">← Retour</button>
+        <button onClick={() => window.history.back()} className="text-sauge-600 font-bold text-sm mb-4">← Retour</button>
         <h1 className="text-3xl font-black text-slate-900 dark:text-white">Export & Backup</h1>
       </header>
 
@@ -17,7 +17,7 @@ export default function ExportPage() {
         </div>
         <button 
           onClick={() => exportAllDataToJSON()}
-          className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
+          className="w-full bg-mineral-800 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-sauge-600/20 active:scale-95 transition-all"
         >
           Générer le fichier .json
         </button>

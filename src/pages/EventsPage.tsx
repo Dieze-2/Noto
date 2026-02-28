@@ -27,8 +27,8 @@ export default function EventsPage() {
   return (
     <div className="max-w-xl mx-auto px-4 pt-8 pb-32 space-y-8">
       <header>
-        <p className="text-[10px] font-black tracking-[0.3em] text-menthe uppercase mb-2">Planification</p>
-        <h1 className="text-4xl font-black text-white tracking-tighter italic uppercase">Agenda</h1>
+        <span className="page-subtitle">Planning</span>
+        <h1 className="page-title text-center">Agenda</h1>
       </header>
 
       <section className="glass-card p-6 rounded-[2.5rem] space-y-4">
