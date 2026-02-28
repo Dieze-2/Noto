@@ -44,65 +44,63 @@ export default function WeekPage() {
   return (
     <div className="max-w-xl mx-auto px-4 pt-8 pb-32 space-y-8">
       <header>
-        <h1 className="text-4xl font-black text-black dark:text-white tracking-tighter">Performances</h1>
+        <h1 className="text-4xl font-black text-[var(--text-primary)] tracking-tighter">Historique</h1>
         <div className="flex items-center gap-4 mt-6">
-          <button onClick={() => setAnchor(subDays(anchor, 7))} className="w-12 h-12 rounded-full glass-card flex items-center justify-center font-black text-black dark:text-white text-xl">←</button>
-          <span className="text-xs font-black text-sauge-deep dark:text-menthe-flash uppercase tracking-[0.2em] flex-1 text-center">
+          <button onClick={() => setAnchor(subDays(anchor, 7))} className="w-12 h-12 rounded-full glass-card flex items-center justify-center font-black text-[var(--text-primary)]">←</button>
+          <span className="text-xs font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] flex-1 text-center">
             Semaine du {format(days[0], 'd MMMM', { locale: fr })}
           </span>
-          <button onClick={() => setAnchor(addDays(anchor, 7))} className="w-12 h-12 rounded-full glass-card flex items-center justify-center font-black text-black dark:text-white text-xl">→</button>
+          <button onClick={() => setAnchor(addDays(anchor, 7))} className="w-12 h-12 rounded-full glass-card flex items-center justify-center font-black text-[var(--text-primary)]">→</button>
         </div>
       </header>
 
       {/* Hero Poids */}
-      <div className="p-8 rounded-[3rem] bg-black text-white shadow-2xl relative border-b-4 border-menthe-flash">
+      <div className="p-8 rounded-[3rem] bg-black dark:bg-[var(--card-bg)] text-white dark:text-[var(--text-primary)] shadow-2xl relative border-b-4 border-[var(--text-secondary)]">
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mb-2">Moyenne Hebdomadaire</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-50 mb-2">Moyenne Poids Hebdo</p>
             <div className="flex items-baseline gap-2">
               <span className="text-6xl font-black">{stats.avgW ? formatKgFR(gramsToKg(stats.avgW), 1) : "—"}</span>
               <span className="text-2xl font-bold opacity-30">KG</span>
             </div>
           </div>
           {stats.variation !== null && (
-            <div className={`px-4 py-2 rounded-2xl font-black text-xs ${stats.variation > 0 ? 'bg-rose-500/20 text-rose-400' : 'bg-menthe-flash/20 text-menthe-flash'}`}>
+            <div className={`px-4 py-2 rounded-2xl font-black text-xs ${stats.variation > 0 ? 'bg-rose-500/20 text-rose-400' : 'bg-accent/20 text-accent'}`}>
               {stats.variation > 0 ? '+' : ''}{stats.variation.toFixed(2)}%
             </div>
           )}
         </div>
       </div>
 
-      {/* Grid Calories / Pas */}
       <div className="grid grid-cols-2 gap-4">
         <div className="glass-card p-6 rounded-[2rem]">
-          <p className="text-[9px] font-black text-sauge-deep dark:text-menthe-flash uppercase tracking-widest mb-1">Énergie / Jour</p>
-          <p className="text-2xl font-black text-black dark:text-white">{stats.avgK ? `${stats.avgK} kcal` : "—"}</p>
+          <p className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-widest mb-1">Énergie / Jour</p>
+          <p className="text-2xl font-black text-[var(--text-primary)]">{stats.avgK ? `${stats.avgK} kcal` : "—"}</p>
         </div>
         <div className="glass-card p-6 rounded-[2rem]">
-          <p className="text-[9px] font-black text-sauge-deep dark:text-menthe-flash uppercase tracking-widest mb-1">Activité / Jour</p>
-          <p className="text-2xl font-black text-black dark:text-white">{stats.avgS ? `${stats.avgS} pas` : "—"}</p>
+          <p className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-widest mb-1">Activité / Jour</p>
+          <p className="text-2xl font-black text-[var(--text-primary)]">{stats.avgS ? `${stats.avgS} pas` : "—"}</p>
         </div>
       </div>
 
-      {/* Timeline */}
       <div className="space-y-4">
         {days.map(d => {
           const m = metrics.find(x => x.date === isoDate(d));
           return (
             <div key={d.toString()} className="glass-card p-5 rounded-3xl flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center font-black ${m ? 'bg-black dark:bg-menthe-flash text-white dark:text-black' : 'bg-black/5 dark:bg-white/5 text-black/20 dark:text-white/20'}`}>
+                <div className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center font-black ${m ? 'bg-black dark:bg-[var(--text-secondary)] text-white dark:text-black' : 'bg-black/5 dark:bg-white/5 opacity-20'}`}>
                   <span className="text-[9px] uppercase">{format(d, 'EEE', { locale: fr })}</span>
                   <span className="text-lg">{format(d, 'd')}</span>
                 </div>
                 <div>
-                   <p className="font-black text-black dark:text-white text-base capitalize">{format(d, 'MMMM', { locale: fr })}</p>
-                   <p className="text-[10px] font-bold text-black/40 dark:text-white/40 uppercase">{m?.kcal ? `${m.kcal} kcal` : ""}</p>
+                   <p className="font-black text-[var(--text-primary)] text-base capitalize">{format(d, 'MMMM', { locale: fr })}</p>
+                   <p className="text-[10px] font-bold text-[var(--text-primary)] opacity-40 uppercase">{m?.kcal ? `${m.kcal} kcal` : ""}</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="font-black text-lg text-black dark:text-white">{m?.weight_g ? `${formatKgFR(gramsToKg(m.weight_g), 1)} kg` : "—"}</p>
-                <p className="text-[10px] font-black text-sauge-deep dark:text-menthe-flash uppercase">{m?.steps ? `${m.steps.toLocaleString()} pas` : ""}</p>
+                <p className="font-black text-lg text-[var(--text-primary)]">{m?.weight_g ? `${formatKgFR(gramsToKg(m.weight_g), 1)} kg` : "—"}</p>
+                <p className="text-[10px] font-black text-[var(--text-secondary)] uppercase">{m?.steps ? `${m.steps.toLocaleString()} pas` : ""}</p>
               </div>
             </div>
           )
