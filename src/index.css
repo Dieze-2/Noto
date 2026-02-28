@@ -7,7 +7,6 @@
 }
 
 :root {
-  /* On force les variables du mode sombre par défaut */
   --app-bg: radial-gradient(at 100% 0%, #0d1313 0%, #050707 100%);
   --card-bg: rgba(20, 26, 26, 0.8);
   --text-primary: #f1f7f5;
@@ -17,21 +16,31 @@
 }
 
 body {
+  margin: 0;
   background: var(--app-bg);
   background-attachment: fixed;
   color: var(--text-primary);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+/* Force la visibilité globale */
+* {
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .glass-card {
   background: var(--card-bg);
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* Style des inputs pour éviter le gris "mort" */
-input, select {
-  @apply bg-transparent outline-none text-[var(--text-primary)] font-black;
+input, select, textarea {
+  background: transparent;
+  outline: none;
+  color: var(--text-primary);
+  font-weight: 900;
 }
 
 input::placeholder {
