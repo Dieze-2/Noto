@@ -1,13 +1,22 @@
 {
-  "name": "Noto - Journal de bord",
+  "name": "NOTO",
   "short_name": "Noto",
-  "start_url": "/Noto/",
-  "scope": "/Noto/",
+  "start_url": "/",
   "display": "standalone",
-  "background_color": "#0b1220",
-  "theme_color": "#0b1220",
+  "background_color": "#1a2222",
+  "theme_color": "#6c8976",
   "icons": [
-    { "src": "/Noto/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/Noto/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "/icons/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
   ]
 }

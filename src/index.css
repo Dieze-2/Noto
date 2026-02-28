@@ -1,51 +1,39 @@
 @import "tailwindcss";
 
 @theme {
-  /* Palette Thème Clair (Inspirée de l'image 1) */
   --color-sauge-50: #f1f7f5;
   --color-sauge-100: #e6efe6;
   --color-sauge-200: #abd1b5;
-  --color-sauge-500: #79b791;
-  /* Palette Thème Foncé (Inspirée de l'image 2) */
-  --color-mineral-700: #6c8976;
-  --color-mineral-800: #596869;
-  --color-mineral-900: #2d3737;
+  --color-sauge-600: #4a7a5d; /* Plus sombre pour texte */
+  --color-mineral-800: #3d4a4a;
+  --color-mineral-900: #1a2222;
 }
 
 :root {
-  --bg-gradient: radial-gradient(at 0% 0%, #f1f7f5 0%, #abd1b5 100%);
+  --bg-gradient: radial-gradient(at 0% 0%, #f1f7f5 0%, #d4e5d8 100%);
   color-scheme: light dark;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg-gradient: radial-gradient(at 100% 0%, #2d3737 0%, #0f1414 100%);
-  }
-}
+/* Thème forcé par classe si besoin */
+.theme-light { color-scheme: light; --bg-gradient: radial-gradient(at 0% 0%, #f1f7f5 0%, #d4e5d8 100%); }
+.theme-dark { color-scheme: dark; --bg-gradient: radial-gradient(at 100% 0%, #1a2222 0%, #0a0e0e 100%); }
 
 body {
-  margin: 0;
-  min-height: 100vh;
   background: var(--bg-gradient);
   background-attachment: fixed;
-  font-family: 'Inter', sans-serif;
-  color: #2d3737;
+  color: #1a2222;
+  transition: background 0.3s ease;
 }
 
-.dark body {
-  color: #e6efe6;
-}
+.dark body { color: #e6efe6; }
 
-/* Glassmorphism Bio-Design */
 .glass-card {
-  background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8px 32px 0 rgba(121, 183, 145, 0.1);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .dark .glass-card {
-  background: rgba(45, 55, 55, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  background: rgba(26, 34, 34, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }

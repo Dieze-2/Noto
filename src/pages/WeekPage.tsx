@@ -4,12 +4,14 @@ import { fr } from "date-fns/locale";
 import { getDailyMetricsRange, DailyMetricsRow } from "../db/dailyMetrics";
 import { formatKgFR, gramsToKg } from "../lib/numberFR";
 import { weekDays, isoDate } from "../lib/week";
+import { getEventsOverlappingRange } from "../db/events";
 
 export default function WeekPage() {
   const [anchor, setAnchor] = useState(() => new Date());
   const { days } = useMemo(() => weekDays(anchor), [anchor]);
   const [metrics, setMetrics] = useState<DailyMetricsRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [events, setEvents] = useState<any[]>([]);
 
   useEffect(() => {
     async function load() {
