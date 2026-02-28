@@ -1,142 +1,93 @@
 import { useEffect, useState } from "react";
-import { createEvent, getEventsOverlappingRange } from "../db/events";
-
-function iso(d: Date): string {
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-}
+import { createEvent, getEventsOverlappingRange, deleteEvent } from "../db/events"; // Assure-toi que deleteEvent existe dans db/events.ts
+import { format, parseISO } from "date-fns";
+import { fr } from "date-fns/locale";
 
 export default function EventsPage() {
-  const [from, setFrom] = useState(() => iso(new Date()));
-  const [to, setTo] = useState(() => iso(new Date()));
+  const [from, setFrom] = useState(() => new Date().toISOString().split('T')[0]);
+  const [to, setTo] = useState(() => new Date().toISOString().split('T')[0]);
   const [title, setTitle] = useState("");
-  const [color, setColor] = useState("#93C5FD");
+  const [color, setColor] = useState("#3b82f6");
   const [note, setNote] = useState("");
-
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
   const [list, setList] = useState<any[]>([]);
 
   async function refresh() {
     setLoading(true);
-    setMessage(null);
     try {
-      // Show events around the chosen window, with some margin
       const events = await getEventsOverlappingRange(from, to);
       setList(events);
-    } catch (e: any) {
-      setMessage(e?.message ?? "Erreur chargement événements");
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => {
-    refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useEffect(() => { refresh(); }, []);
 
   async function handleCreate() {
-    setMessage(null);
+    if (!title) return;
     try {
-      if (!title.trim()) throw new Error("Titre requis");
-      if (from > to) throw new Error("La date de début doit être <= date de fin");
+      await createEvent({ from_date: from, to_date: to, title, color, note });
+      setTitle(""); setNote("");
+      refresh();
+    } catch (e: any) { alert(e.message); }
+  }
 
-      await createEvent({
-        title: title.trim(),
-        start_date: from,
-        end_date: to,
-        color: color || null,
-        note: note.trim() ? note.trim() : null,
-      });
-
-      setTitle("");
-      setNote("");
-      await refresh();
-      setMessage("Événement créé ✅");
-    } catch (e: any) {
-      setMessage(e?.message ?? "Erreur création événement");
-    }
+  async function handleDelete(id: string) {
+    if (!confirm("Supprimer cet événement ?")) return;
+    await deleteEvent(id);
+    refresh();
   }
 
   return (
-    <div style={{ maxWidth: 900, margin: "24px auto", padding: 16 }}>
-      <h1 style={{ marginTop: 0 }}>Événements (plages)</h1>
+    <div className="max-w-md mx-auto p-4 space-y-8 pb-20">
+      <header>
+        <h1 className="text-2xl font-bold text-slate-800">Événements</h1>
+        <p className="text-slate-500 text-sm">Notes contextuelles (vacances, blessures...)</p>
+      </header>
 
-      {message && (
-        <div style={{ marginTop: 12, background: "#111827", color: "white", padding: 12, borderRadius: 8 }}>
-          {message}
-        </div>
-      )}
-
-      <div style={{ marginTop: 12, border: "1px solid #e5e7eb", borderRadius: 10, padding: 12 }}>
-        <h2 style={{ marginTop: 0 }}>Créer un événement</h2>
-
-        <div style={{ display: "grid", gap: 10 }}>
-          <label style={{ display: "grid", gap: 6 }}>
-            Titre
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="ex: Colombie" style={{ padding: 10 }} />
-          </label>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <label style={{ display: "grid", gap: 6 }}>
-              Début
-              <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} style={{ padding: 10 }} />
-            </label>
-
-            <label style={{ display: "grid", gap: 6 }}>
-              Fin
-              <input type="date" value={to} onChange={(e) => setTo(e.target.value)} style={{ padding: 10 }} />
-            </label>
+      {/* FORMULAIRE */}
+      <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col">
+            <label className="text-xs font-bold text-slate-400 uppercase">Début</label>
+            <input type="date" value={from} onChange={e => setFrom(e.target.value)} className="border-b-2 py-1 outline-none focus:border-blue-500" />
           </div>
-
-          <label style={{ display: "grid", gap: 6 }}>
-            Couleur
-            <input type="color" value={color} onChange={(e) => setColor(e.target.value)} style={{ height: 40 }} />
-          </label>
-
-          <label style={{ display: "grid", gap: 6 }}>
-            Note (optionnel)
-            <textarea value={note} onChange={(e) => setNote(e.target.value)} style={{ padding: 10, minHeight: 70 }} />
-          </label>
-
-          <button onClick={handleCreate} style={{ padding: 12 }}>
-            Créer
-          </button>
+          <div className="flex flex-col">
+            <label className="text-xs font-bold text-slate-400 uppercase">Fin</label>
+            <input type="date" value={to} onChange={e => setTo(e.target.value)} className="border-b-2 py-1 outline-none focus:border-blue-500" />
+          </div>
         </div>
-      </div>
-
-      <div style={{ marginTop: 16 }}>
-        <h2 style={{ margin: "8px 0" }}>Liste (dans la fenêtre sélectionnée)</h2>
-        <button onClick={refresh} disabled={loading} style={{ padding: 10 }}>
-          {loading ? "..." : "Rafraîchir"}
+        <input 
+          placeholder="Titre (ex: Vacances Ski)" value={title} onChange={e => setTitle(e.target.value)}
+          className="w-full text-lg font-medium border-b-2 py-2 outline-none focus:border-blue-500"
+        />
+        <textarea 
+          placeholder="Note optionnelle..." value={note} onChange={e => setNote(e.target.value)}
+          className="w-full p-3 bg-slate-50 rounded-xl text-sm outline-none h-20"
+        />
+        <button onClick={handleCreate} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold active:scale-95 transition-transform">
+          Ajouter l'événement
         </button>
+      </section>
 
-        <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
-          {list.length === 0 ? (
-            <div style={{ opacity: 0.75 }}>Aucun événement.</div>
-          ) : (
-            list.map((ev) => (
-              <div
-                key={ev.id}
-                style={{
-                  border: "1px solid #e5e7eb",
-                  borderRadius: 10,
-                  padding: 12,
-                  borderLeft: `6px solid ${ev.color ?? "#93C5FD"}`,
-                }}
-              >
-                <b>{ev.title}</b>
-                <div style={{ opacity: 0.8 }}>
-                  {ev.start_date} → {ev.end_date}
-                </div>
-                {ev.note ? <div style={{ marginTop: 6 }}>{ev.note}</div> : null}
+      {/* LISTE */}
+      <div className="space-y-3">
+        <h2 className="font-bold text-slate-700">Historique récent</h2>
+        {list.map(ev => (
+          <div key={ev.id} className="bg-white p-4 rounded-xl border-l-4 shadow-sm flex justify-between items-start" style={{ borderLeftColor: ev.color }}>
+            <div>
+              <div className="font-bold">{ev.title}</div>
+              <div className="text-xs text-slate-500">
+                {format(parseISO(ev.from_date), 'dd MMM', { locale: fr })} → {format(parseISO(ev.to_date), 'dd MMM', { locale: fr })}
               </div>
-            ))
-          )}
-        </div>
+              {ev.note && <div className="text-sm text-slate-600 mt-2 italic">{ev.note}</div>}
+            </div>
+            <button onClick={() => handleDelete(ev.id)} className="text-slate-300 hover:text-red-500">🗑️</button>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -1,74 +1,59 @@
 import { useEffect, useMemo, useState } from "react";
-import { listCatalogExercises } from "../db/catalog";
+import { listCatalogExercises, updateCatalogExercise } from "../db/catalog"; // Assure-toi que update existe
 
 export default function CatalogPage() {
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState<string | null>(null);
   const [items, setItems] = useState<any[]>([]);
   const [q, setQ] = useState("");
 
   async function refresh() {
     setLoading(true);
-    setMessage(null);
     try {
       const list = await listCatalogExercises();
       setItems(list);
-    } catch (e: any) {
-      setMessage(e?.message ?? "Erreur");
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   }
 
-  useEffect(() => {
-    refresh();
-  }, []);
+  useEffect(() => { refresh(); }, []);
 
   const filtered = useMemo(() => {
     const qq = q.trim().toLowerCase();
-    if (!qq) return items;
-    return items.filter((x) => String(x.name).toLowerCase().includes(qq));
+    return items.filter(x => x.name.toLowerCase().includes(qq));
   }, [items, q]);
 
   return (
-    <div style={{ maxWidth: 900, margin: "24px auto", padding: 16 }}>
-      <h1 style={{ marginTop: 0 }}>Catalogue exercices</h1>
+    <div className="max-w-md mx-auto p-4 space-y-6 pb-20">
+      <header>
+        <h1 className="text-2xl font-bold text-slate-800">Catalogue</h1>
+        <p className="text-slate-500 text-sm">Gère tes exercices et liens techniques.</p>
+      </header>
 
-      {message && (
-        <div style={{ marginTop: 12, background: "#111827", color: "white", padding: 12, borderRadius: 8 }}>
-          {message}
-        </div>
-      )}
-
-      <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
-        <label style={{ display: "grid", gap: 6 }}>
-          Recherche
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ex: traction" style={{ padding: 10 }} />
-        </label>
+      <div className="sticky top-0 bg-slate-50/80 backdrop-blur-md py-2">
+        <input 
+          placeholder="Rechercher un exercice..." 
+          value={q} onChange={e => setQ(e.target.value)}
+          className="w-full p-3 rounded-xl border border-slate-200 shadow-sm outline-none focus:ring-2 focus:ring-blue-500"
+        />
       </div>
 
-      <div style={{ marginTop: 16 }}>
+      <div className="space-y-3">
         {loading ? (
-          <div>Chargement…</div>
+          <div className="text-center py-10 text-slate-400">Chargement...</div>
         ) : (
-          <div style={{ display: "grid", gap: 8 }}>
-            {filtered.map((x: any) => (
-              <div key={x.id} style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: 12 }}>
-                <b>{x.name}</b>
-
-                {x.youtube_url ? (
-                  <div style={{ marginTop: 6 }}>
-                    <a href={x.youtube_url} target="_blank" rel="noreferrer">
-                      Voir sur YouTube
-                    </a>
-                  </div>
-                ) : null}
-
-                {x.note ? <div style={{ marginTop: 8, opacity: 0.9 }}>{x.note}</div> : null}
+          filtered.map(item => (
+            <div key={item.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
+              <div className="flex justify-between items-start">
+                <span className="font-bold text-slate-800">{item.name}</span>
+                {item.youtube_url && (
+                  <a href={item.youtube_url} target="_blank" rel="noreferrer" className="text-red-600 text-sm font-medium">
+                    YouTube ↗
+                  </a>
+                )}
               </div>
-            ))}
-            {filtered.length === 0 && <div style={{ opacity: 0.75 }}>Aucun résultat.</div>}
-          </div>
+              {item.note && <p className="text-xs text-slate-500 italic">{item.note}</p>}
+            </div>
+          ))
         )}
       </div>
     </div>

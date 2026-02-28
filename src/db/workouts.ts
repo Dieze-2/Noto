@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabaseClient";
 export type WorkoutRow = {
   id: string;
   user_id: string;
-  date: string; // YYYY-MM-DD
+  date: string;
   title: string | null;
   note: string | null;
   created_at: string;
@@ -22,15 +22,31 @@ export type WorkoutExerciseRow = {
   created_at: string;
 };
 
-export async function getWorkoutsByDate(dateISO: string): Promise<WorkoutRow[]> {
+export async function getOrCreateWorkout(dateISO: string): Promise<WorkoutRow> {
+  const { data: authData } = await supabase.auth.getUser();
+  const userId = authData.user?.id;
+  if (!userId) throw new Error("Not authenticated");
+
+  // On cherche le workout
   const { data, error } = await supabase
     .from("workouts")
     .select("*")
+    .eq("user_id", userId)
     .eq("date", dateISO)
-    .order("created_at", { ascending: true });
+    .maybeSingle();
 
   if (error) throw error;
-  return (data ?? []) as WorkoutRow[];
+  if (data) return data;
+
+  // Sinon on le crée
+  const { data: newData, error: insError } = await supabase
+    .from("workouts")
+    .insert({ user_id: userId, date: dateISO })
+    .select()
+    .single();
+
+  if (insError) throw insError;
+  return newData;
 }
 
 export async function getWorkoutExercises(workoutId: string): Promise<WorkoutExerciseRow[]> {
@@ -41,65 +57,20 @@ export async function getWorkoutExercises(workoutId: string): Promise<WorkoutExe
     .order("sort_order", { ascending: true });
 
   if (error) throw error;
-  return (data ?? []) as WorkoutExerciseRow[];
+  return data || [];
 }
 
-export async function getOrCreateWorkout(dateISO: string): Promise<WorkoutRow> {
-  const { data: userData, error: userErr } = await supabase.auth.getUser();
-  if (userErr) throw userErr;
-
-  const userId = userData.user?.id;
-  if (!userId) throw new Error("Not authenticated");
-
-  const { data: existing, error: findErr } = await supabase
-    .from("workouts")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("date", dateISO)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-
-  if (findErr) throw findErr;
-  if (existing) return existing as WorkoutRow;
-
-  const { data, error } = await supabase
-    .from("workouts")
-    .insert({ user_id: userId, date: dateISO, title: null, note: null })
-    .select("*")
-    .single();
-
+export async function addWorkoutExercise(payload: Partial<WorkoutExerciseRow>) {
+  const { error } = await supabase
+    .from("workout_exercises")
+    .insert(payload);
   if (error) throw error;
-  return data as WorkoutRow;
 }
 
-export async function addWorkoutExercise(payload: {
-  workout_id: string;
-  exercise_name: string;
-  load_type: "PDC" | "PDC_PLUS" | "KG" | "TEXT";
-  load_g: number | null;
-  load_text: string | null;
-  reps: number | null;
-  comment: string | null;
-}) {
-  const { data: maxRow, error: maxErr } = await supabase
+export async function deleteWorkoutExercise(id: string) {
+  const { error } = await supabase
     .from("workout_exercises")
-    .select("sort_order")
-    .eq("workout_id", payload.workout_id)
-    .order("sort_order", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (maxErr) throw maxErr;
-
-  const nextOrder = ((maxRow as any)?.sort_order ?? -1) + 1;
-
-  const { data, error } = await supabase
-    .from("workout_exercises")
-    .insert({ ...payload, sort_order: nextOrder })
-    .select("*")
-    .single();
-
+    .delete()
+    .eq("id", id);
   if (error) throw error;
-  return data as WorkoutExerciseRow;
 }
