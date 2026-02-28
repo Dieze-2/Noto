@@ -49,7 +49,6 @@ export default function LoginPage() {
       <div className="relative w-full max-w-md">
         <div className="glass-card bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl border border-white/30 dark:border-slate-800/50 rounded-[3rem] p-10 shadow-2xl shadow-mineral-900/10 dark:shadow-black/50">
           <header className="text-center mb-10 space-y-3">
-            {/* Logo Noto Intégré (N en CSS inspiré par le logo généré) */}
             <div className="flex justify-center">
               <div className="w-20 h-20 bg-mineral-800 dark:bg-sauge-100 rounded-[2rem] flex items-center justify-center shadow-xl">
                 <span className="text-4xl font-black text-white dark:text-mineral-900">N</span>
@@ -109,7 +108,7 @@ export default function LoginPage() {
             )}
           </form>
         </div>
-      </footer>
+      </div>
     </div>
   );
 }
