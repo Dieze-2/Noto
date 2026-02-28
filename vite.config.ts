@@ -3,13 +3,12 @@ import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
-  // Indique à Vite que l'app est dans le sous-dossier /Noto/
-  base: "./", 
+  base: "/Noto/", 
   plugins: [
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      injectRegister: "auto",
+      includeAssets: ["favicon.svg", "icons/*.png"],
       manifest: {
         name: "NOTO",
         short_name: "Noto",
@@ -32,5 +31,8 @@ export default defineConfig({
         ]
       }
     })
-  ]
+  ],
+  build: {
+    outDir: "dist",
+  }
 });

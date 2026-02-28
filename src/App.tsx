@@ -13,9 +13,6 @@ import ExportPage from "./pages/ExportPage";
 import LoginPage from "./pages/LoginPage";
 import PrintPage from "./pages/PrintPage";
 
-/**
- * Gardien de route : Redirige vers /login si non authentifié
- */
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
 
@@ -39,66 +36,16 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <AuthProvider>
-      {/* HashRouter est la solution miracle pour GitHub Pages sans erreurs de routage */}
       <HashRouter>
         <Routes>
-          {/* Route publique */}
           <Route path="/login" element={<LoginPage />} />
-
-          {/* Routes privées */}
-          <Route
-            path="/"
-            element={
-              <PrivateRoute>
-                <TodayPage />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/week"
-            element={
-              <PrivateRoute>
-                <WeekPage />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/catalog"
-            element={
-              <PrivateRoute>
-                <CatalogPage />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/events"
-            element={
-              <PrivateRoute>
-                <EventsPage />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/import"
-            element={
-              <PrivateRoute>
-                <SettingsPage />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/export"
-            element={
-              <PrivateRoute>
-                <ExportPage />
-              </PrivateRoute>
-            }
-          />
-
-          {/* Route d'impression (sans Shell) */}
+          <Route path="/" element={<PrivateRoute><TodayPage /></PrivateRoute>} />
+          <Route path="/week" element={<PrivateRoute><WeekPage /></PrivateRoute>} />
+          <Route path="/catalog" element={<PrivateRoute><CatalogPage /></PrivateRoute>} />
+          <Route path="/events" element={<PrivateRoute><EventsPage /></PrivateRoute>} />
+          <Route path="/import" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
+          <Route path="/export" element={<PrivateRoute><ExportPage /></PrivateRoute>} />
           <Route path="/print" element={<PrintPage />} />
-
-          {/* Fallback vers l'accueil */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </HashRouter>
