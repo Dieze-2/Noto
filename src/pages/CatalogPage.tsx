@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { listCatalogExercises, updateCatalogExercise } from "../db/catalog"; // Assure-toi que update existe
+import { listCatalogExercises } from "../db/catalog";
 
 export default function CatalogPage() {
   const [loading, setLoading] = useState(true);
@@ -23,38 +23,23 @@ export default function CatalogPage() {
   }, [items, q]);
 
   return (
-    <div className="max-w-md mx-auto p-4 space-y-6 pb-20">
+    <div className="max-w-md mx-auto p-4 space-y-6 pb-20 dark:text-white">
       <header>
-        <h1 className="text-2xl font-bold text-slate-800">Catalogue</h1>
-        <p className="text-slate-500 text-sm">Gère tes exercices et liens techniques.</p>
+        <h1 className="text-2xl font-bold">Catalogue</h1>
       </header>
-
-      <div className="sticky top-0 bg-slate-50/80 backdrop-blur-md py-2">
-        <input 
-          placeholder="Rechercher un exercice..." 
-          value={q} onChange={e => setQ(e.target.value)}
-          className="w-full p-3 rounded-xl border border-slate-200 shadow-sm outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-
+      <input 
+        placeholder="Rechercher..." value={q} onChange={e => setQ(e.target.value)}
+        className="w-full p-3 rounded-xl border dark:bg-slate-800 dark:border-slate-700 outline-none"
+      />
       <div className="space-y-3">
-        {loading ? (
-          <div className="text-center py-10 text-slate-400">Chargement...</div>
-        ) : (
-          filtered.map(item => (
-            <div key={item.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
-              <div className="flex justify-between items-start">
-                <span className="font-bold text-slate-800">{item.name}</span>
-                {item.youtube_url && (
-                  <a href={item.youtube_url} target="_blank" rel="noreferrer" className="text-red-600 text-sm font-medium">
-                    YouTube ↗
-                  </a>
-                )}
-              </div>
-              {item.note && <p className="text-xs text-slate-500 italic">{item.note}</p>}
+        {loading ? <p>Chargement...</p> : filtered.map(item => (
+          <div key={item.id} className="bg-white dark:bg-slate-900 p-4 rounded-2xl border dark:border-slate-800">
+            <div className="flex justify-between">
+              <span className="font-bold">{item.name}</span>
+              {item.youtube_url && <a href={item.youtube_url} className="text-red-500 text-sm">YouTube ↗</a>}
             </div>
-          ))
-        )}
+          </div>
+        ))}
       </div>
     </div>
   );

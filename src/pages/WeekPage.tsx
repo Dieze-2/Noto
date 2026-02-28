@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { addDays, subDays, format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { getDailyMetricsRange, DailyMetricsRow } from "../db/dailyMetrics";
+import { getDailyMetricsRange, type DailyMetricsRow } from "../db/dailyMetrics";
 import { formatKgFR, gramsToKg } from "../lib/numberFR";
 import { weekDays, isoDate } from "../lib/week";
 import { calculateAverage, calculateWeightDiff } from "../lib/calculations";

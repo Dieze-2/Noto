@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../lib/supabaseClient";
 import { getDailyMetricsByDate, upsertDailyMetrics } from "../db/dailyMetrics";
 import { formatKgFR, gramsToKg, kgToGramsInt, parseDecimalFlexible } from "../lib/numberFR";
 import {
@@ -74,7 +73,7 @@ export default function TodayPage() {
     try {
       const s = parseInt(stepsStr) || null;
       const k = parseInt(kcalStr) || null;
-      const wGrams = weightKgStr ? kgToGramsInt(parseDecimalFlexible(weightKgStr)) : null;
+      const wGrams = weightKgStr ? kgToGramsInt(parseDecimalFlexible(weightKgStr) ?? 0) : null;
       await upsertDailyMetrics({ date, steps: s, kcal: k, weight_g: wGrams, note });
       alert("Enregistré !");
     } catch (err: any) {
@@ -88,7 +87,7 @@ export default function TodayPage() {
     if (!workoutId || !newName) return;
     try {
       const loadG = (newLoadType === "KG" || newLoadType === "PDC_PLUS") 
-        ? kgToGramsInt(parseDecimalFlexible(newLoadVal)) 
+       ? kgToGramsInt(parseDecimalFlexible(newLoadVal) ?? 0)
         : null;
       const loadText = newLoadType === "TEXT" ? newLoadVal : null;
       const reps = parseInt(newReps) || null;

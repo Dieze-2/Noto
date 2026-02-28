@@ -1,50 +1,38 @@
 import { supabase } from "../lib/supabaseClient";
 
-export type EventRow = {
-  id: string;
-  user_id: string;
-  title: string;
-  start_date: string; // YYYY-MM-DD
-  end_date: string;   // YYYY-MM-DD
-  color: string | null;
-  note: string | null;
-  created_at: string;
-};
-
-export async function getEventsOverlappingRange(fromISO: string, toISO: string): Promise<EventRow[]> {
-  // overlap rule: start <= to AND end >= from
+export async function getEventsOverlappingRange(from: string, to: string) {
   const { data, error } = await supabase
     .from("events")
     .select("*")
-    .lte("start_date", toISO)
-    .gte("end_date", fromISO)
+    .or(`start_date.lte.${to},end_date.gte.${from}`)
     .order("start_date", { ascending: true });
 
   if (error) throw error;
-  return (data ?? []) as EventRow[];
+  return data || [];
 }
 
-export async function createEvent(payload: {
-  title: string;
-  start_date: string;
-  end_date: string;
-  color: string | null;
-  note: string | null;
+export async function createEvent(payload: { 
+  title: string; 
+  start_date: string; 
+  end_date: string; 
+  color?: string; 
+  note?: string 
 }) {
-  const { data: userData, error: userErr } = await supabase.auth.getUser();
-  if (userErr) throw userErr;
+  const { data: authData } = await supabase.auth.getUser();
+  if (!authData.user) throw new Error("Non authentifié");
 
-  const userId = userData.user?.id;
-  if (!userId) throw new Error("Not authenticated");
-
-  const { data, error } = await supabase
-    .from("events")
-    .insert({ user_id: userId, ...payload })
-    .select("*")
-    .single();
+  const { error } = await supabase.from("events").insert([
+    {
+      user_id: authData.user.id,
+      title: payload.title,
+      start_date: payload.start_date,
+      end_date: payload.end_date,
+      color: payload.color || "#3b82f6",
+      note: payload.note,
+    },
+  ]);
 
   if (error) throw error;
-  return data as EventRow;
 }
 
 export async function deleteEvent(id: string) {
