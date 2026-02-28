@@ -1,47 +1,103 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
-
-import LoginPage from "./pages/LoginPage";
-import TodayPage from "./pages/AppHomePage";
-import WeekPage from "./pages/WeekPage";
-import ImportPage from "./pages/ImportPage";
-import EventsPage from "./pages/EventsPage";
-import CatalogPage from "./pages/CatalogPage";
-import ExportPage from "./pages/ExportPage";
-import PrintPage from "./pages/PrintPage";
-
 import AppShell from "./components/AppShell";
 
-function ProtectedLayout() {
+// Import des pages refondues
+import TodayPage from "./pages/AppHomePage";
+import WeekPage from "./pages/WeekPage";
+import CatalogPage from "./pages/CatalogPage";
+import EventsPage from "./pages/EventsPage";
+import SettingsPage from "./pages/ImportPage"; // On l'utilise comme page de paramètres
+import ExportPage from "./pages/ExportPage";
+import LoginPage from "./pages/LoginPage";
+import PrintPage from "./pages/PrintPage";
+
+/**
+ * Gardien de route : Redirige vers /login si non authentifié
+ */
+function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
 
-  if (loading) return <div className="p-6">Chargement…</div>;
-  if (!session) return <Navigate to="/login" replace />;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className="animate-pulse text-indigo-500 font-black tracking-widest uppercase text-xs">
+          Authentification...
+        </div>
+      </div>
+    );
+  }
 
-  return (
-    <AppShell>
-      <Routes>
-        <Route path="/" element={<TodayPage />} />
-        <Route path="/week" element={<WeekPage />} />
-        <Route path="/events" element={<EventsPage />} />
-        <Route path="/catalog" element={<CatalogPage />} />
-        <Route path="/import" element={<ImportPage />} />
-        <Route path="/export" element={<ExportPage />} />
-        <Route path="/print" element={<PrintPage />} />
-      </Routes>
-    </AppShell>
-  );
+  if (!session) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <AppShell>{children}</AppShell>;
 }
 
 export default function App() {
-  const basename = import.meta.env.DEV ? "" : "/Noto";
-
   return (
     <AuthProvider>
-      <BrowserRouter basename={basename}>
+      <BrowserRouter basename="/Noto">
         <Routes>
+          {/* Route publique */}
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/*" element={<ProtectedLayout />} />
+
+          {/* Routes privées avec AppShell Glassmorphism */}
+          <Route
+            path="/"
+            element={
+              <PrivateRoute>
+                <TodayPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/week"
+            element={
+              <PrivateRoute>
+                <WeekPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/catalog"
+            element={
+              <PrivateRoute>
+                <CatalogPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/events"
+            element={
+              <PrivateRoute>
+                <EventsPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/import"
+            element={
+              <PrivateRoute>
+                <SettingsPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/export"
+            element={
+              <PrivateRoute>
+                <ExportPage />
+              </PrivateRoute>
+            }
+          />
+
+          {/* Route d'impression (sans Shell) */}
+          <Route path="/print" element={<PrintPage />} />
+
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

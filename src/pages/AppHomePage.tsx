@@ -31,7 +31,7 @@ export default function TodayPage() {
   // Workout
   const [workoutId, setWorkoutId] = useState<string | null>(null);
   const [exercises, setExercises] = useState<WorkoutExerciseRow[]>([]);
-  const [catalog, setCatalog] = useState<{ name: string; youtube_url?: string | null }[]>([]);
+  const [catalog, setCatalog] = useState<{ name: string }[]>([]);
 
   // New exercise form
   const [newExName, setNewExName] = useState("");
@@ -54,16 +54,11 @@ export default function TodayPage() {
           setWeightKgStr(m.weight_g ? gramsToKg(m.weight_g).toString() : "");
           setNote(m.note ?? "");
         }
-
         const w = await getOrCreateWorkout(date);
         setWorkoutId(w.id);
-        const exList = await getWorkoutExercises(w.id);
-        setExercises(exList);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
+        setExercises(await getWorkoutExercises(w.id));
+      } catch (e) { console.error(e); }
+      finally { setLoading(false); }
     }
     init();
   }, [date]);
@@ -71,33 +66,24 @@ export default function TodayPage() {
   async function handleSaveMetrics() {
     setSaving(true);
     try {
-      const s = stepsStr.trim() ? parseInt(stepsStr) : null;
-      const k = kcalStr.trim() ? parseInt(kcalStr) : null;
-      // Correction erreur TS77: ajout de ?? 0 pour éviter le type null
       const wGrams = weightKgStr ? kgToGramsInt(parseDecimalFlexible(weightKgStr) ?? 0) : null;
-
       await upsertDailyMetrics({
         date,
-        steps: isNaN(s as number) ? null : s,
-        kcal: isNaN(k as number) ? null : k,
+        steps: stepsStr.trim() ? parseInt(stepsStr) : null,
+        kcal: kcalStr.trim() ? parseInt(kcalStr) : null,
         weight_g: wGrams,
         note: note.trim() || null,
       });
-    } catch (e: any) {
-      alert(e.message);
-    } finally {
-      setSaving(false);
-    }
+    } catch (e: any) { alert(e.message); }
+    finally { setSaving(false); }
   }
 
   async function handleAddExercise() {
     if (!workoutId || !newExName.trim()) return;
     try {
-      // Correction erreur TS91: ajout de ?? 0
       const loadG = (newLoadType === "KG" || newLoadType === "PDC_PLUS")
         ? kgToGramsInt(parseDecimalFlexible(newLoadVal) ?? 0)
         : null;
-
       await addWorkoutExercise({
         workout_id: workoutId,
         exercise_name: newExName.trim(),
@@ -106,153 +92,140 @@ export default function TodayPage() {
         load_text: newLoadType === "TEXT" ? newLoadVal : null,
         reps: newReps.trim() ? parseInt(newReps) : null,
       });
-
-      setNewExName("");
-      setNewLoadVal("");
-      setNewReps("");
+      setNewExName(""); setNewLoadVal(""); setNewReps("");
       setExercises(await getWorkoutExercises(workoutId));
-    } catch (e: any) {
-      alert(e.message);
-    }
+    } catch (e: any) { alert(e.message); }
   }
 
-  async function handleDeleteExercise(id: string) {
-    if (!workoutId || !confirm("Supprimer ?")) return;
-    try {
-      await deleteWorkoutExercise(id);
-      setExercises(await getWorkoutExercises(workoutId));
-    } catch (e: any) {
-      alert(e.message);
-    }
-  }
-
-  if (loading) return <div className="p-6">Chargement...</div>;
+  if (loading) return <div className="p-8 text-slate-400 animate-pulse">Initialisation...</div>;
 
   return (
-    <div className="max-w-md mx-auto space-y-6 pb-20">
-      <header className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold dark:text-white">Aujourd'hui</h1>
+    <div className="max-w-xl mx-auto px-4 pt-8 pb-24 space-y-10 antialiased">
+      {/* Header Minimaliste */}
+      <header className="flex justify-between items-end px-2">
+        <div>
+          <p className="text-xs font-bold tracking-[0.2em] text-indigo-500 uppercase mb-1">Aujourd'hui</p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Statistiques</h1>
+        </div>
         <button
           onClick={handleSaveMetrics}
           disabled={saving}
-          className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm"
+          className="relative px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold rounded-full transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-indigo-500/20"
         >
           {saving ? "..." : "Enregistrer"}
         </button>
       </header>
 
-      {/* Métriques */}
-      <section className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
-        <div className="grid grid-cols-3 gap-4">
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pas</label>
-            <input
-              type="number"
-              value={stepsStr}
-              onChange={(e) => setStepsStr(e.target.value)}
-              className="w-full text-lg font-semibold bg-transparent border-b border-slate-200 dark:border-slate-700 dark:text-white outline-none focus:border-blue-500 transition-colors"
-              placeholder="0"
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Kcal</label>
-            <input
-              type="number"
-              value={kcalStr}
-              onChange={(e) => setKcalStr(e.target.value)}
-              className="w-full text-lg font-semibold bg-transparent border-b border-slate-200 dark:border-slate-700 dark:text-white outline-none focus:border-blue-500 transition-colors"
-              placeholder="0"
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Poids (kg)</label>
-            <input
-              type="text"
-              inputMode="decimal"
-              value={weightKgStr}
-              onChange={(e) => setWeightKgStr(e.target.value)}
-              className="w-full text-lg font-semibold bg-transparent border-b border-slate-200 dark:border-slate-700 dark:text-white outline-none focus:border-blue-500 transition-colors"
-              placeholder="0,0"
-            />
-          </div>
+      {/* Bento Grid Metrics */}
+      <section className="grid grid-cols-2 gap-4">
+        <MetricCard 
+            label="Pas" 
+            value={stepsStr} 
+            onChange={setStepsStr} 
+            placeholder="0" 
+            unit="steps"
+            icon="👣"
+        />
+        <MetricCard 
+            label="Calories" 
+            value={kcalStr} 
+            onChange={setKcalStr} 
+            placeholder="0" 
+            unit="kcal"
+            icon="🔥"
+        />
+        <div className="col-span-2">
+          <MetricCard 
+              label="Poids Corporel" 
+              value={weightKgStr} 
+              onChange={setWeightKgStr} 
+              placeholder="00.0" 
+              unit="kg"
+              icon="⚖️"
+          />
         </div>
+      </section>
+
+      {/* Note du jour - Glassmorphism Card */}
+      <div className="group relative overflow-hidden rounded-3xl bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/20 dark:border-slate-800/50 p-1 transition-all focus-within:ring-2 ring-indigo-500/30">
         <textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="Note du jour..."
-          className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-sm dark:text-slate-200 outline-none min-h-[80px]"
+          placeholder="Une réflexion sur la séance ?"
+          className="w-full bg-transparent p-4 text-sm text-slate-700 dark:text-slate-200 outline-none min-h-[100px] placeholder:text-slate-400"
         />
-      </section>
+      </div>
 
-      {/* Entraînement */}
-      <section className="space-y-4">
-        <h2 className="text-lg font-bold dark:text-white px-1">Entraînement</h2>
+      {/* Workout Section */}
+      <section className="space-y-6">
+        <div className="flex items-center justify-between px-2">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Entraînement</h2>
+            <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                {exercises.length} Exos
+            </span>
+        </div>
 
         <div className="space-y-3">
           {exercises.map((ex) => (
-            <div key={ex.id} className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex justify-between items-center group">
+            <div key={ex.id} className="flex items-center justify-between p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm transition-all hover:translate-x-1">
               <div>
-                <div className="font-bold dark:text-white">{ex.exercise_name}</div>
-                <div className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-                  {renderLoad(ex)} {ex.reps ? `× ${ex.reps}` : ""}
-                </div>
+                <h3 className="font-bold text-slate-900 dark:text-white">{ex.exercise_name}</h3>
+                <p className="text-sm font-medium text-slate-400">
+                    <span className="text-indigo-500">{renderLoad(ex)}</span>
+                    {ex.reps && <span className="ml-2">× {ex.reps} reps</span>}
+                </p>
               </div>
-              <button
-                onClick={() => handleDeleteExercise(ex.id)}
-                className="opacity-0 group-hover:opacity-100 p-2 text-slate-300 hover:text-red-500 transition-all"
-              >
-                🗑️
+              <button onClick={() => deleteWorkoutExercise(ex.id).then(() => getWorkoutExercises(workoutId!).then(setExercises))} className="p-2 text-slate-300 hover:text-rose-500 transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
           ))}
         </div>
 
-        {/* Ajouter exercice */}
-        <div className="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-2xl space-y-3">
+        {/* Formulaire ajout rapide */}
+        <div className="p-6 rounded-[2.5rem] bg-indigo-50 dark:bg-indigo-950/20 border-2 border-dashed border-indigo-200 dark:border-indigo-900/50 space-y-4">
           <input
             list="catalog-list"
             placeholder="Nom de l'exercice..."
             value={newExName}
             onChange={(e) => setNewExName(e.target.value)}
-            className="w-full p-3 rounded-xl bg-white dark:bg-slate-900 dark:text-white shadow-sm outline-none border-none"
+            className="w-full bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-inner outline-none focus:ring-2 ring-indigo-500/20 transition-all dark:text-white"
           />
           <datalist id="catalog-list">
-            {catalog.map((c) => (
-              <option key={c.name} value={c.name} />
-            ))}
+            {catalog.map(c => <option key={c.name} value={c.name} />)}
           </datalist>
 
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <select
               value={newLoadType}
               onChange={(e) => setNewLoadType(e.target.value as LoadType)}
-              className="p-3 rounded-xl bg-white dark:bg-slate-900 dark:text-white shadow-sm outline-none border-none text-sm"
+              className="bg-white dark:bg-slate-900 px-3 py-3 rounded-2xl text-xs font-bold text-indigo-600 uppercase tracking-wider outline-none"
             >
               <option value="KG">KG</option>
               <option value="PDC">PDC</option>
               <option value="PDC_PLUS">PDC+</option>
-              <option value="TEXT">Texte</option>
+              <option value="TEXT">T-XT</option>
             </select>
             <input
               placeholder="Charge"
               value={newLoadVal}
               onChange={(e) => setNewLoadVal(e.target.value)}
               disabled={newLoadType === "PDC"}
-              className="flex-1 p-3 rounded-xl bg-white dark:bg-slate-900 dark:text-white shadow-sm outline-none border-none text-sm disabled:opacity-50"
+              className="flex-1 bg-white dark:bg-slate-900 p-3 rounded-2xl outline-none text-center font-bold text-slate-700 dark:text-white"
             />
             <input
               placeholder="Reps"
               type="number"
               value={newReps}
               onChange={(e) => setNewReps(e.target.value)}
-              className="w-20 p-3 rounded-xl bg-white dark:bg-slate-900 dark:text-white shadow-sm outline-none border-none text-sm"
+              className="w-20 bg-white dark:bg-slate-900 p-3 rounded-2xl outline-none text-center font-bold text-slate-700 dark:text-white"
             />
           </div>
           <button
             onClick={handleAddExercise}
-            className="w-full bg-slate-900 dark:bg-blue-600 text-white py-3 rounded-xl font-bold text-sm shadow-md active:scale-95 transition-transform"
+            className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl active:scale-[0.98] transition-all"
           >
-            Ajouter l'exercice
+            Ajouter au log
           </button>
         </div>
       </section>
@@ -260,9 +233,30 @@ export default function TodayPage() {
   );
 }
 
+function MetricCard({ label, value, onChange, placeholder, unit, icon }: any) {
+    return (
+        <div className="relative group bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm transition-all focus-within:border-indigo-500/50">
+            <div className="flex justify-between items-start mb-2">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{label}</span>
+                <span className="text-lg opacity-60 group-focus-within:opacity-100 transition-opacity">{icon}</span>
+            </div>
+            <div className="flex items-baseline gap-1">
+                <input
+                    type="text"
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    placeholder={placeholder}
+                    className="w-full text-2xl font-black bg-transparent outline-none text-slate-900 dark:text-white placeholder:text-slate-200 dark:placeholder:text-slate-800"
+                />
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{unit}</span>
+            </div>
+        </div>
+    );
+}
+
 function renderLoad(ex: WorkoutExerciseRow): string {
-  if (ex.load_type === "PDC") return "PDC";
-  if (ex.load_type === "PDC_PLUS") return `PDC + ${ex.load_g ? formatKgFR(gramsToKg(ex.load_g), 1) : "?"}kg`;
+  if (ex.load_type === "PDC") return "Poids du corps";
+  if (ex.load_type === "PDC_PLUS") return `Lesté ${ex.load_g ? formatKgFR(gramsToKg(ex.load_g), 1) : "?"}kg`;
   if (ex.load_type === "KG") return `${ex.load_g ? formatKgFR(gramsToKg(ex.load_g), 1) : "?"}kg`;
   return ex.load_text ?? "-";
 }

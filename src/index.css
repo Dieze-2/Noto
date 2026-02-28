@@ -1,14 +1,70 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@layer base {
-  body {
-    @apply transition-colors duration-200;
+@theme {
+  --color-indigo-500: #6366f1;
+  --color-indigo-600: #4f46e5;
+  /* Palette Naturelle 2026 */
+  --color-slate-50: #f8fafc;
+  --color-slate-900: #0f172a;
+  --color-slate-950: #020617;
+}
+
+:root {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  /* Thème Clair : Couleurs douces et organiques */
+  --bg-gradient: radial-gradient(circle at top left, #fdfcfb 0%, #e2d1c3 100%);
+  --app-bg: #f8fafc;
+  
+  color-scheme: light dark;
+  background-color: var(--app-bg);
+}
+
+/* Thème Sombre : Profondeur et contraste réduit pour les yeux */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-gradient: radial-gradient(circle at top right, #1e293b 0%, #0f172a 100%);
+    --app-bg: #020617;
   }
 }
 
-/* On force un fond très sombre pour éviter le flash blanc au chargement */
-html.dark {
-  background-color: #0f172a;
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: var(--bg-gradient);
+  background-attachment: fixed;
+  color: #1e293b;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    color: #f1f5f9;
+  }
+}
+
+/* Effets Glassmorphism Globaux */
+.glass {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dark .glass {
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Suppression des styles par défaut de Vite qui polluent le design */
+#root {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+input, button, textarea, select {
+  font-family: inherit;
 }
