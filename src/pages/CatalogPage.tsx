@@ -1,53 +1,51 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { listCatalogExercises } from "../db/catalog";
 
+const PlayIcon = () => (
+  <div className="w-10 h-10 rounded-full bg-menthe/10 flex items-center justify-center border border-menthe/20 group-hover:bg-menthe group-hover:scale-110 transition-all duration-300">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-menthe group-hover:text-black ml-1">
+      <path d="M5 3l14 9-14 9V3z" />
+    </svg>
+  </div>
+);
+
 export default function CatalogPage() {
-  const [loading, setLoading] = useState(true);
-  const [items, setItems] = useState<any[]>([]);
-  const [q, setQ] = useState("");
+  const [list, setList] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
-    listCatalogExercises().then(setItems).finally(() => setLoading(false));
-  }, []);
-
-  const filtered = useMemo(() => {
-    const qq = q.trim().toLowerCase();
-    return items.filter((x) => String(x.name).toLowerCase().includes(qq));
-  }, [items, q]);
+    listCatalogExercises(search).then(setList);
+  }, [search]);
 
   return (
-    <div className="max-w-xl mx-auto px-4 pt-8 pb-32 space-y-6">
+    <div className="max-w-xl mx-auto px-4 pt-8 pb-32 space-y-8">
       <header>
-        <p className="text-[10px] font-black tracking-widest text-sauge-600 uppercase mb-1">Bibliothèque</p>
-        <h1 className="text-3xl font-black text-mineral-900 dark:text-white">Exercices</h1>
+        <p className="text-[10px] font-black tracking-[0.3em] text-menthe uppercase mb-2 text-center">Base de données</p>
+        <h1 className="text-4xl font-black text-white tracking-tighter text-center uppercase italic">Exercices</h1>
+        <div className="mt-6 glass-card p-2 rounded-full flex items-center px-6">
+          <input placeholder="Rechercher un mouvement..." value={search} onChange={(e) => setSearch(e.target.value)} 
+            className="flex-1 py-3 text-sm placeholder:italic" />
+          <span className="opacity-30">🔍</span>
+        </div>
       </header>
 
-      <div className="sticky top-4 z-10">
-        <div className="glass-card rounded-2xl p-1 shadow-2xl">
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Rechercher un mouvement..."
-            className="w-full bg-transparent p-4 text-sm font-black outline-none"
-          />
-        </div>
-      </div>
-
-      <div className="grid gap-3">
-        {loading ? (
-          <div className="p-10 text-center animate-pulse text-sauge-600 font-black text-xs uppercase tracking-widest">Initialisation...</div>
-        ) : (
-          filtered.map((x) => (
-            <div key={x.id} className="glass-card p-5 rounded-[2rem] flex justify-between items-center transition-transform hover:scale-[1.01]">
-              <span className="font-black text-mineral-800 dark:text-sauge-100">{x.name}</span>
-              {x.youtube_url && (
-                <a href={x.youtube_url} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-sauge-100 dark:bg-mineral-800 flex items-center justify-center text-sauge-600">
-                  <span className="text-xs">▶</span>
-                </a>
-              )}
-            </div>
-          ))
-        )}
+      <div className="grid grid-cols-1 gap-4">
+        {list.map(ex => (
+          <div key={ex.id} className="glass-card p-4 rounded-[2rem] flex items-center gap-4 group">
+             <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center text-2xl">
+               {ex.category === 'Force' ? '💪' : '🏃'}
+             </div>
+             <div className="flex-1">
+               <h3 className="font-black text-white text-lg">{ex.name}</h3>
+               <p className="text-[10px] font-bold text-menthe uppercase tracking-widest">{ex.category}</p>
+             </div>
+             {ex.video_url && (
+               <a href={ex.video_url} target="_blank" rel="noreferrer">
+                 <PlayIcon />
+               </a>
+             )}
+          </div>
+        ))}
       </div>
     </div>
   );

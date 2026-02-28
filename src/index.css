@@ -1,38 +1,39 @@
 @import "tailwindcss";
 
 @theme {
-  --color-accent: #00ffa3;      /* Menthe vive */
-  --color-accent-soft: #b2ffe4;
-  --color-surface-sun: #ffffff;
-  --color-surface-night: #0a0c0c;
-  --color-text-main: #000000;
+  --color-menthe: #00ffa3;
+  --color-mineral-900: #111818;
+  --color-mineral-950: #050707;
 }
 
 :root {
-  --app-bg: radial-gradient(at 0% 0%, #f1f7f5 0%, #d4e5d8 100%);
-  --card-bg: rgba(255, 255, 255, 0.9);
-  --text-primary: #000000;
-  --text-secondary: #3a5c48; /* Sauge foncé pour contraste */
-  --nav-bg: rgba(255, 255, 255, 0.8);
-  color-scheme: light dark;
-}
-
-.dark {
+  /* On force les variables du mode sombre par défaut */
   --app-bg: radial-gradient(at 100% 0%, #0d1313 0%, #050707 100%);
   --card-bg: rgba(20, 26, 26, 0.8);
   --text-primary: #f1f7f5;
   --text-secondary: #00ffa3;
-  --nav-bg: rgba(10, 12, 12, 0.8);
+  --nav-bg: rgba(10, 12, 12, 0.9);
+  color-scheme: dark;
 }
 
 body {
   background: var(--app-bg);
   background-attachment: fixed;
   color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
 }
 
 .glass-card {
   background: var(--card-bg);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(128, 128, 128, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Style des inputs pour éviter le gris "mort" */
+input, select {
+  @apply bg-transparent outline-none text-[var(--text-primary)] font-black;
+}
+
+input::placeholder {
+  color: rgba(255, 255, 255, 0.2);
 }
