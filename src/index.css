@@ -4,9 +4,12 @@
   --color-sauge-50: #f1f7f5;
   --color-sauge-100: #e6efe6;
   --color-sauge-200: #abd1b5;
-  --color-sauge-600: #4a7a5d; /* Plus sombre pour texte */
+  --color-sauge-500: #6c8976;
+  --color-sauge-600: #4a7a5d;
+  --color-mineral-700: #4a5a5a;
   --color-mineral-800: #3d4a4a;
   --color-mineral-900: #1a2222;
+  --color-mineral-950: #0a0e0e;
 }
 
 :root {
@@ -14,26 +17,34 @@
   color-scheme: light dark;
 }
 
-/* Thème forcé par classe si besoin */
-.theme-light { color-scheme: light; --bg-gradient: radial-gradient(at 0% 0%, #f1f7f5 0%, #d4e5d8 100%); }
-.theme-dark { color-scheme: dark; --bg-gradient: radial-gradient(at 100% 0%, #1a2222 0%, #0a0e0e 100%); }
+.dark {
+  --bg-gradient: radial-gradient(at 100% 0%, #1a2222 0%, #0a0e0e 100%);
+}
 
 body {
   background: var(--bg-gradient);
   background-attachment: fixed;
   color: #1a2222;
   transition: background 0.3s ease;
+  min-height: 100vh;
 }
 
-.dark body { color: #e6efe6; }
+.dark body { color: #f1f7f5; }
 
 .glass-card {
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
 }
 
 .dark .glass-card {
-  background: rgba(26, 34, 34, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(30, 40, 40, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+}
+
+input, select, textarea {
+  @apply bg-white/50 dark:bg-mineral-800/50 border border-sauge-200/30 dark:border-white/10;
 }

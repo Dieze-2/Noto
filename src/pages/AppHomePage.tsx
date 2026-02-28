@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getDailyMetricsByDate, upsertDailyMetrics } from "../db/dailyMetrics";
 import { formatKgFR, gramsToKg, kgToGramsInt, parseDecimalFlexible } from "../lib/numberFR";
 import { addWorkoutExercise, getOrCreateWorkout, getWorkoutExercises, deleteWorkoutExercise, getLastExerciseByName } from "../db/workouts";
+import { listCatalogExercises } from "../db/catalog";
 import { subDays, addDays, format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
@@ -12,7 +13,10 @@ export default function TodayPage() {
   const [metrics, setMetrics] = useState({ steps: "", kcal: "", weight: "", note: "" });
   const [exercises, setExercises] = useState<any[]>([]);
   const [workoutId, setWorkoutId] = useState<string | null>(null);
+  
+  // Saisie Exercice
   const [newName, setNewName] = useState("");
+  const [suggestions, setSuggestions] = useState<any[]>([]);
   const [newLoadType, setNewLoadType] = useState<"KG" | "PDC" | "PDC_PLUS">("KG");
   const [newLoadVal, setNewLoadVal] = useState("");
   const [newReps, setNewReps] = useState("");
@@ -28,6 +32,7 @@ export default function TodayPage() {
         weight: m.weight_g ? gramsToKg(m.weight_g).toString() : "",
         note: m.note ?? ""
       } : { steps: "", kcal: "", weight: "", note: "" });
+      
       const w = await getOrCreateWorkout(dateStr);
       setWorkoutId(w.id);
       setExercises(await getWorkoutExercises(w.id));
@@ -35,52 +40,105 @@ export default function TodayPage() {
     load();
   }, [dateStr]);
 
-  const handleDelete = async (id: string) => {
-    await deleteWorkoutExercise(id);
-    setExercises(prev => prev.filter(ex => ex.id !== id));
+  const updateMetric = async (key: keyof typeof metrics, val: string) => {
+    const newMetrics = { ...metrics, [key]: val };
+    setMetrics(newMetrics);
+    await upsertDailyMetrics({
+      date: dateStr,
+      steps: parseInt(newMetrics.steps) || null,
+      kcal: parseInt(newMetrics.kcal) || null,
+      weight_g: kgToGramsInt(parseDecimalFlexible(newMetrics.weight) ?? 0),
+      note: newMetrics.note
+    });
+  };
+
+  const handleSearch = async (val: string) => {
+    setNewName(val);
+    if (val.length > 1) {
+      const cat = await listCatalogExercises();
+      setSuggestions(cat.filter(i => i.name.toLowerCase().includes(val.toLowerCase())).slice(0, 5));
+      getLastExerciseByName(val).then(setLastPerf);
+    } else {
+      setSuggestions([]);
+      setLastPerf(null);
+    }
   };
 
   return (
     <div className="max-w-xl mx-auto px-4 pt-6 pb-32 space-y-6">
       <nav className="flex items-center justify-between glass-card p-4 rounded-[2rem]">
-        <button onClick={() => setCurrentDate(subDays(currentDate, 1))} className="p-2 font-black text-mineral-800 dark:text-white">←</button>
+        <button onClick={() => setCurrentDate(subDays(currentDate, 1))} className="p-4 font-black text-mineral-800 dark:text-white">←</button>
         <div className="text-center">
-          <p className="text-[10px] font-black uppercase tracking-widest text-sauge-600">Bio-Log</p>
-          <p className="font-black capitalize">{format(currentDate, 'EEEE d MMMM', { locale: fr })}</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-sauge-600">Aujourd'hui</p>
+          <p className="font-black capitalize text-mineral-900 dark:text-white">{format(currentDate, 'EEEE d MMMM', { locale: fr })}</p>
         </div>
-        <button onClick={() => setCurrentDate(addDays(currentDate, 1))} className="p-2 font-black text-mineral-800 dark:text-white">→</button>
+        <button onClick={() => setCurrentDate(addDays(currentDate, 1))} className="p-4 font-black text-mineral-800 dark:text-white">→</button>
       </nav>
 
-      {/* Saisie (Simplifiée pour focus) */}
-      <section className="glass-card p-6 rounded-[2.5rem] border-b-4 border-sauge-200">
-        <input 
-          placeholder="Exercice..." 
-          value={newName} 
-          onChange={e => {
-            setNewName(e.target.value);
-            if(e.target.value.length > 2) getLastExerciseByName(e.target.value).then(setLastPerf);
-          }}
-          className="w-full bg-transparent text-xl font-black outline-none mb-4 placeholder:text-mineral-800/20"
-        />
+      {/* Bio-Metrics Grid */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="glass-card p-4 rounded-3xl">
+          <label className="text-[9px] font-black uppercase text-sauge-600 mb-1 block">Poids (kg)</label>
+          <input 
+            type="text" inputMode="decimal" value={metrics.weight} 
+            onChange={e => updateMetric('weight', e.target.value)}
+            className="w-full bg-transparent font-black text-xl outline-none" placeholder="0.0" 
+          />
+        </div>
+        <div className="glass-card p-4 rounded-3xl">
+          <label className="text-[9px] font-black uppercase text-sauge-600 mb-1 block">Pas</label>
+          <input 
+            type="number" value={metrics.steps} 
+            onChange={e => updateMetric('steps', e.target.value)}
+            className="w-full bg-transparent font-black text-xl outline-none" placeholder="0" 
+          />
+        </div>
+      </div>
+
+      {/* Saisie Exercice */}
+      <section className="glass-card p-6 rounded-[2.5rem] border-b-4 border-sauge-200 relative">
+        <div className="relative">
+          <input 
+            placeholder="Exercice..." 
+            value={newName} 
+            onChange={e => handleSearch(e.target.value)}
+            className="w-full bg-transparent text-xl font-black outline-none mb-2 placeholder:text-mineral-800/20 dark:text-white"
+          />
+          <AnimatePresence>
+            {suggestions.length > 0 && (
+              <motion.div initial={{opacity:0, y:-10}} animate={{opacity:1, y:0}} className="absolute z-50 w-full bg-white dark:bg-mineral-800 shadow-2xl rounded-2xl overflow-hidden border border-sauge-100 top-10">
+                {suggestions.map(s => (
+                  <button key={s.id} onClick={() => {setNewName(s.name); setSuggestions([]);}} className="w-full p-4 text-left text-xs font-black hover:bg-sauge-50 dark:hover:bg-mineral-700 uppercase tracking-widest">
+                    {s.name}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
         {lastPerf && (
-          <div className="mb-4 p-3 bg-sauge-100/50 rounded-2xl text-[10px] font-bold text-sauge-600">
+          <div className="mb-4 p-3 bg-sauge-100/30 dark:bg-sauge-900/20 rounded-2xl text-[10px] font-bold text-sauge-600 dark:text-sauge-200">
             Dernier : {lastPerf.load_type} {lastPerf.load_g ? formatKgFR(gramsToKg(lastPerf.load_g), 1) : ""} x {lastPerf.reps}
           </div>
         )}
+
         <div className="flex gap-2 mb-4">
-          <select value={newLoadType} onChange={e => setNewLoadType(e.target.value as any)} className="bg-sauge-200 p-3 rounded-xl font-black text-xs">
+          <select value={newLoadType} onChange={e => setNewLoadType(e.target.value as any)} className="bg-sauge-200 dark:bg-mineral-700 p-3 rounded-xl font-black text-xs appearance-none px-4">
             <option value="KG">KG</option>
             <option value="PDC">PDC</option>
             <option value="PDC_PLUS">PDC+</option>
           </select>
-          <input placeholder="Charge" value={newLoadVal} onChange={e => setNewLoadVal(e.target.value)} className="flex-1 bg-sauge-100 p-3 rounded-xl font-black" />
-          <input placeholder="Reps" value={newReps} onChange={e => setNewReps(e.target.value)} className="w-16 bg-sauge-100 p-3 rounded-xl font-black text-center" />
+          <input placeholder="Charge" type="text" inputMode="decimal" value={newLoadVal} onChange={e => setNewLoadVal(e.target.value)} className="flex-1 p-3 rounded-xl font-black" />
+          <input placeholder="Reps" type="number" value={newReps} onChange={e => setNewReps(e.target.value)} className="w-16 p-3 rounded-xl font-black text-center" />
         </div>
+        
         <textarea 
           placeholder="Séries secondaires..." 
           value={subSeries} onChange={e => setSubSeries(e.target.value)}
-          className="w-full bg-sauge-50/50 p-4 rounded-2xl text-xs min-h-[80px] outline-none mb-4"
+          className="w-full p-4 rounded-2xl text-xs min-h-[80px] outline-none mb-4"
         />
+        
         <button 
           onClick={async () => {
             if (!workoutId || !newName) return;
@@ -91,41 +149,28 @@ export default function TodayPage() {
             });
             setNewName(""); setExercises(await getWorkoutExercises(workoutId)); setLastPerf(null);
           }}
-          className="w-full bg-mineral-800 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest"
+          className="w-full bg-mineral-800 dark:bg-sauge-500 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-transform"
         >
           Enregistrer
         </button>
       </section>
 
-      {/* Liste avec Swipe to Delete */}
+      {/* Liste des exercices du jour */}
       <div className="space-y-3">
-        <AnimatePresence>
-          {exercises.map(ex => (
-            <motion.div 
-              key={ex.id}
-              initial={{ x: 0 }}
-              exit={{ x: -500, opacity: 0 }}
-              drag="x"
-              dragConstraints={{ right: 0, left: -100 }}
-              onDragEnd={(_, info) => { if (info.offset.x < -60) handleDelete(ex.id); }}
-              className="relative group cursor-grab active:cursor-grabbing"
-            >
-              {/* Fond de suppression (rouge) */}
-              <div className="absolute inset-0 bg-rose-500 rounded-3xl flex items-center justify-end px-6 text-white font-black text-xs">
-                SUPPRIMER
-              </div>
-              
-              {/* Carte exercice */}
-              <motion.div className="relative glass-card p-5 rounded-3xl border-l-4 border-sauge-500">
-                <div className="flex justify-between">
-                  <h3 className="font-black text-mineral-900 dark:text-white">{ex.exercise_name}</h3>
-                  <span className="text-sauge-600 font-black text-xs">{ex.load_type} {ex.load_g ? formatKgFR(gramsToKg(ex.load_g), 1) : ""} • {ex.reps}</span>
-                </div>
-                {ex.comment && <pre className="mt-2 text-[10px] opacity-60 font-medium whitespace-pre-wrap">{ex.comment}</pre>}
-              </motion.div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+        {exercises.map(ex => (
+          <div key={ex.id} className="glass-card p-5 rounded-3xl border-l-4 border-sauge-500 flex justify-between items-center">
+            <div>
+              <h3 className="font-black text-mineral-900 dark:text-white">{ex.exercise_name}</h3>
+              {ex.comment && <p className="text-[10px] text-mineral-500 mt-1 whitespace-pre-wrap">{ex.comment}</p>}
+            </div>
+            <div className="text-right">
+              <span className="text-sauge-600 dark:text-sauge-200 font-black text-xs">
+                {ex.load_type} {ex.load_g ? formatKgFR(gramsToKg(ex.load_g), 1) : ""} • {ex.reps}
+              </span>
+              <button onClick={async () => { await deleteWorkoutExercise(ex.id); setExercises(prev => prev.filter(e => e.id !== ex.id)); }} className="block text-[8px] font-black text-rose-500 uppercase mt-1">Supprimer</button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
