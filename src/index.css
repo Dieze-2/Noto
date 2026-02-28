@@ -1,70 +1,51 @@
 @import "tailwindcss";
 
 @theme {
-  --color-indigo-500: #6366f1;
-  --color-indigo-600: #4f46e5;
-  /* Palette Naturelle 2026 */
-  --color-slate-50: #f8fafc;
-  --color-slate-900: #0f172a;
-  --color-slate-950: #020617;
+  /* Palette Thème Clair (Inspirée de l'image 1) */
+  --color-sauge-50: #f1f7f5;
+  --color-sauge-100: #e6efe6;
+  --color-sauge-200: #abd1b5;
+  --color-sauge-500: #79b791;
+  /* Palette Thème Foncé (Inspirée de l'image 2) */
+  --color-mineral-700: #6c8976;
+  --color-mineral-800: #596869;
+  --color-mineral-900: #2d3737;
 }
 
 :root {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  /* Thème Clair : Couleurs douces et organiques */
-  --bg-gradient: radial-gradient(circle at top left, #fdfcfb 0%, #e2d1c3 100%);
-  --app-bg: #f8fafc;
-  
+  --bg-gradient: radial-gradient(at 0% 0%, #f1f7f5 0%, #abd1b5 100%);
   color-scheme: light dark;
-  background-color: var(--app-bg);
 }
 
-/* Thème Sombre : Profondeur et contraste réduit pour les yeux */
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg-gradient: radial-gradient(circle at top right, #1e293b 0%, #0f172a 100%);
-    --app-bg: #020617;
+    --bg-gradient: radial-gradient(at 100% 0%, #2d3737 0%, #0f1414 100%);
   }
 }
 
 body {
   margin: 0;
-  min-width: 320px;
   min-height: 100vh;
   background: var(--bg-gradient);
   background-attachment: fixed;
-  color: #1e293b;
+  font-family: 'Inter', sans-serif;
+  color: #2d3737;
 }
 
-@media (prefers-color-scheme: dark) {
-  body {
-    color: #f1f5f9;
-  }
+.dark body {
+  color: #e6efe6;
 }
 
-/* Effets Glassmorphism Globaux */
-.glass {
-  background: rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+/* Glassmorphism Bio-Design */
+.glass-card {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(121, 183, 145, 0.1);
 }
 
-.dark .glass {
-  background: rgba(15, 23, 42, 0.4);
+.dark .glass-card {
+  background: rgba(45, 55, 55, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-/* Suppression des styles par défaut de Vite qui polluent le design */
-#root {
-  width: 100%;
-  margin: 0;
-  padding: 0;
-}
-
-input, button, textarea, select {
-  font-family: inherit;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
 }

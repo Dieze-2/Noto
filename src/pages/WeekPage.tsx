@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { subDays, format } from "date-fns";
+import { subDays, addDays, format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { getDailyMetricsRange, DailyMetricsRow } from "../db/dailyMetrics";
 import { formatKgFR, gramsToKg } from "../lib/numberFR";
 import { weekDays, isoDate } from "../lib/week";
-import { calculateAverage, calculateWeightDiff } from "../lib/calculations";
 
 export default function WeekPage() {
   const [anchor, setAnchor] = useState(() => new Date());
@@ -22,63 +21,100 @@ export default function WeekPage() {
     load();
   }, [days]);
 
-  const stats = useMemo(() => ({
-    avgSteps: calculateAverage(metrics, 'steps'),
-    avgWeight: calculateAverage(metrics, 'weight_g'),
-    weightDiff: calculateWeightDiff(metrics)
-  }), [metrics]);
+  // --- POINT 3 : LOGIQUE DE CALCUL DES MOYENNES ---
+  const stats = useMemo(() => {
+    const weights = metrics.filter(m => m.weight_g).map(m => m.weight_g as number);
+    const steps = metrics.filter(m => m.steps).map(m => m.steps as number);
+    
+    const avgWeightG = weights.length 
+      ? weights.reduce((a, b) => a + b, 0) / weights.length 
+      : null;
+      
+    const avgSteps = steps.length 
+      ? Math.round(steps.reduce((a, b) => a + b, 0) / steps.length) 
+      : null;
 
-  if (loading) return <div className="p-10 text-center text-slate-400">Analyse des données...</div>;
+    return { avgWeightG, avgSteps };
+  }, [metrics]);
+
+  if (loading) return <div className="p-10 text-center text-mineral-700 animate-pulse font-black uppercase text-xs tracking-widest">Analyse bio-métrique...</div>;
 
   return (
-    <div className="max-w-xl mx-auto px-4 pt-8 pb-24 space-y-8">
+    <div className="max-w-xl mx-auto px-4 pt-8 pb-32 space-y-8">
       <header className="flex flex-col gap-1 px-2">
-        <h1 className="text-3xl font-black text-slate-900 dark:text-white">Performances</h1>
-        <div className="flex items-center gap-2">
-            <button onClick={() => setAnchor(subDays(anchor, 7))} className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-sm">←</button>
-            <span className="text-sm font-bold text-indigo-600">Semaine du {format(days[0], 'd MMMM', { locale: fr })}</span>
-            <button onClick={() => setAnchor(addDays(anchor, 7))} className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-sm">→</button>
+        <h1 className="text-3xl font-black text-mineral-900 dark:text-white">Performances</h1>
+        <div className="flex items-center gap-4 mt-2">
+            <button 
+              onClick={() => setAnchor(subDays(anchor, 7))} 
+              className="w-10 h-10 rounded-full glass-card flex items-center justify-center text-mineral-700 hover:bg-sauge-200 transition-colors"
+            >
+              ←
+            </button>
+            <span className="text-sm font-black text-sauge-500 uppercase tracking-widest">
+                Semaine du {format(days[0], 'd MMMM', { locale: fr })}
+            </span>
+            <button 
+              onClick={() => setAnchor(addDays(anchor, 7))} 
+              className="w-10 h-10 rounded-full glass-card flex items-center justify-center text-mineral-700 hover:bg-sauge-200 transition-colors"
+            >
+              →
+            </button>
         </div>
       </header>
 
-      {/* Highlights */}
+      {/* Highlights Bento */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="col-span-2 p-6 rounded-[2.5rem] bg-gradient-to-br from-indigo-600 to-violet-700 text-white shadow-xl shadow-indigo-500/20">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70">Moyenne Poids</p>
-            <div className="flex items-end gap-2 mt-1">
-                <span className="text-4xl font-black">{stats.avgWeight ? formatKgFR(gramsToKg(stats.avgWeight), 1) : "—"}</span>
-                <span className="text-lg font-bold opacity-80 mb-1.5">kg</span>
+        <div className="col-span-2 p-8 rounded-[2.5rem] bg-gradient-to-br from-mineral-800 to-mineral-900 text-white shadow-xl">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Moyenne Poids Hebdo</p>
+            <div className="flex items-end gap-2 mt-2">
+                <span className="text-5xl font-black">
+                  {stats.avgWeightG ? formatKgFR(gramsToKg(stats.avgWeightG), 1) : "—"}
+                </span>
+                <span className="text-xl font-bold opacity-50 mb-2">kg</span>
             </div>
-            {stats.weightDiff !== 0 && (
-                <div className={`mt-4 inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black ${stats.weightDiff < 0 ? 'bg-emerald-400/20 text-emerald-100' : 'bg-rose-400/20 text-rose-100'}`}>
-                    {stats.weightDiff > 0 ? '▲' : '▼'} {Math.abs(stats.weightDiff / 1000).toFixed(1)} kg vs semaine passée
-                </div>
-            )}
         </div>
 
-        <StatMiniCard label="Pas / Jour" value={stats.avgSteps?.toLocaleString('fr-FR') ?? "—"} icon="👣" color="text-amber-500" />
-        <StatMiniCard label="Exercices" value={metrics.length.toString()} icon="💪" color="text-sky-500" />
+        <div className="glass-card p-6 rounded-[2rem]">
+            <p className="text-[10px] font-black text-mineral-700/50 uppercase tracking-widest mb-2">Pas / Jour</p>
+            <p className="text-2xl font-black text-mineral-900 dark:text-sauge-100">
+              {stats.avgSteps?.toLocaleString('fr-FR') ?? "—"}
+            </p>
+        </div>
+
+        <div className="glass-card p-6 rounded-[2rem]">
+            <p className="text-[10px] font-black text-mineral-700/50 uppercase tracking-widest mb-2">Jours Actifs</p>
+            <p className="text-2xl font-black text-sauge-500">
+              {metrics.length} / 7
+            </p>
+        </div>
       </div>
 
-      {/* Liste des jours style "Timeline" */}
+      {/* Timeline Journalière */}
       <div className="space-y-3">
-        <h3 className="px-2 text-xs font-black text-slate-400 uppercase tracking-widest">Journalier</h3>
+        <h3 className="px-2 text-[10px] font-black text-mineral-700/40 uppercase tracking-[0.2em]">Détails de la période</h3>
         {days.map(d => {
             const m = metrics.find(x => x.date === isoDate(d));
             return (
-                <div key={d.toString()} className="group flex items-center justify-between p-4 rounded-3xl bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border border-white/20 dark:border-slate-800/50 transition-all hover:bg-white dark:hover:bg-slate-900">
+                <div key={d.toString()} className="glass-card flex items-center justify-between p-5 rounded-3xl transition-all hover:translate-x-1">
                     <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs ${m ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400' : 'bg-slate-50 text-slate-300 dark:bg-slate-800/40'}`}>
-                            {format(d, 'EE', { locale: fr }).toUpperCase().replace('.', '')}
+                        <div className={`w-12 h-12 rounded-2xl flex flex-col items-center justify-center font-black ${m ? 'bg-sauge-500 text-white shadow-lg shadow-sauge-500/20' : 'bg-sauge-100 dark:bg-mineral-800 text-mineral-700/30'}`}>
+                            <span className="text-[8px] uppercase">{format(d, 'EEE', { locale: fr })}</span>
+                            <span className="text-sm">{format(d, 'd')}</span>
                         </div>
                         <div>
-                            <p className="text-sm font-bold text-slate-900 dark:text-white">{format(d, 'd MMMM', { locale: fr })}</p>
-                            <p className="text-[10px] font-medium text-slate-400">{m?.note ? (m.note.substring(0, 30) + '...') : 'Aucune note'}</p>
+                            <p className="text-sm font-black text-mineral-900 dark:text-white">{format(d, 'MMMM', { locale: fr })}</p>
+                            <p className="text-[10px] font-medium text-mineral-700/50 italic truncate max-w-[150px]">
+                              {m?.note || "Pas de note"}
+                            </p>
                         </div>
                     </div>
                     <div className="text-right">
-                        <p className="text-sm font-black text-slate-700 dark:text-slate-200">{m?.weight_g ? `${formatKgFR(gramsToKg(m.weight_g), 1)} kg` : "—"}</p>
-                        <p className="text-[10px] font-bold text-indigo-500">{m?.steps ? `${m.steps} pas` : ""}</p>
+                        <p className="text-sm font-black text-mineral-900 dark:text-sauge-100">
+                          {m?.weight_g ? `${formatKgFR(gramsToKg(m.weight_g), 1)} kg` : "—"}
+                        </p>
+                        <p className="text-[10px] font-bold text-sauge-500">
+                          {m?.steps ? `${m.steps.toLocaleString()} pas` : ""}
+                        </p>
                     </div>
                 </div>
             )
@@ -86,14 +122,4 @@ export default function WeekPage() {
       </div>
     </div>
   );
-}
-
-function StatMiniCard({ label, value, icon, color }: any) {
-    return (
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm">
-            <span className="text-lg mb-2 block">{icon}</span>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</p>
-            <p className={`text-xl font-black mt-1 dark:text-white ${color}`}>{value}</p>
-        </div>
-    )
 }

@@ -74,3 +74,25 @@ export async function deleteWorkoutExercise(id: string) {
     .eq("id", id);
   if (error) throw error;
 }
+
+export async function getLastExerciseByName(name: string) {
+  const { data, error } = await supabase
+    .from('workout_exercises')
+    .select(`
+      *,
+      workouts!inner(date)
+    `)
+    .ilike('exercise_name', name)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) return null;
+  if (data) {
+    return {
+      ...data,
+      date: data.workouts.date
+    };
+  }
+  return null;
+}
