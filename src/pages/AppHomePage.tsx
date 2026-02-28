@@ -5,7 +5,7 @@ import {
   addWorkoutExercise,
   getOrCreateWorkout,
   getWorkoutExercises,
-  deleteWorkoutExercise, // On va l'ajouter juste après dans workouts.ts
+  deleteWorkoutExercise,
 } from "../db/workouts";
 import type { WorkoutExerciseRow } from "../db/workouts";
 import { listCatalogExercises } from "../db/catalog";
@@ -33,200 +33,226 @@ export default function TodayPage() {
   const [exercises, setExercises] = useState<WorkoutExerciseRow[]>([]);
   const [catalog, setCatalog] = useState<{ name: string; youtube_url?: string | null }[]>([]);
 
-  // New Exercise Form
-  const [newName, setNewName] = useState("");
+  // New exercise form
+  const [newExName, setNewExName] = useState("");
   const [newLoadType, setNewLoadType] = useState<LoadType>("KG");
   const [newLoadVal, setNewLoadVal] = useState("");
   const [newReps, setNewReps] = useState("");
-  const [newComment, setNewComment] = useState("");
 
   useEffect(() => {
-    async function loadAll() {
+    async function init() {
       setLoading(true);
       try {
-        const m = await getDailyMetricsByDate(date);
+        const [m, cat] = await Promise.all([
+          getDailyMetricsByDate(date),
+          listCatalogExercises(),
+        ]);
+        setCatalog(cat);
         if (m) {
           setStepsStr(m.steps?.toString() ?? "");
           setKcalStr(m.kcal?.toString() ?? "");
-          setWeightKgStr(m.weight_g ? formatKgFR(gramsToKg(m.weight_g), 1).replace(',', '.') : "");
+          setWeightKgStr(m.weight_g ? gramsToKg(m.weight_g).toString() : "");
           setNote(m.note ?? "");
         }
 
         const w = await getOrCreateWorkout(date);
         setWorkoutId(w.id);
-        const exs = await getWorkoutExercises(w.id);
-        setExercises(exs);
-
-        const cat = await listCatalogExercises();
-        setCatalog(cat);
-      } catch (err) {
-        console.error(err);
+        const exList = await getWorkoutExercises(w.id);
+        setExercises(exList);
+      } catch (e) {
+        console.error(e);
       } finally {
         setLoading(false);
       }
     }
-    loadAll();
+    init();
   }, [date]);
 
-  const handleSaveMetrics = async () => {
+  async function handleSaveMetrics() {
     setSaving(true);
     try {
-      const s = parseInt(stepsStr) || null;
-      const k = parseInt(kcalStr) || null;
+      const s = stepsStr.trim() ? parseInt(stepsStr) : null;
+      const k = kcalStr.trim() ? parseInt(kcalStr) : null;
+      // Correction erreur TS77: ajout de ?? 0 pour éviter le type null
       const wGrams = weightKgStr ? kgToGramsInt(parseDecimalFlexible(weightKgStr) ?? 0) : null;
-      await upsertDailyMetrics({ date, steps: s, kcal: k, weight_g: wGrams, note });
-      alert("Enregistré !");
-    } catch (err: any) {
-      alert(err.message);
+
+      await upsertDailyMetrics({
+        date,
+        steps: isNaN(s as number) ? null : s,
+        kcal: isNaN(k as number) ? null : k,
+        weight_g: wGrams,
+        note: note.trim() || null,
+      });
+    } catch (e: any) {
+      alert(e.message);
     } finally {
       setSaving(false);
     }
-  };
+  }
 
-  const handleAddExercise = async () => {
-    if (!workoutId || !newName) return;
+  async function handleAddExercise() {
+    if (!workoutId || !newExName.trim()) return;
     try {
-      const loadG = (newLoadType === "KG" || newLoadType === "PDC_PLUS") 
-       ? kgToGramsInt(parseDecimalFlexible(newLoadVal) ?? 0)
+      // Correction erreur TS91: ajout de ?? 0
+      const loadG = (newLoadType === "KG" || newLoadType === "PDC_PLUS")
+        ? kgToGramsInt(parseDecimalFlexible(newLoadVal) ?? 0)
         : null;
-      const loadText = newLoadType === "TEXT" ? newLoadVal : null;
-      const reps = parseInt(newReps) || null;
 
       await addWorkoutExercise({
         workout_id: workoutId,
-        exercise_name: newName,
+        exercise_name: newExName.trim(),
         load_type: newLoadType,
         load_g: loadG,
-        load_text: loadText,
-        reps,
-        comment: newComment,
-        sort_order: exercises.length,
+        load_text: newLoadType === "TEXT" ? newLoadVal : null,
+        reps: newReps.trim() ? parseInt(newReps) : null,
       });
 
-      // Reset & Reload
-      setNewName("");
+      setNewExName("");
       setNewLoadVal("");
       setNewReps("");
-      setNewComment("");
-      const updated = await getWorkoutExercises(workoutId);
-      setExercises(updated);
-    } catch (err: any) {
-      alert(err.message);
+      setExercises(await getWorkoutExercises(workoutId));
+    } catch (e: any) {
+      alert(e.message);
     }
-  };
+  }
 
-  const handleDeleteEx = async (id: string) => {
-    if (!confirm("Supprimer cet exercice ?")) return;
+  async function handleDeleteExercise(id: string) {
+    if (!workoutId || !confirm("Supprimer ?")) return;
     try {
       await deleteWorkoutExercise(id);
-      setExercises(prev => prev.filter(ex => ex.id !== id));
-    } catch (err: any) {
-      alert(err.message);
+      setExercises(await getWorkoutExercises(workoutId));
+    } catch (e: any) {
+      alert(e.message);
     }
-  };
+  }
 
-  if (loading) return <div className="p-6 text-center text-slate-500">Chargement du jour...</div>;
+  if (loading) return <div className="p-6">Chargement...</div>;
 
   return (
-    <div className="max-w-md mx-auto p-4 space-y-8 pb-20">
-      <header>
-        <h1 className="text-2xl font-bold text-slate-800">Aujourd'hui</h1>
-        <p className="text-slate-500">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+    <div className="max-w-md mx-auto space-y-6 pb-20">
+      <header className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold dark:text-white">Aujourd'hui</h1>
+        <button
+          onClick={handleSaveMetrics}
+          disabled={saving}
+          className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm"
+        >
+          {saving ? "..." : "Enregistrer"}
+        </button>
       </header>
 
-      {/* SECTION METRIQUES */}
-      <section className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-4">
-        <h2 className="text-lg font-semibold flex items-center gap-2">📊 Métriques</h2>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="flex flex-col">
-            <label className="text-xs font-medium text-slate-500 uppercase">Pas</label>
-            <input 
-              type="number" value={stepsStr} onChange={e => setStepsStr(e.target.value)}
-              className="border-b-2 border-slate-100 focus:border-blue-500 outline-none py-1 text-lg" placeholder="0"
+      {/* Métriques */}
+      <section className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+        <div className="grid grid-cols-3 gap-4">
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pas</label>
+            <input
+              type="number"
+              value={stepsStr}
+              onChange={(e) => setStepsStr(e.target.value)}
+              className="w-full text-lg font-semibold bg-transparent border-b border-slate-200 dark:border-slate-700 dark:text-white outline-none focus:border-blue-500 transition-colors"
+              placeholder="0"
             />
           </div>
-          <div className="flex flex-col">
-            <label className="text-xs font-medium text-slate-500 uppercase">Kcal</label>
-            <input 
-              type="number" value={kcalStr} onChange={e => setKcalStr(e.target.value)}
-              className="border-b-2 border-slate-100 focus:border-blue-500 outline-none py-1 text-lg" placeholder="0"
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Kcal</label>
+            <input
+              type="number"
+              value={kcalStr}
+              onChange={(e) => setKcalStr(e.target.value)}
+              className="w-full text-lg font-semibold bg-transparent border-b border-slate-200 dark:border-slate-700 dark:text-white outline-none focus:border-blue-500 transition-colors"
+              placeholder="0"
             />
           </div>
-          <div className="flex flex-col col-span-2">
-            <label className="text-xs font-medium text-slate-500 uppercase">Poids (kg)</label>
-            <input 
-              type="text" inputMode="decimal" value={weightKgStr} onChange={e => setWeightKgStr(e.target.value)}
-              className="border-b-2 border-slate-100 focus:border-blue-500 outline-none py-1 text-lg" placeholder="0,0"
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Poids (kg)</label>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={weightKgStr}
+              onChange={(e) => setWeightKgStr(e.target.value)}
+              className="w-full text-lg font-semibold bg-transparent border-b border-slate-200 dark:border-slate-700 dark:text-white outline-none focus:border-blue-500 transition-colors"
+              placeholder="0,0"
             />
           </div>
         </div>
-        <button 
-          onClick={handleSaveMetrics} disabled={saving}
-          className="w-full bg-slate-900 text-white py-3 rounded-xl font-medium active:scale-95 transition-transform disabled:opacity-50"
-        >
-          {saving ? "Enregistrement..." : "Mettre à jour les métriques"}
-        </button>
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="Note du jour..."
+          className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-sm dark:text-slate-200 outline-none min-h-[80px]"
+        />
       </section>
 
-      {/* SECTION ENTRAINEMENT */}
+      {/* Entraînement */}
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold flex items-center gap-2">🏋️ Entraînement</h2>
-        
-        {/* Liste des exercices */}
+        <h2 className="text-lg font-bold dark:text-white px-1">Entraînement</h2>
+
         <div className="space-y-3">
           {exercises.map((ex) => (
-            <div key={ex.id} className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex justify-between items-start">
+            <div key={ex.id} className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex justify-between items-center group">
               <div>
-                <div className="font-bold text-slate-800">{ex.exercise_name}</div>
-                <div className="text-sm text-slate-600 mt-1">
-                  <span className="bg-slate-100 px-2 py-0.5 rounded mr-2">{renderLoad(ex)}</span>
-                  {ex.reps && <span>× {ex.reps} reps</span>}
+                <div className="font-bold dark:text-white">{ex.exercise_name}</div>
+                <div className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+                  {renderLoad(ex)} {ex.reps ? `× ${ex.reps}` : ""}
                 </div>
-                {ex.comment && <div className="text-xs text-slate-400 mt-2 italic">{ex.comment}</div>}
               </div>
-              <button onClick={() => handleDeleteEx(ex.id)} className="text-slate-300 hover:text-red-500 p-1">
+              <button
+                onClick={() => handleDeleteExercise(ex.id)}
+                className="opacity-0 group-hover:opacity-100 p-2 text-slate-300 hover:text-red-500 transition-all"
+              >
                 🗑️
               </button>
             </div>
           ))}
         </div>
 
-        {/* Formulaire ajout */}
-        <div className="bg-slate-50 p-4 rounded-2xl border-2 border-dashed border-slate-200 space-y-3">
-          <input 
-            list="catalog-list" placeholder="Nom de l'exercice..."
-            value={newName} onChange={e => setNewName(e.target.value)}
-            className="w-full p-2 rounded-lg border-slate-200 border outline-none focus:ring-2 focus:ring-blue-500"
+        {/* Ajouter exercice */}
+        <div className="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-2xl space-y-3">
+          <input
+            list="catalog-list"
+            placeholder="Nom de l'exercice..."
+            value={newExName}
+            onChange={(e) => setNewExName(e.target.value)}
+            className="w-full p-3 rounded-xl bg-white dark:bg-slate-900 dark:text-white shadow-sm outline-none border-none"
           />
           <datalist id="catalog-list">
-            {catalog.map(c => <option key={c.name} value={c.name} />)}
+            {catalog.map((c) => (
+              <option key={c.name} value={c.name} />
+            ))}
           </datalist>
 
           <div className="flex gap-2">
-            <select 
-              value={newLoadType} onChange={e => setNewLoadType(e.target.value as LoadType)}
-              className="p-2 rounded-lg border-slate-200 border bg-white"
+            <select
+              value={newLoadType}
+              onChange={(e) => setNewLoadType(e.target.value as LoadType)}
+              className="p-3 rounded-xl bg-white dark:bg-slate-900 dark:text-white shadow-sm outline-none border-none text-sm"
             >
               <option value="KG">KG</option>
               <option value="PDC">PDC</option>
               <option value="PDC_PLUS">PDC+</option>
               <option value="TEXT">Texte</option>
             </select>
-            <input 
-              placeholder="Charge" value={newLoadVal} onChange={e => setNewLoadVal(e.target.value)}
+            <input
+              placeholder="Charge"
+              value={newLoadVal}
+              onChange={(e) => setNewLoadVal(e.target.value)}
               disabled={newLoadType === "PDC"}
-              className="flex-1 p-2 rounded-lg border-slate-200 border outline-none"
+              className="flex-1 p-3 rounded-xl bg-white dark:bg-slate-900 dark:text-white shadow-sm outline-none border-none text-sm disabled:opacity-50"
             />
-            <input 
-              placeholder="Reps" type="number" value={newReps} onChange={e => setNewReps(e.target.value)}
-              className="w-20 p-2 rounded-lg border-slate-200 border outline-none"
+            <input
+              placeholder="Reps"
+              type="number"
+              value={newReps}
+              onChange={(e) => setNewReps(e.target.value)}
+              className="w-20 p-3 rounded-xl bg-white dark:bg-slate-900 dark:text-white shadow-sm outline-none border-none text-sm"
             />
           </div>
-          <button 
+          <button
             onClick={handleAddExercise}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700"
+            className="w-full bg-slate-900 dark:bg-blue-600 text-white py-3 rounded-xl font-bold text-sm shadow-md active:scale-95 transition-transform"
           >
-            + Ajouter l'exercice
+            Ajouter l'exercice
           </button>
         </div>
       </section>
