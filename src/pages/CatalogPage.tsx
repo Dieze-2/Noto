@@ -13,25 +13,27 @@ export default function CatalogPage() {
   return (
     <div className="max-w-xl mx-auto px-4 pt-8 pb-32 space-y-8">
       <header>
-        <span className="page-subtitle">Base de données</span>
-        <h1 className="page-title italic">Exercices</h1>
-        <div className="mt-6 glass-card p-2 rounded-full px-6">
-          <input placeholder="Chercher..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full py-3 bg-transparent text-white font-bold outline-none" />
+        <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Exercices</h1>
+        <div className="mt-6 glass-card p-2 rounded-full px-6 flex items-center">
+          <input 
+            placeholder="Rechercher un mouvement..." 
+            value={search} 
+            onChange={(e) => setSearch(e.target.value)} 
+            className="flex-1 py-3 bg-transparent text-white font-bold outline-none" 
+          />
         </div>
       </header>
 
       <div className="space-y-4">
         {list.map(ex => (
-          <div key={ex.id} className="glass-card rounded-[2rem] overflow-hidden transition-all duration-500">
+          <div key={ex.id} className="glass-card rounded-[2rem] overflow-hidden">
              <div className="p-5 flex items-center justify-between">
-               <div className="flex-1">
-                 <h3 className="font-black text-white text-lg italic uppercase">{ex.name}</h3>
-               </div>
+               <h3 className="font-black text-white text-lg italic uppercase">{ex.name}</h3>
                <div className="flex gap-2">
                  {ex.note && (
                    <button 
                     onClick={() => setExpandedNote(expandedNote === ex.id ? null : ex.id)}
-                    className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-[8px] font-black text-white uppercase tracking-tighter"
+                    className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-[8px] font-black text-white uppercase"
                    >Note</button>
                  )}
                  {ex.youtube_url && (
@@ -41,11 +43,9 @@ export default function CatalogPage() {
                  )}
                </div>
              </div>
-             {/* Note avec fondu et agrandissement */}
              {expandedNote === ex.id && (
-               <div className="px-6 pb-6 animate-in fade-in zoom-in duration-300">
-                 <div className="h-px bg-white/10 mb-4" />
-                 <p className="text-xs text-menthe/80 font-medium leading-relaxed italic">{ex.note}</p>
+               <div className="px-6 pb-6 animate-in fade-in duration-300">
+                 <p className="text-xs text-menthe/80 italic">{ex.note}</p>
                </div>
              )}
           </div>
