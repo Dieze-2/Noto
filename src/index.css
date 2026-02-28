@@ -44,3 +44,22 @@ input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
+
+/* src/index.css */
+.swipe-container {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.swipe-container::-webkit-scrollbar { display: none; }
+
+.swipe-content {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+}
+
+.swipe-action {
+  flex: 0 0 80px;
+  scroll-snap-align: end;
+}

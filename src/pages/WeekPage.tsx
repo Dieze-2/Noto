@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { subDays, addDays, format } from "date-fns";
+import { subDays, format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { getDailyMetricsRange, DailyMetricsRow } from "../db/dailyMetrics";
 import { formatKgFR, gramsToKg } from "../lib/numberFR";
@@ -8,7 +8,7 @@ import { weekDays, isoDate } from "../lib/week";
 
 export default function WeekPage() {
   const navigate = useNavigate();
-  const [anchor, setAnchor] = useState(() => new Date());
+  const [anchor] = useState(() => new Date());
   const { days } = useMemo(() => weekDays(anchor), [anchor]);
   const [metrics, setMetrics] = useState<DailyMetricsRow[]>([]);
   const [prevMetrics, setPrevMetrics] = useState<DailyMetricsRow[]>([]);
@@ -27,54 +27,47 @@ export default function WeekPage() {
     const calc = (rows: DailyMetricsRow[]) => {
       const w = rows.filter(m => m.weight_g).map(m => m.weight_g as number);
       const s = rows.filter(m => m.steps).map(m => m.steps as number);
+      const k = rows.filter(m => m.kcal).map(m => m.kcal as number);
       return {
         avgW: w.length ? w.reduce((a, b) => a + b, 0) / w.length : null,
-        avgS: s.length ? Math.round(s.reduce((a, b) => a + b, 0) / s.length) : null
+        avgS: s.length ? Math.round(s.reduce((a, b) => a + b, 0) / s.length) : null,
+        avgK: k.length ? Math.round(k.reduce((a, b) => a + b, 0) / k.length) : null
       };
     };
-    const c = calc(metrics);
-    const p = calc(prevMetrics);
-    const v = (c.avgW && p.avgW) ? ((c.avgW - p.avgW) / p.avgW) * 100 : null;
-    return { ...c, variation: v };
+    const curr = calc(metrics);
+    const last = calc(prevMetrics);
+    const variation = (curr.avgW && last.avgW) ? ((curr.avgW - last.avgW) / last.avgW) * 100 : null;
+    return { ...curr, variation };
   }, [metrics, prevMetrics]);
 
   return (
     <div className="max-w-xl mx-auto px-4 pt-8 pb-32 space-y-6">
-      <header>
-        <span className="page-subtitle">Performances</span>
-        <h1 className="page-title">Historique</h1>
-        <div className="flex items-center gap-4 mt-6">
-          <button onClick={() => setAnchor(subDays(anchor, 7))} className="w-10 h-10 rounded-full glass-card flex items-center justify-center font-black">←</button>
-          <span className="text-[10px] font-black text-menthe uppercase tracking-widest flex-1 text-center">Semaine du {format(days[0], 'd MMMM', { locale: fr })}</span>
-          <button onClick={() => setAnchor(addDays(anchor, 7))} className="w-10 h-10 rounded-full glass-card flex items-center justify-center font-black">→</button>
-        </div>
-      </header>
+      <header><span className="page-subtitle">Analyses</span><h1 className="page-title">Cette Semaine</h1></header>
 
-      {/* Poids réduit & Variation augmentée */}
-      <div className="p-6 rounded-[2.5rem] bg-black text-white border-b-2 border-menthe shadow-2xl flex items-center justify-between">
+      <div className="p-8 rounded-[3rem] bg-black border-b-4 border-menthe flex items-center justify-between shadow-2xl">
         <div>
-          <p className="text-[9px] font-black uppercase tracking-widest opacity-40 italic">Moyenne Poids</p>
-          <div className="flex items-baseline gap-1">
-            <span className="text-4xl font-black">{stats.avgW ? formatKgFR(gramsToKg(stats.avgW), 1) : "—"}</span>
-            <span className="text-sm font-bold opacity-30 uppercase">kg</span>
+          <p className="text-[10px] font-black uppercase text-white/30 tracking-widest mb-1 italic">Poids Moyen</p>
+          <div className="flex items-baseline gap-2">
+            <span className="text-6xl font-black text-white">{stats.avgW ? (stats.avgW / 1000).toFixed(1).replace('.', ',') : "—"}</span>
+            <span className="text-xl font-bold text-white/20">KG</span>
           </div>
         </div>
         {stats.variation !== null && (
-          <div className={`text-right px-4 py-3 rounded-2xl ${stats.variation > 0 ? 'bg-rose-500/10 text-rose-400' : 'bg-menthe/10 text-menthe'}`}>
-            <p className="text-[8px] font-black uppercase mb-1">Variation</p>
+          <div className={`text-right px-5 py-3 rounded-2xl ${stats.variation > 0 ? 'bg-rose-500/10 text-rose-400' : 'bg-menthe/10 text-menthe'}`}>
+            <p className="text-[10px] font-black uppercase mb-1 tracking-tighter">Variation</p>
             <p className="text-2xl font-black">{stats.variation > 0 ? '↑' : '↓'} {Math.abs(stats.variation).toFixed(2)}%</p>
           </div>
         )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="glass-card p-4 rounded-[2rem]">
-          <p className="text-[9px] font-black text-menthe uppercase mb-1">Moyenne Pas</p>
-          <p className="text-xl font-black text-white">{stats.avgS ? `${stats.avgS.toLocaleString()} / j` : "—"}</p>
+        <div className="glass-card p-6 rounded-[2.5rem] text-center shadow-lg">
+           <p className="text-[10px] font-black text-menthe uppercase mb-2 tracking-widest">Moyenne Pas</p>
+           <p className="text-2xl font-black text-white">{stats.avgS?.toLocaleString('fr-FR') || "—"}</p>
         </div>
-        <div className="glass-card p-4 rounded-[2rem]">
-           <p className="text-[9px] font-black text-menthe uppercase mb-1">Activité</p>
-           <p className="text-xl font-black text-white">{metrics.filter(m => m.weight_g).length} Jours</p>
+        <div className="glass-card p-6 rounded-[2.5rem] text-center shadow-lg">
+           <p className="text-[10px] font-black text-menthe uppercase mb-2 tracking-widest">Moyenne Kcal</p>
+           <p className="text-2xl font-black text-white">{stats.avgK?.toLocaleString('fr-FR') || "—"}</p>
         </div>
       </div>
 
@@ -82,20 +75,17 @@ export default function WeekPage() {
         {days.map(d => {
           const m = metrics.find(x => x.date === isoDate(d));
           return (
-            <div key={d.toString()} onClick={() => navigate(`/?date=${isoDate(d)}`)} className="glass-card p-4 rounded-2xl flex items-center justify-between cursor-pointer active:scale-95 transition-transform">
+            <div key={d.toString()} onClick={() => navigate(`/?date=${isoDate(d)}`)} className="glass-card p-4 rounded-2xl flex items-center justify-between cursor-pointer active:scale-95 transition-transform border border-white/5">
               <div className="flex items-center gap-3">
-                <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center font-black ${m ? 'bg-menthe text-black' : 'bg-white/5 opacity-20'}`}>
+                <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center font-black ${m ? 'bg-menthe text-black shadow-[0_0_15px_rgba(0,255,163,0.3)]' : 'bg-white/5 opacity-20'}`}>
                   <span className="text-[8px] uppercase leading-none">{format(d, 'EEE', { locale: fr })}</span>
                   <span className="text-base">{format(d, 'd')}</span>
                 </div>
                 <p className="font-black text-white text-sm capitalize">{format(d, 'MMMM', { locale: fr })}</p>
               </div>
-              <div className="text-right">
-                <p className="font-black text-white">{m?.weight_g ? `${formatKgFR(gramsToKg(m.weight_g), 1)}` : "—"}</p>
-                <p className="text-[9px] font-black text-menthe uppercase">{m?.steps ? `${m.steps.toLocaleString()} pas` : ""}</p>
-              </div>
+              <p className="font-black text-white">{m?.weight_g ? `${formatKgFR(gramsToKg(m.weight_g), 1)}` : "—"}</p>
             </div>
-          )
+          );
         })}
       </div>
     </div>
