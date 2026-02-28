@@ -1,50 +1,47 @@
 @import "tailwindcss";
 
 @theme {
-  --color-sauge-50: #f1f7f5;
-  --color-sauge-100: #e6efe6;
-  --color-sauge-200: #abd1b5;
-  --color-sauge-500: #6c8976;
-  --color-sauge-600: #4a7a5d;
-  --color-mineral-700: #4a5a5a;
-  --color-mineral-800: #3d4a4a;
+  /* Menthe plus vive pour le mode sombre */
+  --color-menthe-flash: #a8ffcc;
+  --color-sauge-50: #f8faf9;
+  --color-sauge-600: #3a5c48; /* Très foncé pour texte clair */
   --color-mineral-900: #1a2222;
-  --color-mineral-950: #0a0e0e;
+  --color-mineral-950: #0a0c0c;
 }
 
 :root {
-  --bg-gradient: radial-gradient(at 0% 0%, #f1f7f5 0%, #d4e5d8 100%);
+  --bg-gradient: radial-gradient(at 0% 0%, #f8faf9 0%, #e0ede4 100%);
   color-scheme: light dark;
 }
 
 .dark {
-  --bg-gradient: radial-gradient(at 100% 0%, #1a2222 0%, #0a0e0e 100%);
+  --bg-gradient: radial-gradient(at 100% 0%, #111818 0%, #050707 100%);
 }
 
 body {
   background: var(--bg-gradient);
   background-attachment: fixed;
-  color: #1a2222;
+  color: #1a2222; /* Noir minéral en clair */
   transition: background 0.3s ease;
-  min-height: 100vh;
 }
 
-.dark body { color: #f1f7f5; }
+.dark body { 
+  color: #f8faf9; /* Blanc cassé en sombre */
+}
 
+/* Glassmorphism revisité */
 .glass-card {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .dark .glass-card {
-  background: rgba(30, 40, 40, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+  background: rgba(26, 34, 34, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+/* Inputs uniformes */
 input, select, textarea {
-  @apply bg-white/50 dark:bg-mineral-800/50 border border-sauge-200/30 dark:border-white/10;
+  @apply bg-sauge-50/50 dark:bg-mineral-950/50 border-none outline-none;
 }
