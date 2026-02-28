@@ -34,40 +34,43 @@ export default function WeekPage() {
         avgK: k.length ? Math.round(k.reduce((a, b) => a + b, 0) / k.length) : null
       };
     };
-    const curr = calc(metrics);
-    const last = calc(prevMetrics);
-    const variation = (curr.avgW && last.avgW) ? ((curr.avgW - last.avgW) / last.avgW) * 100 : null;
-    return { ...curr, variation };
+    const cur = calc(metrics);
+    const old = calc(prevMetrics);
+    const diff = (cur.avgW && old.avgW) ? ((cur.avgW - old.avgW) / old.avgW) * 100 : null;
+    return { ...cur, variation: diff };
   }, [metrics, prevMetrics]);
 
   return (
     <div className="max-w-xl mx-auto px-4 pt-8 pb-32 space-y-6">
-      <header><span className="page-subtitle">Analyses</span><h1 className="page-title">Cette Semaine</h1></header>
-
-      <div className="p-8 rounded-[3rem] bg-black border-b-4 border-menthe flex items-center justify-between shadow-2xl">
+      <header>
+        <span className="page-subtitle">Tendances</span>
+        <h1 className="page-title italic">Récap Hebdo</h1>
+      </header>
+      
+      <div className="p-8 rounded-[2.5rem] bg-black border-b-4 border-menthe flex items-center justify-between">
         <div>
-          <p className="text-[10px] font-black uppercase text-white/30 tracking-widest mb-1 italic">Poids Moyen</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-white/30 italic">Poids Moyen</p>
           <div className="flex items-baseline gap-2">
-            <span className="text-6xl font-black text-white">{stats.avgW ? (stats.avgW / 1000).toFixed(1).replace('.', ',') : "—"}</span>
-            <span className="text-xl font-bold text-white/20">KG</span>
+            <span className="text-5xl font-black text-white">{stats.avgW ? (stats.avgW / 1000).toFixed(1).replace('.', ',') : "—"}</span>
+            <span className="text-lg font-bold text-white/20">KG</span>
           </div>
         </div>
         {stats.variation !== null && (
-          <div className={`text-right px-5 py-3 rounded-2xl ${stats.variation > 0 ? 'bg-rose-500/10 text-rose-400' : 'bg-menthe/10 text-menthe'}`}>
-            <p className="text-[10px] font-black uppercase mb-1 tracking-tighter">Variation</p>
-            <p className="text-2xl font-black">{stats.variation > 0 ? '↑' : '↓'} {Math.abs(stats.variation).toFixed(2)}%</p>
+          <div className={`text-right px-6 py-4 rounded-3xl ${stats.variation > 0 ? 'bg-rose-500/10 text-rose-400' : 'bg-menthe/10 text-menthe'}`}>
+            <p className="text-[10px] font-black uppercase mb-1">Variation</p>
+            <p className="text-3xl font-black">{stats.variation > 0 ? '↑' : '↓'} {Math.abs(stats.variation).toFixed(2)}%</p>
           </div>
         )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="glass-card p-6 rounded-[2.5rem] text-center shadow-lg">
-           <p className="text-[10px] font-black text-menthe uppercase mb-2 tracking-widest">Moyenne Pas</p>
-           <p className="text-2xl font-black text-white">{stats.avgS?.toLocaleString('fr-FR') || "—"}</p>
+        <div className="glass-card p-6 rounded-[2.5rem] text-center">
+           <p className="text-[10px] font-black text-menthe uppercase mb-1">Moyenne Pas</p>
+           <p className="text-xl font-black text-white">{stats.avgS ? stats.avgS.toLocaleString() : "—"}</p>
         </div>
-        <div className="glass-card p-6 rounded-[2.5rem] text-center shadow-lg">
-           <p className="text-[10px] font-black text-menthe uppercase mb-2 tracking-widest">Moyenne Kcal</p>
-           <p className="text-2xl font-black text-white">{stats.avgK?.toLocaleString('fr-FR') || "—"}</p>
+        <div className="glass-card p-6 rounded-[2.5rem] text-center">
+           <p className="text-[10px] font-black text-menthe uppercase mb-1">Moyenne Kcal</p>
+           <p className="text-xl font-black text-white">{stats.avgK ? stats.avgK.toLocaleString() : "—"}</p>
         </div>
       </div>
 
@@ -75,15 +78,18 @@ export default function WeekPage() {
         {days.map(d => {
           const m = metrics.find(x => x.date === isoDate(d));
           return (
-            <div key={d.toString()} onClick={() => navigate(`/?date=${isoDate(d)}`)} className="glass-card p-4 rounded-2xl flex items-center justify-between cursor-pointer active:scale-95 transition-transform border border-white/5">
+            <div key={d.toString()} onClick={() => navigate(`/?date=${isoDate(d)}`)} className="glass-card p-4 rounded-2xl flex items-center justify-between cursor-pointer active:scale-95 transition-transform">
               <div className="flex items-center gap-3">
-                <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center font-black ${m ? 'bg-menthe text-black shadow-[0_0_15px_rgba(0,255,163,0.3)]' : 'bg-white/5 opacity-20'}`}>
+                <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center font-black ${m ? 'bg-menthe text-black' : 'bg-white/5 opacity-20'}`}>
                   <span className="text-[8px] uppercase leading-none">{format(d, 'EEE', { locale: fr })}</span>
                   <span className="text-base">{format(d, 'd')}</span>
                 </div>
                 <p className="font-black text-white text-sm capitalize">{format(d, 'MMMM', { locale: fr })}</p>
               </div>
-              <p className="font-black text-white">{m?.weight_g ? `${formatKgFR(gramsToKg(m.weight_g), 1)}` : "—"}</p>
+              <div className="text-right">
+                <p className="font-black text-white">{m?.weight_g ? `${formatKgFR(gramsToKg(m.weight_g), 1)}` : "—"}</p>
+                <p className="text-[10px] font-black text-menthe uppercase">{m?.steps ? `${m.steps.toLocaleString()} pas` : ""}</p>
+              </div>
             </div>
           );
         })}
