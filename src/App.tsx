@@ -1,13 +1,14 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import AppShell from "./components/AppShell";
+import React from "react";
 
-// Import des pages refondues
+// Import des pages
 import TodayPage from "./pages/AppHomePage";
 import WeekPage from "./pages/WeekPage";
 import CatalogPage from "./pages/CatalogPage";
 import EventsPage from "./pages/EventsPage";
-import SettingsPage from "./pages/ImportPage"; // On l'utilise comme page de paramètres
+import SettingsPage from "./pages/ImportPage"; 
 import ExportPage from "./pages/ExportPage";
 import LoginPage from "./pages/LoginPage";
 import PrintPage from "./pages/PrintPage";
@@ -20,9 +21,9 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <div className="animate-pulse text-indigo-500 font-black tracking-widest uppercase text-xs">
-          Authentification...
+      <div className="min-h-screen flex items-center justify-center bg-sauge-50 dark:bg-mineral-900">
+        <div className="animate-pulse text-sauge-600 font-black tracking-widest uppercase text-xs">
+          Initialisation Bio-Log...
         </div>
       </div>
     );
@@ -38,12 +39,13 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter basename="/Noto">
+      {/* HashRouter est la solution miracle pour GitHub Pages sans erreurs de routage */}
+      <HashRouter>
         <Routes>
           {/* Route publique */}
           <Route path="/login" element={<LoginPage />} />
 
-          {/* Routes privées avec AppShell Glassmorphism */}
+          {/* Routes privées */}
           <Route
             path="/"
             element={
@@ -96,10 +98,10 @@ export default function App() {
           {/* Route d'impression (sans Shell) */}
           <Route path="/print" element={<PrintPage />} />
 
-          {/* Fallback */}
+          {/* Fallback vers l'accueil */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </AuthProvider>
   );
 }

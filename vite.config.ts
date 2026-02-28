@@ -4,7 +4,7 @@ import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
   // Indique à Vite que l'app est dans le sous-dossier /Noto/
-  base: "/Noto/", 
+  base: "./", 
   plugins: [
     react(),
     VitePWA({
