@@ -34,6 +34,8 @@ export default function TodayPage() {
           weight: d.weight_g ? formatKgFR(gramsToKg(d.weight_g), 1).replace(',', '.') : "",
           note: d.note || ""
         });
+      } else {
+        setMetrics({ steps: "", kcal: "", weight: "", note: "" });
       }
       const w = await getOrCreateWorkout(dateStr);
       setWorkoutId(w.id);
@@ -70,23 +72,18 @@ export default function TodayPage() {
 
       <section className="glass-card p-6 rounded-[2.5rem] space-y-4">
         <div className="grid grid-cols-3 gap-3">
-          {['Poids', 'Pas', 'Calories'].map((label, i) => (
-            <div key={label} className="space-y-1">
-              <label className="text-[9px] font-black uppercase pl-2 opacity-40 text-white">{label}</label>
-              <input 
-                type="number" 
-                value={i === 0 ? metrics.weight : i === 1 ? metrics.steps : metrics.kcal} 
-                onChange={e => {
-                  const val = e.target.value;
-                  if(i === 0) setMetrics({...metrics, weight: val});
-                  else if(i === 1) setMetrics({...metrics, steps: val});
-                  else setMetrics({...metrics, kcal: val});
-                }}
-                onBlur={handleSaveMetrics}
-                className="w-full bg-white/5 p-4 rounded-2xl font-black text-white outline-none" 
-              />
-            </div>
-          ))}
+          <div className="space-y-1">
+            <label className="text-[9px] font-black uppercase pl-2 opacity-40 text-white">Poids</label>
+            <input type="number" step="0.1" value={metrics.weight} onChange={e => setMetrics({...metrics, weight: e.target.value})} onBlur={handleSaveMetrics} className="w-full bg-white/5 p-4 rounded-2xl font-black text-white outline-none" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[9px] font-black uppercase pl-2 opacity-40 text-white">Pas</label>
+            <input type="number" value={metrics.steps} onChange={e => setMetrics({...metrics, steps: e.target.value})} onBlur={handleSaveMetrics} className="w-full bg-white/5 p-4 rounded-2xl font-black text-white outline-none" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[9px] font-black uppercase pl-2 opacity-40 text-white">Kcal</label>
+            <input type="number" value={metrics.kcal} onChange={e => setMetrics({...metrics, kcal: e.target.value})} onBlur={handleSaveMetrics} className="w-full bg-white/5 p-4 rounded-2xl font-black text-white outline-none" />
+          </div>
         </div>
       </section>
 
@@ -116,20 +113,33 @@ export default function TodayPage() {
           <input placeholder="Charge" value={newLoadVal} onChange={e => setNewLoadVal(e.target.value)} className="flex-1 bg-white/5 p-4 rounded-2xl font-bold text-white outline-none" />
           <input placeholder="Reps" value={newReps} onChange={e => setNewReps(e.target.value)} className="w-20 bg-white/5 p-4 rounded-2xl font-bold text-white outline-none" />
         </div>
-        <button onClick={async () => { if(!workoutId || !newName) return; await addWorkoutExercise({ workout_id: workoutId, exercise_name: newName, load_type: newLoadType, load_g: kgToGramsInt(parseDecimalFlexible(newLoadVal) || 0), reps: parseInt(newReps) || null }); setNewName(\"\"); setExercises(await getWorkoutExercises(workoutId)); }} className="w-full bg-menthe text-black py-5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg">Enregistrer</button>
+        <button onClick={async () => { 
+          if(!workoutId || !newName) return; 
+          await addWorkoutExercise({ workout_id: workoutId, exercise_name: newName, load_type: newLoadType, load_g: kgToGramsInt(parseDecimalFlexible(newLoadVal) || 0), reps: parseInt(newReps) || null }); 
+          setNewName(""); setNewLoadVal(""); setNewReps("");
+          setExercises(await getWorkoutExercises(workoutId)); 
+        }} className="w-full bg-menthe text-black py-5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg">Enregistrer</button>
       </section>
 
       <div className="space-y-3">
         {exercises.map(ex => (
-          <div key={ex.id} className="relative group overflow-hidden rounded-3xl bg-gradient-to-l from-rose-600/50 to-transparent">
-            <div className="relative glass-card p-5 flex justify-between items-center transition-transform duration-500 group-active:-translate-x-full" onTransitionEnd={async (e) => { if(e.propertyName === 'transform') { await deleteWorkoutExercise(ex.id); setExercises(prev => prev.filter(e => e.id !== ex.id)); }}}>
+          <div key={ex.id} className="relative group overflow-hidden rounded-3xl bg-gradient-to-l from-rose-600/40 to-transparent">
+            <div 
+              className="relative glass-card p-5 flex justify-between items-center transition-transform duration-500 group-active:-translate-x-full" 
+              onTransitionEnd={async (e) => { 
+                if(e.propertyName === 'transform') { 
+                  await deleteWorkoutExercise(ex.id); 
+                  setExercises(prev => prev.filter(e => e.id !== ex.id)); 
+                }
+              }}
+            >
               <div>
                 <h3 className="font-black text-white">{ex.exercise_name}</h3>
                 <p className="text-[10px] font-black text-menthe uppercase tracking-widest">
                   {ex.load_type === 'KG' ? `${formatKgFR(gramsToKg(ex.load_g || 0), 1)} kg` : ex.load_type} • {ex.reps} reps
                 </p>
               </div>
-              <span className="opacity-20 text-[10px] font-black text-white">Slippez pour supprimer</span>
+              <span className="opacity-20 text-[10px] font-black text-white italic">Slide pour supprimer</span>
             </div>
           </div>
         ))}

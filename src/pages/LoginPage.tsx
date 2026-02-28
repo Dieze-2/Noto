@@ -41,24 +41,24 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black flex flex-col justify-center px-6 py-12">
-      <div className="max-w-md w-full mx-auto space-y-8">
-        <div className="text-center">
-          {/* LOGO EN GRAND */}
-          <img src="/icons/android-chrome-512x512.png" alt="Logo" className="w-32 h-32 mx-auto mb-6" />
-          <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Bio-Log</h2>
-          <p className="text-menthe text-[10px] font-black uppercase tracking-[0.3em] mt-2">Elite Performance Tracker</p>
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center px-6">
+      <div className="w-full max-w-sm space-y-8">
+        <div className="flex flex-col items-center">
+          <img src="/logo.png" alt="Logo" className="w-20 h-20 object-contain mb-4" />
+          <h1 className="text-4xl font-black text-menthe italic uppercase tracking-tighter">
+            Bio-Log
+          </h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="glass-card p-8 rounded-[3rem] space-y-6 border-b-4 border-menthe">
-          <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
             <input
               type="email"
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-white font-bold outline-none focus:ring-2 ring-menthe transition-all"
+              className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-white font-bold outline-none focus:border-menthe transition-colors"
             />
             <input
               type="password"
@@ -66,14 +66,14 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-white font-bold outline-none focus:ring-2 ring-menthe transition-all"
+              className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-white font-bold outline-none focus:border-menthe transition-colors"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-menthe text-black py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+            className="w-full bg-menthe text-black py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-transform disabled:opacity-50"
           >
             {loading ? "Chargement..." : mode === "login" ? "Se connecter" : "S'inscrire"}
           </button>
@@ -81,17 +81,19 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => setMode(mode === "login" ? "signup" : "login")}
-            className="w-full text-white/40 text-[9px] font-black uppercase tracking-widest hover:text-menthe transition-colors"
+            className="w-full text-white/40 text-[10px] font-black uppercase tracking-widest hover:text-menthe transition-colors"
           >
             {mode === "login" ? "Créer un compte" : "Déjà membre ? Connexion"}
           </button>
-
-          {message && (
-            <div className="p-4 bg-white/5 rounded-xl text-center">
-              <p className="text-[10px] font-bold text-white uppercase tracking-widest">{message}</p>
-            </div>
-          )}
         </form>
+
+        {message && (
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+            <p className="text-center text-xs font-bold text-white uppercase italic">
+              {message}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

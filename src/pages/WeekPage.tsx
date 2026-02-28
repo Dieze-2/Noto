@@ -54,12 +54,12 @@ export default function WeekPage() {
         <button onClick={() => setAnchor(addDays(anchor, 7))} className="p-3">→</button>
       </div>
       
-      <div className="p-6 rounded-[2.5rem] glass-card flex items-center justify-between border-b-2 border-menthe/30">
+      <div className="p-5 rounded-[2.5rem] glass-card flex items-center justify-between border-b-2 border-menthe/20">
         <div>
           <p className="text-[10px] font-black uppercase text-white/30 italic">Poids Moyen</p>
           <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-black text-white">{stats.avgW ? (stats.avgW / 1000).toFixed(1).replace('.', ',') : \"—\"}</span>
-            <span className="text-sm font-bold text-white/20 uppercase tracking-tighter">kg</span>
+            <span className="text-4xl font-black text-white">{stats.avgW ? (stats.avgW / 1000).toFixed(1).replace('.', ',') : "—"}</span>
+            <span className="text-xs font-bold text-white/20 uppercase">kg</span>
           </div>
         </div>
         {stats.variation !== null && (
@@ -70,12 +70,14 @@ export default function WeekPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        {[{t: 'Moyenne pas/jour', v: stats.avgS}, {t: 'Moyenne kcal/jour', v: stats.avgK}].map(s => (
-          <div key={s.t} className="glass-card p-5 rounded-[2rem] text-center">
-             <p className="text-[9px] font-black text-menthe uppercase mb-1 tracking-widest">{s.t}</p>
-             <p className="text-lg font-black text-white">{s.v ? s.v.toLocaleString() : \"—\"}</p>
-          </div>
-        ))}
+        <div className="glass-card p-5 rounded-[2rem] text-center">
+           <p className="text-[9px] font-black text-menthe uppercase mb-1 tracking-widest">Pas Moyens</p>
+           <p className="text-lg font-black text-white">{stats.avgS ? stats.avgS.toLocaleString() : "—"}</p>
+        </div>
+        <div className="glass-card p-5 rounded-[2rem] text-center">
+           <p className="text-[9px] font-black text-menthe uppercase mb-1 tracking-widest">Kcal Moyennes</p>
+           <p className="text-lg font-black text-white">{stats.avgK ? stats.avgK.toLocaleString() : "—"}</p>
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -90,12 +92,12 @@ export default function WeekPage() {
                 </div>
                 <div>
                   <p className="font-black text-white text-sm capitalize">{format(d, 'MMMM', { locale: fr })}</p>
-                  <p className="text-[10px] font-black text-menthe uppercase tracking-widest">{m?.steps ? `${m.steps.toLocaleString()} pas` : \"\"}</p>
+                  <p className="text-[10px] font-black text-menthe uppercase tracking-widest">{m?.steps ? `${m.steps.toLocaleString()} pas` : ""}</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="font-black text-white">{m?.weight_g ? `${formatKgFR(gramsToKg(m.weight_g), 1)}` : \"—\"}</p>
-                <p className="text-[9px] font-bold text-white/20 uppercase italic">{m?.kcal ? `${m.kcal} kcal` : \"\"}</p>
+                <p className="font-black text-white">{m?.weight_g ? `${formatKgFR(gramsToKg(m.weight_g), 1)}` : "—"}</p>
+                <p className="text-[9px] font-bold text-white/20 italic">{m?.kcal ? `${m.kcal} kcal` : ""}</p>
               </div>
             </div>
           );
