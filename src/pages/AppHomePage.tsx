@@ -34,10 +34,7 @@ export default function TodayPage() {
           weight: d.weight_g ? formatKgFR(gramsToKg(d.weight_g), 1).replace(',', '.') : "",
           note: d.note || ""
         });
-      } else {
-        setMetrics({ steps: "", kcal: "", weight: "", note: "" });
       }
-
       const w = await getOrCreateWorkout(dateStr);
       setWorkoutId(w.id);
       const ex = await getWorkoutExercises(w.id);
@@ -56,65 +53,58 @@ export default function TodayPage() {
     });
   };
 
-  const formatDisplayLoad = (type: string, grams: number | null) => {
-    if (type === "PDC") return "PDC";
-    if (type === "PDC_PLUS") return `PDC + ${gramsToKg(grams || 0)}kg`;
-    return `${formatKgFR(gramsToKg(grams || 0), 1)} kg`;
-  };
-
   return (
     <div className="max-w-xl mx-auto px-4 pt-4 pb-32 space-y-6">
       <div className="flex justify-center py-2">
-        <img src="/icons/android-chrome-512x512.png" alt="Logo" className="w-12 h-12 object-contain" />
+        <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain" />
       </div>
 
       <div className="flex items-center justify-between bg-white/5 p-2 rounded-2xl border border-white/5">
-        <button onClick={() => setCurrentDate(subDays(currentDate, 1))} className="p-3">←</button>
+        <button onClick={() => setCurrentDate(subDays(currentDate, 1))} className="p-3 text-white">←</button>
         <div className="text-center text-white">
           <p className="text-[10px] font-black uppercase text-menthe tracking-widest">{format(currentDate, 'EEEE', { locale: fr })}</p>
           <p className="font-black italic uppercase tracking-tighter">{format(currentDate, 'd MMMM yyyy', { locale: fr })}</p>
         </div>
-        <button onClick={() => setCurrentDate(addDays(currentDate, 1))} className="p-3">→</button>
+        <button onClick={() => setCurrentDate(addDays(currentDate, 1))} className="p-3 text-white">→</button>
       </div>
 
       <section className="glass-card p-6 rounded-[2.5rem] space-y-4">
         <div className="grid grid-cols-3 gap-3">
-          <div className="space-y-1">
-            <label className="text-[9px] font-black uppercase pl-2 opacity-40">Poids</label>
-            <input type="number" step="0.1" value={metrics.weight} onChange={e => setMetrics({...metrics, weight: e.target.value})} onBlur={handleSaveMetrics} className="w-full bg-white/5 p-4 rounded-2xl font-black text-white outline-none" />
-          </div>
-          <div className="space-y-1">
-            <label className="text-[9px] font-black uppercase pl-2 opacity-40">Pas</label>
-            <input type="number" value={metrics.steps} onChange={e => setMetrics({...metrics, steps: e.target.value})} onBlur={handleSaveMetrics} className="w-full bg-white/5 p-4 rounded-2xl font-black text-white outline-none" />
-          </div>
-          <div className="space-y-1">
-            <label className="text-[9px] font-black uppercase pl-2 opacity-40">Calories</label>
-            <input type="number" value={metrics.kcal} onChange={e => setMetrics({...metrics, kcal: e.target.value})} onBlur={handleSaveMetrics} className="w-full bg-white/5 p-4 rounded-2xl font-black text-white outline-none" />
-          </div>
+          {['Poids', 'Pas', 'Calories'].map((label, i) => (
+            <div key={label} className="space-y-1">
+              <label className="text-[9px] font-black uppercase pl-2 opacity-40 text-white">{label}</label>
+              <input 
+                type="number" 
+                value={i === 0 ? metrics.weight : i === 1 ? metrics.steps : metrics.kcal} 
+                onChange={e => {
+                  const val = e.target.value;
+                  if(i === 0) setMetrics({...metrics, weight: val});
+                  else if(i === 1) setMetrics({...metrics, steps: val});
+                  else setMetrics({...metrics, kcal: val});
+                }}
+                onBlur={handleSaveMetrics}
+                className="w-full bg-white/5 p-4 rounded-2xl font-black text-white outline-none" 
+              />
+            </div>
+          ))}
         </div>
       </section>
 
       <section className="glass-card p-6 rounded-[2.5rem] space-y-4 border-b-4 border-menthe">
         <div className="relative">
           <input 
-            placeholder="Chercher un exercice..." 
+            placeholder="Exercice..." 
             value={newName} 
             onChange={async (e) => { 
-              const val = e.target.value;
-              setNewName(val); 
-              if(val.length > 0) {
-                const list = await listCatalogExercises(val);
-                setSuggestions(list);
-              } else setSuggestions([]);
+              setNewName(e.target.value); 
+              setSuggestions(e.target.value.length > 0 ? await listCatalogExercises(e.target.value) : []);
             }} 
             className="w-full bg-white/5 p-4 rounded-2xl font-bold text-white outline-none" 
           />
           {suggestions.length > 0 && (
-            <div className="absolute z-10 w-full mt-2 bg-[#121212] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+            <div className="absolute z-10 w-full mt-2 bg-black border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
               {suggestions.map(s => (
-                <button key={s.id} onClick={() => { setNewName(s.name); setSuggestions([]); }} className="w-full p-4 text-left text-sm font-bold border-b border-white/5 text-white hover:bg-menthe hover:text-black">
-                  {s.name}
-                </button>
+                <button key={s.id} onClick={() => { setNewName(s.name); setSuggestions([]); }} className="w-full p-4 text-left text-sm font-bold border-b border-white/5 text-white hover:bg-menthe hover:text-black">{s.name}</button>
               ))}
             </div>
           )}
@@ -126,25 +116,20 @@ export default function TodayPage() {
           <input placeholder="Charge" value={newLoadVal} onChange={e => setNewLoadVal(e.target.value)} className="flex-1 bg-white/5 p-4 rounded-2xl font-bold text-white outline-none" />
           <input placeholder="Reps" value={newReps} onChange={e => setNewReps(e.target.value)} className="w-20 bg-white/5 p-4 rounded-2xl font-bold text-white outline-none" />
         </div>
-        <button onClick={async () => { if(!workoutId || !newName) return; await addWorkoutExercise({ workout_id: workoutId, exercise_name: newName, load_type: newLoadType, load_g: kgToGramsInt(parseDecimalFlexible(newLoadVal) || 0), reps: parseInt(newReps) || null }); setNewName(""); setExercises(await getWorkoutExercises(workoutId)); }} className="w-full bg-menthe text-black py-5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg">Enregistrer</button>
+        <button onClick={async () => { if(!workoutId || !newName) return; await addWorkoutExercise({ workout_id: workoutId, exercise_name: newName, load_type: newLoadType, load_g: kgToGramsInt(parseDecimalFlexible(newLoadVal) || 0), reps: parseInt(newReps) || null }); setNewName(\"\"); setExercises(await getWorkoutExercises(workoutId)); }} className="w-full bg-menthe text-black py-5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg">Enregistrer</button>
       </section>
 
       <div className="space-y-3">
         {exercises.map(ex => (
-          <div key={ex.id} className="relative group overflow-hidden rounded-3xl touch-none">
-            {/* Bouton supprimer en arrière plan */}
-            <div className="absolute inset-y-0 right-0 w-full bg-rose-600 flex items-center justify-end px-8">
-              <button onClick={async () => { await deleteWorkoutExercise(ex.id); setExercises(prev => prev.filter(e => e.id !== ex.id)); }} className="text-white font-black text-xs uppercase italic">Supprimer</button>
-            </div>
-            {/* Card glissante complète façon Gmail */}
-            <div 
-              className="relative glass-card p-5 flex justify-between items-center transition-transform duration-300 group-active:-translate-x-full"
-            >
+          <div key={ex.id} className="relative group overflow-hidden rounded-3xl bg-gradient-to-l from-rose-600/50 to-transparent">
+            <div className="relative glass-card p-5 flex justify-between items-center transition-transform duration-500 group-active:-translate-x-full" onTransitionEnd={async (e) => { if(e.propertyName === 'transform') { await deleteWorkoutExercise(ex.id); setExercises(prev => prev.filter(e => e.id !== ex.id)); }}}>
               <div>
                 <h3 className="font-black text-white">{ex.exercise_name}</h3>
-                <p className="text-[10px] font-black text-menthe uppercase tracking-widest">{formatDisplayLoad(ex.load_type, ex.load_g)} • {ex.reps} reps</p>
+                <p className="text-[10px] font-black text-menthe uppercase tracking-widest">
+                  {ex.load_type === 'KG' ? `${formatKgFR(gramsToKg(ex.load_g || 0), 1)} kg` : ex.load_type} • {ex.reps} reps
+                </p>
               </div>
-              <span className="opacity-20 text-[10px] font-black">←</span>
+              <span className="opacity-20 text-[10px] font-black text-white">Slippez pour supprimer</span>
             </div>
           </div>
         ))}

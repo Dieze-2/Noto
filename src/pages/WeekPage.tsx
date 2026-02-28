@@ -42,44 +42,40 @@ export default function WeekPage() {
 
   return (
     <div className="max-w-xl mx-auto px-4 pt-8 pb-32 space-y-6">
-      <header>
-        <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Tendances</h1>
+      <header className="text-center">
+        <h1 className="text-4xl font-black text-menthe italic uppercase tracking-tighter">Tendances</h1>
       </header>
 
-      {/* Selecteur type HomePage */}
       <div className="flex items-center justify-between bg-white/5 p-2 rounded-2xl border border-white/5 text-white">
         <button onClick={() => setAnchor(subDays(anchor, 7))} className="p-3">←</button>
         <div className="text-center font-black uppercase italic tracking-tighter">
-          {format(days[0], 'd MMM')} — {format(days[6], 'd MMM yyyy', { locale: fr })}
+          {format(days[0], 'd MMM', { locale: fr }).toUpperCase()} — {format(days[6], 'd MMM yyyy', { locale: fr }).toUpperCase()}
         </div>
         <button onClick={() => setAnchor(addDays(anchor, 7))} className="p-3">→</button>
       </div>
       
-      <div className="p-8 rounded-[2.5rem] bg-black border-b-4 border-menthe flex items-center justify-between">
+      <div className="p-6 rounded-[2.5rem] glass-card flex items-center justify-between border-b-2 border-menthe/30">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-white/30 italic">Poids Moyen</p>
+          <p className="text-[10px] font-black uppercase text-white/30 italic">Poids Moyen</p>
           <div className="flex items-baseline gap-2">
-            <span className="text-5xl font-black text-white">{stats.avgW ? (stats.avgW / 1000).toFixed(1).replace('.', ',') : "—"}</span>
-            <span className="text-lg font-bold text-white/20 uppercase tracking-tighter">kg</span>
+            <span className="text-4xl font-black text-white">{stats.avgW ? (stats.avgW / 1000).toFixed(1).replace('.', ',') : \"—\"}</span>
+            <span className="text-sm font-bold text-white/20 uppercase tracking-tighter">kg</span>
           </div>
         </div>
         {stats.variation !== null && (
-          <div className={`text-right px-6 py-4 rounded-3xl ${stats.variation > 0 ? 'bg-rose-500/10 text-rose-400' : 'bg-menthe/10 text-menthe'}`}>
-            <p className="text-[10px] font-black uppercase mb-1 tracking-widest">Variation</p>
-            <p className="text-3xl font-black">{stats.variation > 0 ? '↑' : '↓'} {Math.abs(stats.variation).toFixed(2)}%</p>
+          <div className={`px-4 py-2 rounded-2xl ${stats.variation > 0 ? 'bg-rose-500/10 text-rose-400' : 'bg-menthe/10 text-menthe'}`}>
+            <p className="text-xl font-black">{stats.variation > 0 ? '↑' : '↓'} {Math.abs(stats.variation).toFixed(2)}%</p>
           </div>
         )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="glass-card p-6 rounded-[2.5rem] text-center">
-           <p className="text-[10px] font-black text-menthe uppercase mb-1 tracking-widest">Moyenne pas/jour</p>
-           <p className="text-xl font-black text-white">{stats.avgS ? stats.avgS.toLocaleString() : "—"}</p>
-        </div>
-        <div className="glass-card p-6 rounded-[2.5rem] text-center">
-           <p className="text-[10px] font-black text-menthe uppercase mb-1 tracking-widest">Moyenne kcal/jour</p>
-           <p className="text-xl font-black text-white">{stats.avgK ? stats.avgK.toLocaleString() : "—"}</p>
-        </div>
+        {[{t: 'Moyenne pas/jour', v: stats.avgS}, {t: 'Moyenne kcal/jour', v: stats.avgK}].map(s => (
+          <div key={s.t} className="glass-card p-5 rounded-[2rem] text-center">
+             <p className="text-[9px] font-black text-menthe uppercase mb-1 tracking-widest">{s.t}</p>
+             <p className="text-lg font-black text-white">{s.v ? s.v.toLocaleString() : \"—\"}</p>
+          </div>
+        ))}
       </div>
 
       <div className="space-y-3">
@@ -89,17 +85,17 @@ export default function WeekPage() {
             <div key={d.toString()} onClick={() => navigate(`/?date=${isoDate(d)}`)} className="glass-card p-4 rounded-2xl flex items-center justify-between cursor-pointer active:scale-95 transition-transform">
               <div className="flex items-center gap-3">
                 <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center font-black ${m ? 'bg-menthe text-black' : 'bg-white/5 opacity-20'}`}>
-                  <span className="text-[8px] uppercase leading-none">{format(d, 'EEE', { locale: fr })}</span>
+                  <span className="text-[8px] uppercase leading-none">{format(d, 'EEE', { locale: fr }).toUpperCase()}</span>
                   <span className="text-base">{format(d, 'd')}</span>
                 </div>
                 <div>
                   <p className="font-black text-white text-sm capitalize">{format(d, 'MMMM', { locale: fr })}</p>
-                  <p className="text-[10px] font-black text-menthe uppercase tracking-widest">{m?.steps ? `${m.steps.toLocaleString()} pas` : ""}</p>
+                  <p className="text-[10px] font-black text-menthe uppercase tracking-widest">{m?.steps ? `${m.steps.toLocaleString()} pas` : \"\"}</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="font-black text-white">{m?.weight_g ? `${formatKgFR(gramsToKg(m.weight_g), 1)}` : "—"}</p>
-                <p className="text-[9px] font-bold text-white/20 uppercase italic">{m?.kcal ? `${m.kcal} kcal` : ""}</p>
+                <p className="font-black text-white">{m?.weight_g ? `${formatKgFR(gramsToKg(m.weight_g), 1)}` : \"—\"}</p>
+                <p className="text-[9px] font-bold text-white/20 uppercase italic">{m?.kcal ? `${m.kcal} kcal` : \"\"}</p>
               </div>
             </div>
           );
