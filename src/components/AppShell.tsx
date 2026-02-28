@@ -13,15 +13,14 @@ export default function AppShell({ children }: { children: ReactNode }) {
   ];
 
   return (
-    <div className="min-h-screen pb-32">
-      {/* Contenu principal */}
+    <div className="min-h-screen">
       <main className="animate-in fade-in duration-700">
         {children}
       </main>
 
-      {/* Navigation Flottante Glassmorphism */}
-      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
-        <div className="flex items-center gap-1 p-2 bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl border border-white/20 dark:border-slate-800/50 rounded-[2.5rem] shadow-2xl shadow-indigo-500/10">
+      {/* Navigation Flottante Ultra-Contraste */}
+      <nav className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
+        <div className="flex items-center gap-2 p-2 bg-white/90 dark:bg-mineral-950/80 backdrop-blur-2xl border border-black/5 dark:border-white/10 rounded-[3rem] shadow-2xl">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
@@ -30,13 +29,13 @@ export default function AppShell({ children }: { children: ReactNode }) {
                 to={item.path}
                 className={`relative flex flex-col items-center justify-center w-14 h-14 rounded-full transition-all duration-300 ${
                   isActive 
-                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/40 scale-110" 
-                    : "text-slate-400 hover:bg-white/40 dark:hover:bg-slate-800/40"
+                    ? "bg-black dark:bg-menthe-flash text-white dark:text-black scale-110 shadow-xl" 
+                    : "text-black/30 dark:text-white/30 hover:bg-black/5 dark:hover:bg-white/5"
                 }`}
               >
                 <span className="text-xl">{item.icon}</span>
                 {isActive && (
-                  <span className="absolute -bottom-1 w-1 h-1 bg-white rounded-full"></span>
+                  <span className="absolute -bottom-1 w-1 h-1 bg-current rounded-full"></span>
                 )}
               </Link>
             );

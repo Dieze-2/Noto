@@ -1,47 +1,47 @@
 @import "tailwindcss";
 
 @theme {
-  /* Menthe plus vive pour le mode sombre */
-  --color-menthe-flash: #a8ffcc;
-  --color-sauge-50: #f8faf9;
-  --color-sauge-600: #3a5c48; /* Très foncé pour texte clair */
-  --color-mineral-900: #1a2222;
-  --color-mineral-950: #0a0c0c;
+  --color-menthe-flash: #00ffa3; /* Plus saturé pour le mode sombre */
+  --color-sauge-deep: #1a2c23;  /* Pour le texte en mode clair */
+  --color-mineral-950: #080a0a;
 }
 
 :root {
-  --bg-gradient: radial-gradient(at 0% 0%, #f8faf9 0%, #e0ede4 100%);
+  --bg-gradient: radial-gradient(at 0% 0%, #f1f7f5 0%, #d4e5d8 100%);
   color-scheme: light dark;
 }
 
 .dark {
-  --bg-gradient: radial-gradient(at 100% 0%, #111818 0%, #050707 100%);
+  --bg-gradient: radial-gradient(at 100% 0%, #0d1313 0%, #050707 100%);
 }
 
 body {
   background: var(--bg-gradient);
   background-attachment: fixed;
-  color: #1a2222; /* Noir minéral en clair */
+  /* Force le noir en clair pour la lisibilité */
+  color: #000000; 
   transition: background 0.3s ease;
 }
 
 .dark body { 
-  color: #f8faf9; /* Blanc cassé en sombre */
+  color: #f1f7f5; 
 }
 
-/* Glassmorphism revisité */
 .glass-card {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.9); /* Plus opaque pour éviter le blanc/blanc */
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .dark .glass-card {
-  background: rgba(26, 34, 34, 0.7);
+  background: rgba(20, 26, 26, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* Inputs uniformes */
-input, select, textarea {
-  @apply bg-sauge-50/50 dark:bg-mineral-950/50 border-none outline-none;
+/* Correction spécifique pour les inputs invisibles */
+input::placeholder {
+  color: rgba(0, 0, 0, 0.4) !important;
+}
+.dark input::placeholder {
+  color: rgba(255, 255, 255, 0.3) !important;
 }
