@@ -28,7 +28,8 @@ jobs:
           cache: npm
 
       - name: Install
-        run: npm ci
+        # Utilisation de install --legacy-peer-deps pour ignorer les conflits Vite 7 / PWA
+        run: npm install --legacy-peer-deps
 
       - name: Build
         env:
