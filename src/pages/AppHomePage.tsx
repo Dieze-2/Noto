@@ -46,15 +46,6 @@ export default function TodayPage() {
     load();
   }, [dateStr]);
 
-  // Correction Suggestions
-  useEffect(() => {
-    if (newName.length > 1) {
-      listCatalogExercises(newName).then(setSuggestions);
-    } else {
-      setSuggestions([]);
-    }
-  }, [newName]);
-
   const handleSaveMetrics = async () => {
     await upsertDailyMetrics({
       date: dateStr,
@@ -74,33 +65,56 @@ export default function TodayPage() {
   return (
     <div className="max-w-xl mx-auto px-4 pt-4 pb-32 space-y-6">
       <div className="flex justify-center py-2">
-        <img src="icons/android-chrome-192x192.png" alt="Logo" className="w-12 h-12 object-contain" />
+        <img src="/icons/android-chrome-512x512.png" alt="Logo" className="w-12 h-12 object-contain" />
       </div>
 
       <div className="flex items-center justify-between bg-white/5 p-2 rounded-2xl border border-white/5">
-        <button onClick={() => setCurrentDate(subDays(currentDate, 1))} className="p-3 text-white">←</button>
-        <div className="text-center">
+        <button onClick={() => setCurrentDate(subDays(currentDate, 1))} className="p-3">←</button>
+        <div className="text-center text-white">
           <p className="text-[10px] font-black uppercase text-menthe tracking-widest">{format(currentDate, 'EEEE', { locale: fr })}</p>
-          <p className="font-black text-white">{format(currentDate, 'd MMMM yyyy', { locale: fr })}</p>
+          <p className="font-black italic uppercase tracking-tighter">{format(currentDate, 'd MMMM yyyy', { locale: fr })}</p>
         </div>
-        <button onClick={() => setCurrentDate(addDays(currentDate, 1))} className="p-3 text-white">→</button>
+        <button onClick={() => setCurrentDate(addDays(currentDate, 1))} className="p-3">→</button>
       </div>
 
       <section className="glass-card p-6 rounded-[2.5rem] space-y-4">
         <div className="grid grid-cols-3 gap-3">
-          <input type="number" placeholder="Poids" value={metrics.weight} onChange={e => setMetrics({...metrics, weight: e.target.value})} onBlur={handleSaveMetrics} className="w-full bg-white/5 p-4 rounded-2xl font-black text-white outline-none" />
-          <input type="number" placeholder="Pas" value={metrics.steps} onChange={e => setMetrics({...metrics, steps: e.target.value})} onBlur={handleSaveMetrics} className="w-full bg-white/5 p-4 rounded-2xl font-black text-white outline-none" />
-          <input type="number" placeholder="Kcal" value={metrics.kcal} onChange={e => setMetrics({...metrics, kcal: e.target.value})} onBlur={handleSaveMetrics} className="w-full bg-white/5 p-4 rounded-2xl font-black text-white outline-none" />
+          <div className="space-y-1">
+            <label className="text-[9px] font-black uppercase pl-2 opacity-40">Poids</label>
+            <input type="number" step="0.1" value={metrics.weight} onChange={e => setMetrics({...metrics, weight: e.target.value})} onBlur={handleSaveMetrics} className="w-full bg-white/5 p-4 rounded-2xl font-black text-white outline-none" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[9px] font-black uppercase pl-2 opacity-40">Pas</label>
+            <input type="number" value={metrics.steps} onChange={e => setMetrics({...metrics, steps: e.target.value})} onBlur={handleSaveMetrics} className="w-full bg-white/5 p-4 rounded-2xl font-black text-white outline-none" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[9px] font-black uppercase pl-2 opacity-40">Calories</label>
+            <input type="number" value={metrics.kcal} onChange={e => setMetrics({...metrics, kcal: e.target.value})} onBlur={handleSaveMetrics} className="w-full bg-white/5 p-4 rounded-2xl font-black text-white outline-none" />
+          </div>
         </div>
       </section>
 
       <section className="glass-card p-6 rounded-[2.5rem] space-y-4 border-b-4 border-menthe">
         <div className="relative">
-          <input placeholder="Chercher un exercice..." value={newName} onChange={(e) => setNewName(e.target.value)} className="w-full bg-white/5 p-4 rounded-2xl font-bold text-white outline-none" />
+          <input 
+            placeholder="Chercher un exercice..." 
+            value={newName} 
+            onChange={async (e) => { 
+              const val = e.target.value;
+              setNewName(val); 
+              if(val.length > 0) {
+                const list = await listCatalogExercises(val);
+                setSuggestions(list);
+              } else setSuggestions([]);
+            }} 
+            className="w-full bg-white/5 p-4 rounded-2xl font-bold text-white outline-none" 
+          />
           {suggestions.length > 0 && (
-            <div className="absolute z-10 w-full mt-2 bg-[#1a1a1a] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+            <div className="absolute z-10 w-full mt-2 bg-[#121212] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
               {suggestions.map(s => (
-                <button key={s.id} onClick={() => { setNewName(s.name); setSuggestions([]); }} className="w-full p-4 text-left text-sm font-bold border-b border-white/5 text-white hover:bg-menthe hover:text-black">{s.name}</button>
+                <button key={s.id} onClick={() => { setNewName(s.name); setSuggestions([]); }} className="w-full p-4 text-left text-sm font-bold border-b border-white/5 text-white hover:bg-menthe hover:text-black">
+                  {s.name}
+                </button>
               ))}
             </div>
           )}
@@ -112,23 +126,26 @@ export default function TodayPage() {
           <input placeholder="Charge" value={newLoadVal} onChange={e => setNewLoadVal(e.target.value)} className="flex-1 bg-white/5 p-4 rounded-2xl font-bold text-white outline-none" />
           <input placeholder="Reps" value={newReps} onChange={e => setNewReps(e.target.value)} className="w-20 bg-white/5 p-4 rounded-2xl font-bold text-white outline-none" />
         </div>
-        <button onClick={async () => { if(!workoutId || !newName) return; await addWorkoutExercise({ workout_id: workoutId, exercise_name: newName, load_type: newLoadType, load_g: kgToGramsInt(parseDecimalFlexible(newLoadVal) || 0), reps: parseInt(newReps) || null }); setNewName(""); setExercises(await getWorkoutExercises(workoutId)); }} className="w-full bg-menthe text-black py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em]">Enregistrer</button>
+        <button onClick={async () => { if(!workoutId || !newName) return; await addWorkoutExercise({ workout_id: workoutId, exercise_name: newName, load_type: newLoadType, load_g: kgToGramsInt(parseDecimalFlexible(newLoadVal) || 0), reps: parseInt(newReps) || null }); setNewName(""); setExercises(await getWorkoutExercises(workoutId)); }} className="w-full bg-menthe text-black py-5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg">Enregistrer</button>
       </section>
 
       <div className="space-y-3">
         {exercises.map(ex => (
-          <div key={ex.id} className="relative overflow-x-auto snap-x snap-mandatory no-scrollbar flex rounded-3xl">
-            <div className="min-w-full snap-start glass-card p-5 flex justify-between items-center bg-black border border-white/5">
+          <div key={ex.id} className="relative group overflow-hidden rounded-3xl touch-none">
+            {/* Bouton supprimer en arrière plan */}
+            <div className="absolute inset-y-0 right-0 w-full bg-rose-600 flex items-center justify-end px-8">
+              <button onClick={async () => { await deleteWorkoutExercise(ex.id); setExercises(prev => prev.filter(e => e.id !== ex.id)); }} className="text-white font-black text-xs uppercase italic">Supprimer</button>
+            </div>
+            {/* Card glissante complète façon Gmail */}
+            <div 
+              className="relative glass-card p-5 flex justify-between items-center transition-transform duration-300 group-active:-translate-x-full"
+            >
               <div>
                 <h3 className="font-black text-white">{ex.exercise_name}</h3>
                 <p className="text-[10px] font-black text-menthe uppercase tracking-widest">{formatDisplayLoad(ex.load_type, ex.load_g)} • {ex.reps} reps</p>
               </div>
-              <span className="text-white/20 text-[10px] font-black">← SLIDE</span>
+              <span className="opacity-20 text-[10px] font-black">←</span>
             </div>
-            <button 
-              onClick={async () => { await deleteWorkoutExercise(ex.id); setExercises(prev => prev.filter(e => e.id !== ex.id)); }}
-              className="snap-center min-w-[100px] bg-rose-600 text-white font-black text-[10px] uppercase"
-            >Supprimer</button>
           </div>
         ))}
       </div>
