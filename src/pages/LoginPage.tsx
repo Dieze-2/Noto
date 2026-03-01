@@ -33,14 +33,14 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center px-6">
-      {/* Container Logo style iOS Glass */}
-      <div className="w-64 h-64 mb-16 relative flex items-center justify-center rounded-[3rem] bg-white/5 border border-white/10 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
+      {/* Logo Circulaire Glassmorphism */}
+      <div className="w-56 h-56 mb-16 relative flex items-center justify-center rounded-full bg-white/5 border border-white/10 backdrop-blur-2xl shadow-[0_0_50px_rgba(0,0,0,0.8),inset_0_0_20px_rgba(255,255,255,0.05)] overflow-hidden">
         <img 
           src="./logo.png" 
           alt="Logo" 
-          className="w-40 h-40 object-contain filter drop-shadow-[0_0_15px_rgba(0,255,163,0.5)]" 
+          className="w-full h-full object-cover scale-110" 
         />
+        <div className="absolute inset-0 shadow-[inset_0_0_40px_rgba(0,0,0,0.9)] rounded-full" />
       </div>
 
       <div className="w-full max-w-sm space-y-4">
