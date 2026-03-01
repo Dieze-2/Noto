@@ -9,15 +9,13 @@ export default function ImportPage() {
   return (
     <div className="min-h-screen flex flex-col max-w-xl mx-auto px-4 pt-12 pb-32">
       <header className="flex-1 flex flex-col items-center justify-center">
-        {/* Logo Circulaire Glassmorphism */}
         <div className="w-48 h-48 relative rounded-full border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden mb-12">
             <img src="./logo.png" alt="Logo" className="w-full h-full object-cover scale-110" />
             <div className="absolute inset-0 shadow-[inset_0_0_30px_rgba(0,0,0,0.8)]" />
         </div>
         
         <div className="text-center">
-            <h1 className="text-5xl font-black text-white italic uppercase tracking-tighter">Système</h1>
-            <p className="text-[10px] font-black text-menthe uppercase tracking-[0.4em] mt-4 opacity-60">Configuration</p>
+            <h1 className="text-5xl font-black text-menthe italic uppercase tracking-tighter">Système</h1>
         </div>
       </header>
 
@@ -35,7 +33,7 @@ export default function ImportPage() {
           <button onClick={() => window.location.hash = "/export"} className="w-full bg-white/5 border border-white/5 py-6 rounded-2xl font-black text-[11px] uppercase tracking-widest text-white">Exporter Backup</button>
           <button onClick={handleLogout} className="w-full bg-rose-600/20 py-6 rounded-2xl font-black text-[11px] uppercase tracking-widest text-rose-500">Déconnexion</button>
         </div>
-        {status && <p className="text-menthe font-black uppercase text-xs tracking-widest">{status}</p>}
+        {status && <p className="text-menthe font-black uppercase text-xs tracking-widest mt-4">{status}</p>}
       </section>
     </div>
   );
