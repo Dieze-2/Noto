@@ -5,7 +5,7 @@ import { Footprints, Flame, Weight, Plus, Trash2, Video, stickyNote } from "luci
 import { format, parseISO, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
 
-import Layout from "../components/Layout";
+import AppShell from "../components/AppShell";
 import GlassCard from "../components/GlassCard";
 import StatBubble from "../components/StatBubble";
 import { getDailyMetricsByDate, upsertDailyMetrics } from "../db/dailyMetrics";
@@ -54,7 +54,7 @@ export default function AppHomePage() {
   };
 
   return (
-    <Layout>
+    <AppShell>
       {/* Header avec Logo */}
       <div className="flex flex-col items-center mb-8">
         <div className="w-20 h-20 rounded-3xl overflow-hidden mb-4 glass-card p-1">
@@ -90,7 +90,7 @@ export default function AppHomePage() {
           ))}
         </AnimatePresence>
       </div>
-    </Layout>
+    </AppShell>
   );
 }
 
