@@ -22,6 +22,7 @@ export default function TodayPage() {
   const [newLoadType, setNewLoadType] = useState<"PDC" | "PDC_PLUS" | "KG" | "TEXT">("KG");
   const [newLoadVal, setNewLoadVal] = useState("");
   const [newReps, setNewReps] = useState("");
+  const [newComment, setNewComment] = useState(""); // Note de série
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
   useEffect(() => {
@@ -44,16 +45,13 @@ export default function TodayPage() {
   };
 
   return (
-    <div className="max-w-xl mx-auto px-4 pt-4 pb-32 space-y-6 overflow-x-hidden"
-      onTouchStart={e => setTouchStartX(e.touches[0].clientX)}
-      onTouchEnd={e => {
-        if (!touchStartX) return;
-        const diff = e.changedTouches[0].clientX - touchStartX;
-        if (diff > 80) setCurrentDate(subDays(currentDate, 1));
-        if (diff < -80) setCurrentDate(addDays(currentDate, 1));
-      }}
-    >
-      <div className="flex justify-center"><img src="./logo.png" alt="Logo" className="w-auto h-auto object-contain" /></div>
+    <div className="max-w-xl mx-auto px-4 pt-4 pb-32 space-y-6 overflow-x-hidden">
+      {/* Logo réduit style Glass */}
+      <div className="flex justify-center py-4">
+        <div className="w-32 h-32 relative flex items-center justify-center rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-md">
+            <img src="./logo.png" alt="Logo" className="w-20 h-20 object-contain filter drop-shadow-[0_0_8px_rgba(0,255,163,0.4)]" />
+        </div>
+      </div>
 
       <div className="flex items-center justify-between bg-white/5 p-2 rounded-2xl">
         <button onClick={() => setCurrentDate(subDays(currentDate, 1))} className="p-3 text-white">←</button>
@@ -61,28 +59,8 @@ export default function TodayPage() {
         <button onClick={() => setCurrentDate(addDays(currentDate, 1))} className="p-3 text-white">→</button>
       </div>
 
-      <section className="glass-card p-6 rounded-[2.5rem] grid grid-cols-3 gap-3">
-        {['weight', 'steps', 'kcal'].map((f) => (
-          <div key={f} className="space-y-1">
-            <label className="text-[9px] font-black uppercase pl-2 opacity-40 text-white">{f}</label>
-            <input type="text" inputMode="decimal" value={(metrics as any)[f]} onChange={e => setMetrics({...metrics, [f]: e.target.value})} onBlur={async () => {
-              await upsertDailyMetrics({ date: dateStr, steps: parseInt(metrics.steps) || null, kcal: parseInt(metrics.kcal) || null, weight_g: kgToGramsInt(parseDecimalFlexible(metrics.weight)), note: metrics.note || null });
-            }} className="w-full bg-white/5 p-4 rounded-2xl font-black text-white outline-none" />
-          </div>
-        ))}
-      </section>
-
       <section className="glass-card p-6 rounded-[2.5rem] space-y-4 border-b-4 border-menthe">
-        <div className="relative">
-          <input placeholder="Exercice..." value={newName} onChange={e => handleSearch(e.target.value)} className="w-full bg-white/5 p-4 rounded-2xl font-bold text-white outline-none" />
-          {suggestions.length > 0 && (
-            <div className="absolute z-10 w-full mt-2 bg-black border border-white/10 rounded-2xl max-h-48 overflow-y-auto">
-              {suggestions.map(s => (
-                <button key={s.id} onClick={() => { setNewName(s.name); setSuggestions([]); }} className="w-full p-4 text-left text-sm font-bold text-white hover:bg-menthe hover:text-black">{s.name}</button>
-              ))}
-            </div>
-          )}
-        </div>
+        <input placeholder="Exercice..." value={newName} onChange={e => handleSearch(e.target.value)} className="w-full bg-white/5 p-4 rounded-2xl font-bold text-white outline-none" />
         <div className="flex gap-2">
           <select value={newLoadType} onChange={e => setNewLoadType(e.target.value as any)} className="bg-white/5 p-4 rounded-2xl font-bold text-white outline-none">
             <option value="KG">KG</option>
@@ -92,44 +70,77 @@ export default function TodayPage() {
           <input placeholder="Charge" inputMode="decimal" value={newLoadVal} onChange={e => setNewLoadVal(e.target.value)} className="flex-1 bg-white/5 p-4 rounded-2xl font-bold text-white outline-none" />
           <input placeholder="Reps" inputMode="numeric" value={newReps} onChange={e => setNewReps(e.target.value)} className="w-20 bg-white/5 p-4 rounded-2xl font-bold text-white outline-none" />
         </div>
+        <input placeholder="Note (ex: tempo, ressenti...)" value={newComment} onChange={e => setNewComment(e.target.value)} className="w-full bg-white/5 p-3 rounded-xl text-xs font-bold text-white/60 outline-none italic" />
+        
         <button onClick={async () => {
           if(!workoutId || !newName) return;
-          await addWorkoutExercise({ workout_id: workoutId, exercise_name: newName, load_type: newLoadType, load_g: kgToGramsInt(parseDecimalFlexible(newLoadVal) || 0), reps: parseInt(newReps) || null });
-          setNewName(""); setNewLoadVal(""); setNewReps(""); setExercises(await getWorkoutExercises(workoutId));
+          await addWorkoutExercise({ 
+            workout_id: workoutId, 
+            exercise_name: newName, 
+            load_type: newLoadType, 
+            load_g: kgToGramsInt(parseDecimalFlexible(newLoadVal) || 0), 
+            reps: parseInt(newReps) || null,
+            comment: newComment || null
+          });
+          setNewName(""); setNewLoadVal(""); setNewReps(""); setNewComment(""); setExercises(await getWorkoutExercises(workoutId));
         }} className="w-full bg-menthe text-black py-5 rounded-2xl font-black text-xs uppercase tracking-widest">Enregistrer</button>
       </section>
 
       <div className="space-y-3">
         {exercises.map(ex => (
-          <div key={ex.id} className="relative group overflow-hidden rounded-3xl bg-gradient-to-l from-rose-900/40 to-transparent border-r-4 border-rose-600/20">
-            <div className="absolute inset-y-0 right-0 w-20 flex items-center justify-center pointer-events-none">
-                <span className="text-[10px] font-black text-rose-500 uppercase opacity-60">Suppr.</span>
+          <div key={ex.id} className="relative group overflow-hidden rounded-[2rem] bg-rose-600">
+            {/* Background Action Supprimer */}
+            <div className="absolute inset-0 flex items-center justify-end px-8">
+                <span className="text-[10px] font-black text-white uppercase tracking-widest">Relâcher pour supprimer</span>
             </div>
+            
+            {/* Card glissante */}
             <div 
-              className="relative glass-card p-5 flex justify-between items-center transition-transform duration-300 touch-pan-x group-active:-translate-x-20 md:hover:-translate-x-20"
-              onClick={async (e) => {
-                 // Action clic pour PC si on glisse
-                 if(window.innerWidth > 768) {
-                    if (window.confirm("Supprimer ?")) {
+              className="relative glass-card p-5 flex justify-between items-center transition-transform duration-200 touch-pan-x"
+              style={{ transform: 'translateX(0px)' }}
+              onTouchStart={(e) => setTouchStartX(e.touches[0].clientX)}
+              onTouchMove={(e) => {
+                if (touchStartX === null) return;
+                const diff = e.touches[0].clientX - touchStartX;
+                if (diff < 0) { // On ne slide que vers la gauche
+                    const el = e.currentTarget;
+                    el.style.transform = `translateX(${Math.max(diff, -window.innerWidth)}px)`;
+                    el.style.transition = 'none';
+                }
+              }}
+              onTouchEnd={async (e) => {
+                const el = e.currentTarget;
+                const matrix = new WebKitCSSMatrix(window.getComputedStyle(el).transform);
+                const currentTranslate = Math.abs(matrix.m41);
+                const threshold = el.offsetWidth * 0.75; // 75% de la longueur
+
+                if (currentTranslate > threshold) {
+                    // Animation de sortie complète
+                    el.style.transition = 'transform 0.3s ease-out';
+                    el.style.transform = `translateX(-100%)`;
+                    setTimeout(async () => {
                         await deleteWorkoutExercise(ex.id);
                         setExercises(prev => prev.filter(item => item.id !== ex.id));
-                    }
-                 }
-              }}
-              onTouchEndCapture={async (e) => {
-                 // Déclenchement suppression si slide mobile complet
-                 const style = window.getComputedStyle(e.currentTarget);
-                 const matrix = new WebKitCSSMatrix(style.transform);
-                 if (matrix.m41 <= -70) {
-                    await deleteWorkoutExercise(ex.id);
-                    setExercises(prev => prev.filter(item => item.id !== ex.id));
-                 }
+                    }, 300);
+                } else {
+                    // Retour à la position initiale
+                    el.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                    el.style.transform = `translateX(0px)`;
+                }
+                setTouchStartX(null);
               }}
             >
               <div>
                 <h3 className="font-black text-white">{ex.exercise_name}</h3>
-                <p className="text-[10px] font-black text-menthe uppercase tracking-widest">{ex.load_type.replace('_',' ')} • {ex.reps} reps</p>
+                <div className="flex items-center gap-2">
+                    <p className="text-[10px] font-black text-menthe uppercase tracking-widest">
+                        {/* Correction affichage charge + type */}
+                        {ex.load_type} {ex.load_g ? `(${formatKgFR(gramsToKg(ex.load_g), 1)} kg)` : ""} • {ex.reps} reps
+                    </p>
+                    {ex.comment && <span className="text-[9px] text-white/30 italic"> — {ex.comment}</span>}
+                </div>
               </div>
+              <div className="w-2 h-8 bg-white/10 rounded-full" /> {/* Indicateur visuel de grip */}
             </div>
           </div>
         ))}

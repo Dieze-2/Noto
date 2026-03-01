@@ -33,11 +33,16 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center px-6">
-      <img 
-        src="./logo.png" 
-        alt="Logo" 
-        className="w-64 h-64 object-contain mb-16 filter drop-shadow-[0_0_30px_rgba(0,255,163,0.3)]" 
-      />
+      {/* Container Logo style iOS Glass */}
+      <div className="w-64 h-64 mb-16 relative flex items-center justify-center rounded-[3rem] bg-white/5 border border-white/10 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
+        <img 
+          src="./logo.png" 
+          alt="Logo" 
+          className="w-40 h-40 object-contain filter drop-shadow-[0_0_15px_rgba(0,255,163,0.5)]" 
+        />
+      </div>
+
       <div className="w-full max-w-sm space-y-4">
         <form onSubmit={handleSubmit} className="space-y-4">
           <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-white font-bold outline-none focus:border-menthe" />
