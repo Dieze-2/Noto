@@ -59,11 +59,11 @@ export default function WeekPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="glass-card p-5 rounded-[2rem] border-b-2 border-menthe/20">
+        <div className="glass-card p-5 rounded-[2rem] border-b-2 border-white/5">
           <p className="text-[10px] font-black uppercase text-white/30 italic">Poids Moyen</p>
           <span className="text-2xl font-black text-white">{stats.avg ? (stats.avg / 1000).toFixed(1).replace('.', ',') : "—"}</span>
         </div>
-        <div className="glass-card p-5 rounded-[2rem] border-b-2 border-menthe/20">
+        <div className={`p-5 rounded-[2rem] border-b-2 ${stats.diff && stats.diff > 0 ? 'bg-rose-500/10 border-rose-500/20' : 'bg-menthe/10 border-menthe/20'}`}>
           <p className="text-[10px] font-black uppercase text-white/30 italic">Variation</p>
           <span className={`text-2xl font-black ${stats.diff && stats.diff > 0 ? 'text-rose-500' : 'text-menthe'}`}>
             {stats.diff ? (stats.diff > 0 ? `+${stats.diff.toFixed(2)}` : stats.diff.toFixed(2)).replace('.', ',') : "—"}
@@ -92,7 +92,7 @@ export default function WeekPage() {
                 </div>
               </div>
               {dayEvents.map(e => (
-                <div key={e.id} className="text-[10px] font-bold text-menthe/60 italic px-2 animate-in fade-in duration-500">◆ {e.title}</div>
+                <div key={e.id} className="text-[10px] font-bold text-menthe/60 italic px-2">◆ {e.title}</div>
               ))}
             </div>
           );
