@@ -17,13 +17,18 @@ export default function TodayPage() {
   const [metrics, setMetrics] = useState({ steps: "", kcal: "", weight: "" });
   const [exercises, setExercises] = useState<any[]>([]);
   const [workoutId, setWorkoutId] = useState<string | null>(null);
+  
+  // Formulaire
   const [newName, setNewName] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [newLoadType, setNewLoadType] = useState<"PDC" | "PDC_PLUS" | "KG" | "TEXT">("KG");
   const [newLoadVal, setNewLoadVal] = useState("");
   const [newReps, setNewReps] = useState("");
-  
+  const [newSets, setNewSets] = useState("1"); // Champ séries secondaires
+
+  // UI State
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [headerTouchStartX, setHeaderTouchStartX] = useState<number | null>(null);
   const [showDeleteId, setShowDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -60,7 +65,6 @@ export default function TodayPage() {
     return type === "KG" ? `${val} KG` : type === "PDC_PLUS" ? `PDC + ${val} KG` : type;
   };
 
-  // Groupement pour séries secondaires
   const groupedExercises = useMemo(() => {
     const groups: any[] = [];
     exercises.forEach(ex => {
@@ -83,27 +87,41 @@ export default function TodayPage() {
         </div>
       </div>
       
-      <div className="flex items-center justify-between bg-white/5 p-2 rounded-2xl">
+      {/* Header avec Navigation Swipe */}
+      <div 
+        className="flex items-center justify-between bg-white/5 p-2 rounded-2xl touch-pan-y"
+        onTouchStart={(e) => setHeaderTouchStartX(e.touches[0].clientX)}
+        onTouchEnd={(e) => {
+          if (headerTouchStartX === null) return;
+          const diff = e.changedTouches[0].clientX - headerTouchStartX;
+          if (diff > 50) setCurrentDate(subDays(currentDate, 1));
+          if (diff < -50) setCurrentDate(addDays(currentDate, 1));
+          setHeaderTouchStartX(null);
+        }}
+      >
         <button onClick={() => setCurrentDate(subDays(currentDate, 1))} className="p-3 text-white">←</button>
-        <div className="text-center text-white font-black uppercase italic tracking-tighter">{format(currentDate, 'd MMMM yyyy', { locale: fr })}</div>
+        <div className="text-center text-white font-black uppercase italic tracking-tighter">
+            {format(currentDate, 'd MMMM yyyy', { locale: fr })}
+        </div>
         <button onClick={() => setCurrentDate(addDays(currentDate, 1))} className="p-3 text-white">→</button>
       </div>
 
+      {/* Metrics */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="glass-card p-4 rounded-3xl border-b-2 border-white/10">
-          <p className="text-[8px] font-black text-white/40 uppercase mb-1">Pas</p>
-          <input type="number" value={metrics.steps} onChange={e => saveMetrics({steps: e.target.value})} className="w-full bg-transparent text-xl font-black text-white outline-none" placeholder="0" />
-        </div>
-        <div className="glass-card p-4 rounded-3xl border-b-2 border-white/10">
-          <p className="text-[8px] font-black text-white/40 uppercase mb-1">Kcal</p>
-          <input type="number" value={metrics.kcal} onChange={e => saveMetrics({kcal: e.target.value})} className="w-full bg-transparent text-xl font-black text-white outline-none" placeholder="0" />
-        </div>
-        <div className="glass-card p-4 rounded-3xl border-b-2 border-white/10">
-          <p className="text-[8px] font-black text-white/40 uppercase mb-1">Poids (kg)</p>
-          <input type="text" value={metrics.weight} onChange={e => saveMetrics({weight: e.target.value})} className="w-full bg-transparent text-xl font-black text-white outline-none" placeholder="0.0" />
-        </div>
+        {['steps', 'kcal', 'weight'].map((m) => (
+          <div key={m} className="glass-card p-4 rounded-3xl border-b-2 border-white/10">
+            <p className="text-[8px] font-black text-white/40 uppercase mb-1">{m === 'weight' ? 'Poids (kg)' : m}</p>
+            <input 
+              type={m === 'weight' ? "text" : "number"} 
+              value={(metrics as any)[m]} 
+              onChange={e => saveMetrics({[m]: e.target.value})} 
+              className="w-full bg-transparent text-xl font-black text-white outline-none" placeholder="0" 
+            />
+          </div>
+        ))}
       </div>
 
+      {/* Formulaire d'ajout */}
       <section className="glass-card p-6 rounded-[2.5rem] space-y-4 border-b-4 border-menthe relative">
         <input 
           placeholder="Exercice..." 
@@ -122,33 +140,40 @@ export default function TodayPage() {
           <div className="absolute z-50 left-6 right-6 top-20 bg-zinc-900 border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
             {suggestions.map(s => (
               <div key={s.id} onClick={async () => { 
-                setNewName(s.name); 
-                setSuggestions([]);
+                setNewName(s.name); setSuggestions([]);
                 const last = await getLastExerciseByName(s.name);
-                if(last) {
-                    setNewLoadType(last.load_type);
-                    setNewLoadVal(gramsToKg(last.load_g || 0).toString());
-                }
+                if(last) { setNewLoadType(last.load_type); setNewLoadVal(gramsToKg(last.load_g || 0).toString()); }
               }} className="p-4 text-white font-bold border-b border-white/5 active:bg-menthe active:text-black">{s.name}</div>
             ))}
           </div>
         )}
 
-        <div className="flex gap-2">
-          <select value={newLoadType} onChange={e => setNewLoadType(e.target.value as any)} className="bg-white/5 p-4 rounded-2xl font-bold text-white outline-none">
+        <div className="grid grid-cols-4 gap-2">
+          <select value={newLoadType} onChange={e => setNewLoadType(e.target.value as any)} className="bg-white/5 p-4 rounded-2xl font-bold text-white outline-none text-xs">
             <option value="KG">KG</option><option value="PDC">PDC</option><option value="PDC_PLUS">PDC +</option>
           </select>
-          <input placeholder="Charge" inputMode="decimal" value={newLoadVal} onChange={e => setNewLoadVal(e.target.value)} className="flex-1 bg-white/5 p-4 rounded-2xl font-bold text-white outline-none" />
-          <input placeholder="Reps" inputMode="numeric" value={newReps} onChange={e => setNewReps(e.target.value)} className="w-20 bg-white/5 p-4 rounded-2xl font-bold text-white outline-none" />
+          <input placeholder="Charge" inputMode="decimal" value={newLoadVal} onChange={e => setNewLoadVal(e.target.value)} className="col-span-1 bg-white/5 p-4 rounded-2xl font-bold text-white outline-none" />
+          <input placeholder="Reps" inputMode="numeric" value={newReps} onChange={e => setNewReps(e.target.value)} className="bg-white/5 p-4 rounded-2xl font-bold text-white outline-none" />
+          <input placeholder="Séries" inputMode="numeric" value={newSets} onChange={e => setNewSets(e.target.value)} className="bg-white/5 p-4 rounded-2xl font-bold text-menthe outline-none" />
         </div>
+
         <button onClick={async () => {
           if(!workoutId || !newName) return;
-          await addWorkoutExercise({ workout_id: workoutId, exercise_name: newName, load_type: newLoadType, load_g: kgToGramsInt(parseDecimalFlexible(newLoadVal) || 0), reps: parseInt(newReps) || null });
-          setNewName(""); setNewLoadVal(""); setNewReps(""); setSuggestions([]); 
-          setExercises(await getWorkoutExercises(workoutId));
+          const setsCount = parseInt(newSets) || 1;
+          for(let i=0; i<setsCount; i++) {
+            await addWorkoutExercise({ 
+                workout_id: workoutId, 
+                exercise_name: newName, 
+                load_type: newLoadType, 
+                load_g: kgToGramsInt(parseDecimalFlexible(newLoadVal) || 0), 
+                reps: parseInt(newReps) || null 
+            });
+          }
+          setNewName(""); setNewLoadVal(""); setNewReps(""); setNewSets("1"); setExercises(await getWorkoutExercises(workoutId));
         }} className="w-full bg-menthe text-black py-5 rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-transform">Enregistrer</button>
       </section>
 
+      {/* Liste des exercices avec Slide réactif et bouton rotatif */}
       <div className="space-y-4">
         {groupedExercises.map(group => (
           <div key={group.id} className="space-y-1">
@@ -161,7 +186,7 @@ export default function TodayPage() {
                         await deleteWorkoutExercise(ex.id); 
                         setExercises(prev => prev.filter(item => item.id !== ex.id)); 
                       }} 
-                      className="w-10 h-10 rounded-full bg-rose-600 text-white flex items-center justify-center transform transition-transform duration-300 hover:rotate-90 active:rotate-180"
+                      className="w-10 h-10 rounded-full bg-rose-600 text-white flex items-center justify-center transform transition-transform duration-500 hover:rotate-90 active:rotate-[180deg]"
                     >
                       ✕
                     </button>
@@ -171,30 +196,18 @@ export default function TodayPage() {
                   className="relative glass-card p-5 flex justify-between items-center transition-transform duration-300 ease-out"
                   style={{ transform: showDeleteId === ex.id ? 'translateX(-64px)' : 'translateX(0px)' }}
                   onClick={() => setShowDeleteId(showDeleteId === ex.id ? null : ex.id)}
-                  onTouchStart={(e) => {
-                    setTouchStartX(e.touches[0].clientX);
-                    e.currentTarget.style.transition = 'none';
-                  }}
+                  onTouchStart={(e) => { setTouchStartX(e.touches[0].clientX); e.currentTarget.style.transition = 'none'; }}
                   onTouchMove={(e) => {
                     if (touchStartX === null) return;
                     const diff = e.touches[0].clientX - touchStartX;
-                    if (diff < 0) {
-                        const move = Math.max(diff, -100);
-                        e.currentTarget.style.transform = `translateX(${move}px)`;
-                    }
+                    if (diff < 0) e.currentTarget.style.transform = `translateX(${Math.max(diff, -100)}px)`;
                   }}
-                  onTouchEnd={async (e) => {
+                  onTouchEnd={(e) => {
                     const el = e.currentTarget;
                     el.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
                     const matrix = new WebKitCSSMatrix(window.getComputedStyle(el).transform);
-                    
-                    if (matrix.m41 < -40) {
-                        setShowDeleteId(ex.id);
-                        el.style.transform = `translateX(-64px)`;
-                    } else {
-                        setShowDeleteId(null);
-                        el.style.transform = `translateX(0px)`;
-                    }
+                    if (matrix.m41 < -40) { setShowDeleteId(ex.id); el.style.transform = `translateX(-64px)`; } 
+                    else { setShowDeleteId(null); el.style.transform = `translateX(0px)`; }
                     setTouchStartX(null);
                   }}
                 >
@@ -205,9 +218,7 @@ export default function TodayPage() {
                     </p>
                   </div>
                   {idx === 0 && group.sets.length > 1 && (
-                    <span className="bg-white/10 px-2 py-1 rounded-lg text-[8px] font-black text-white/40 uppercase">
-                      {group.sets.length} séries
-                    </span>
+                    <span className="bg-white/10 px-2 py-1 rounded-lg text-[8px] font-black text-white/40 uppercase">{group.sets.length} séries</span>
                   )}
                 </div>
               </div>
