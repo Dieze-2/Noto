@@ -18,15 +18,13 @@ export default function TodayPage() {
   const [exercises, setExercises] = useState<any[]>([]);
   const [workoutId, setWorkoutId] = useState<string | null>(null);
   
-  // Formulaire (Valeurs par défaut supprimées)
   const [newName, setNewName] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [newLoadType, setNewLoadType] = useState<"KG" | "PDC_PLUS" | "TEXT">("KG");
   const [newLoadVal, setNewLoadVal] = useState("");
   const [newReps, setNewReps] = useState("");
-  const [newComment, setNewComment] = useState(""); // Champ Note pour les séries suivantes
+  const [newComment, setNewComment] = useState(""); 
 
-  // UI State
   const [headerTouchStartX, setHeaderTouchStartX] = useState<number | null>(null);
   const [showDeleteId, setShowDeleteId] = useState<string | null>(null);
 
@@ -71,7 +69,6 @@ export default function TodayPage() {
         </div>
       </div>
       
-      {/* Navigation Swipe corrigée */}
       <div 
         className="flex items-center justify-between bg-white/5 p-3 rounded-2xl touch-pan-y"
         onTouchStart={(e) => setHeaderTouchStartX(e.touches[0].clientX)}
@@ -90,14 +87,13 @@ export default function TodayPage() {
         <button onClick={() => setCurrentDate(addDays(currentDate, 1))} className="p-4 text-2xl text-white">→</button>
       </div>
 
-      {/* Metrics */}
       <div className="grid grid-cols-3 gap-4">
         {['steps', 'kcal', 'weight'].map((m) => (
           <div key={m} className="glass-card p-5 rounded-3xl border-b-2 border-white/10">
             <p className="text-[10px] font-black text-white/40 uppercase mb-2">{m === 'weight' ? 'Poids (kg)' : m}</p>
             <input 
               type="text" 
-              inputMode={m === 'weight' ? "decimal" : "numeric"}
+              inputMode="decimal"
               value={(metrics as any)[m]} 
               onChange={e => saveMetrics({[m]: e.target.value})} 
               className="w-full bg-transparent text-2xl font-black text-white outline-none" placeholder="-" 
@@ -106,7 +102,6 @@ export default function TodayPage() {
         ))}
       </div>
 
-      {/* Formulaire */}
       <section className="glass-card p-8 rounded-[2.5rem] space-y-5 border-b-4 border-menthe relative">
         <input 
           placeholder="Nom de l'exercice..." 
@@ -134,15 +129,21 @@ export default function TodayPage() {
         )}
 
         <div className="grid grid-cols-3 gap-3">
-          <select value={newLoadType} onChange={e => setNewLoadType(e.target.value as any)} className="bg-white/5 p-5 rounded-2xl font-bold text-white outline-none text-base">
-            <option value="KG">KG</option><option value="PDC_PLUS">PDC +</option>
+          {/* Correction lisibilité options select */}
+          <select 
+            value={newLoadType} 
+            onChange={e => setNewLoadType(e.target.value as any)} 
+            className="bg-white/5 p-5 rounded-2xl font-bold text-white outline-none text-base appearance-none [&>option]:bg-zinc-900 [&>option]:text-white"
+          >
+            <option value="KG">KG</option>
+            <option value="PDC_PLUS">PDC +</option>
           </select>
           <input placeholder="Charge" inputMode="decimal" value={newLoadVal} onChange={e => setNewLoadVal(e.target.value)} className="bg-white/5 p-5 rounded-2xl font-bold text-white text-xl outline-none" />
           <input placeholder="Reps" inputMode="numeric" value={newReps} onChange={e => setNewReps(e.target.value)} className="bg-white/5 p-5 rounded-2xl font-bold text-white text-xl outline-none" />
         </div>
 
         <textarea 
-          placeholder="Notes pour les séries suivantes (ex: S2: 10kg x 8, S3: PDC x 12...)" 
+          placeholder="Notes (séries suivantes...)" 
           value={newComment} 
           onChange={e => setNewComment(e.target.value)}
           className="w-full bg-white/5 p-5 rounded-2xl font-medium text-white text-base outline-none min-h-[100px]"
@@ -162,7 +163,6 @@ export default function TodayPage() {
         }} className="w-full bg-menthe text-black py-6 rounded-2xl font-black text-sm uppercase tracking-widest active:scale-95 transition-transform">Enregistrer</button>
       </section>
 
-      {/* Liste des exercices */}
       <div className="space-y-6">
         {exercises.map(ex => (
           <div key={ex.id} className="relative overflow-hidden rounded-[2rem] bg-rose-600/20">
@@ -177,7 +177,6 @@ export default function TodayPage() {
             >
               <div className="flex justify-between items-start">
                 <h3 className="font-black text-white uppercase italic text-xl">{ex.exercise_name}</h3>
-                
               </div>
               
               <p className="text-lg font-black text-white/90">
