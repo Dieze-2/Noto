@@ -1,14 +1,14 @@
 import { useState, useEffect, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, addDays, parseISO, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Footprints, Flame, Weight, Plus, ChevronLeft, ChevronRight, Dumbbell, Trash2 } from "lucide-react";
+import { Footprints, Flame, Weight, Plus, ChevronLeft, ChevronRight, Dumbbell, Trash2, Check } from "lucide-react";
 import AppShell from "../components/AppShell";
 import StatBubble from "../components/StatBubble";
 import GlassCard from "../components/GlassCard";
 import { getDailyMetricsByDate, upsertDailyMetrics } from "../db/dailyMetrics";
-import { getOrCreateWorkout, getWorkoutExercises, deleteWorkoutExercise } from "../db/workouts";
+import { getOrCreateWorkout, getWorkoutExercises, addWorkoutExercise, deleteWorkoutExercise } from "../db/workouts";
 
 export default function AppHomePage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -20,44 +20,42 @@ export default function AppHomePage() {
 
   const [metrics, setMetrics] = useState({ steps: "", kcal: "", weight: "" });
   const [exercises, setExercises] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newEx, setNewEx] = useState({ name: "", reps: "", weight: "" });
 
-  // Charger les données
   useEffect(() => {
     async function loadData() {
-      setLoading(true);
       const m = await getDailyMetricsByDate(dateStr);
-      if (m) {
-        setMetrics({
-          steps: m.steps?.toString() || "",
-          kcal: m.kcal?.toString() || "",
-          weight: m.weight_g ? (m.weight_g / 1000).toString() : ""
-        });
-      } else {
-        setMetrics({ steps: "", kcal: "", weight: "" });
-      }
+      setMetrics({
+        steps: m?.steps?.toString() || "",
+        kcal: m?.kcal?.toString() || "",
+        weight: m?.weight_g ? (m.weight_g / 1000).toString() : ""
+      });
 
       const workout = await getOrCreateWorkout(dateStr);
       if (workout) {
         const ex = await getWorkoutExercises(workout.id);
         setExercises(ex);
       }
-      setLoading(false);
     }
     loadData();
   }, [dateStr]);
 
-  // Sauvegarde automatique des métriques
-  const updateMetric = async (key: string, value: string) => {
-    const newMetrics = { ...metrics, [key]: value };
-    setMetrics(newMetrics);
-    
-    await upsertDailyMetrics({
-      date: dateStr,
-      steps: key === 'steps' ? parseInt(value) || 0 : parseInt(newMetrics.steps) || 0,
-      kcal: key === 'kcal' ? parseInt(value) || 0 : parseInt(newMetrics.kcal) || 0,
-      weight_g: key === 'weight' ? parseFloat(value) * 1000 || 0 : parseFloat(newMetrics.weight) * 1000 || 0
+  const handleAddExercise = async () => {
+    if (!newEx.name) return;
+    const workout = await getOrCreateWorkout(dateStr);
+    await addWorkoutExercise({
+      workout_id: workout.id,
+      exercise_name: newEx.name,
+      reps: parseInt(newEx.reps) || 0,
+      load_g: (parseFloat(newEx.weight) || 0) * 1000,
+      sort_order: exercises.length
     });
+    // Refresh
+    const ex = await getWorkoutExercises(workout.id);
+    setExercises(ex);
+    setShowAddForm(false);
+    setNewEx({ name: "", reps: "", weight: "" });
   };
 
   const changeDate = (days: number) => {
@@ -66,94 +64,102 @@ export default function AppHomePage() {
     setSearchParams({ date: format(newDate, "yyyy-MM-dd") });
   };
 
-  const handleDeleteExercise = async (id: string) => {
-    await deleteWorkoutExercise(id);
-    setExercises(prev => prev.filter(ex => ex.id !== id));
-  };
-
   return (
     <AppShell>
       <div className="max-w-md mx-auto px-4 pt-8">
-        {/* Header & Logo */}
+        {/* Logo - Utilisation du chemin absolu /logo.png */}
         <div className="flex flex-col items-center mb-8">
-          <img src="/logo.png" alt="Logo" className="w-16 h-16 object-contain mb-6 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]" />
+          <img src="/logo.png" alt="Logo" className="w-16 h-16 object-contain mb-6" />
+          
           <div className="flex items-center justify-between w-full">
-            <button onClick={() => changeDate(-1)} className="p-2 text-white/20 hover:text-menthe transition-colors"><ChevronLeft size={28}/></button>
+            <button onClick={() => changeDate(-1)} className="p-2 text-white/20"><ChevronLeft size={28}/></button>
             <div className="text-center">
-              <h1 className="title-xl lowercase font-black text-white leading-tight">{format(currentDate, "EEEE d", { locale: fr })}</h1>
-              <p className="subtitle-xs text-white/40 uppercase tracking-[0.2em] font-bold">{format(currentDate, "MMMM yyyy", { locale: fr })}</p>
+              <h1 className="title-xl lowercase font-black text-white">{format(currentDate, "EEEE d", { locale: fr })}</h1>
+              <p className="subtitle-xs text-white/40 uppercase tracking-widest">{format(currentDate, "MMMM yyyy", { locale: fr })}</p>
             </div>
-            <button onClick={() => changeDate(1)} className="p-2 text-white/20 hover:text-menthe transition-colors"><ChevronRight size={28}/></button>
+            <button onClick={() => changeDate(1)} className="p-2 text-white/20"><ChevronRight size={28}/></button>
           </div>
         </div>
 
-        {/* KPI avec Inputs invisibles pour saisie directe */}
-        <div className="grid grid-cols-3 gap-3 mb-10">
-          <div className="relative">
-            <StatBubble icon={Footprints} label="Pas" value={metrics.steps || "--"} accent />
-            <input type="number" value={metrics.steps} onChange={(e) => updateMetric('steps', e.target.value)} className="absolute inset-0 opacity-0 w-full h-full cursor-pointer" />
-          </div>
-          <div className="relative">
-            <StatBubble icon={Flame} label="Kcal" value={metrics.kcal || "--"} colorClass="text-orange-500" />
-            <input type="number" value={metrics.kcal} onChange={(e) => updateMetric('kcal', e.target.value)} className="absolute inset-0 opacity-0 w-full h-full cursor-pointer" />
-          </div>
-          <div className="relative">
-            <StatBubble icon={Weight} label="Poids" value={metrics.weight || "--"} unit="kg" colorClass="text-purple-500" />
-            <input type="number" step="0.1" value={metrics.weight} onChange={(e) => updateMetric('weight', e.target.value)} className="absolute inset-0 opacity-0 w-full h-full cursor-pointer" />
-          </div>
-        </div>
+        {/* Swipe Area - Correction Framer Motion */}
+        <motion.div 
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          onDragEnd={(_, info) => {
+            if (info.offset.x > 80) changeDate(-1);
+            if (info.offset.x < -80) changeDate(1);
+          }}
+          className="grid grid-cols-3 gap-3 mb-12 cursor-grab active:cursor-grabbing"
+        >
+          <StatBubble icon={Footprints} label="Pas" value={metrics.steps || "--"} accent />
+          <StatBubble icon={Flame} label="Kcal" value={metrics.kcal || "--"} colorClass="text-yellow-400" />
+          <StatBubble icon={Weight} label="Poids" value={metrics.weight || "--"} unit="kg" colorClass="text-purple-500" />
+        </motion.div>
 
-        {/* Section Séance */}
+        {/* Ma Séance */}
         <div className="flex flex-col items-center pb-20">
-          <h2 className="font-black italic uppercase text-xl mb-6 tracking-tighter self-start px-2 border-l-4 border-menthe ml-2">Ma Séance</h2>
+          <h2 className="font-black italic uppercase text-2xl mb-6 tracking-tighter self-start">Ma Séance</h2>
           
           <div className="w-full space-y-3">
-            <AnimatePresence mode="popLayout">
-              {exercises.length > 0 ? (
-                exercises.map((ex) => (
-                  <motion.div
-                    key={ex.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                  >
-                    <GlassCard className="flex items-center justify-between p-4 group">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">
-                          <Dumbbell size={18} className="text-menthe opacity-70" />
-                        </div>
-                        <div>
-                          <p className="font-black uppercase italic text-sm text-white">{ex.exercise_name}</p>
-                          <p className="text-xs font-bold text-white/40">
-                            <span className="text-menthe">{ex.reps}</span> reps • {ex.load_g / 1000}kg
-                          </p>
-                        </div>
+            {exercises.map((ex) => (
+              <GlassCard key={ex.id} className="p-4 flex justify-between items-center group">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-menthe/10 flex items-center justify-center text-menthe">
+                    <Dumbbell size={18} />
+                  </div>
+                  <div>
+                    <p className="font-black uppercase italic text-sm text-white">{ex.exercise_name}</p>
+                    <p className="text-xs font-bold text-white/40 italic">
+                      <span className="text-menthe">{ex.reps}</span> reps @ <span className="text-white">{ex.load_g / 1000}kg</span>
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => deleteWorkoutExercise(ex.id)} className="opacity-0 group-hover:opacity-100 p-2 text-rose-500 transition-all">
+                  <Trash2 size={16} />
+                </button>
+              </GlassCard>
+            ))}
+
+            {/* Formulaire d'ajout rapide */}
+            <AnimatePresence>
+              {showAddForm ? (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}>
+                  <GlassCard className="p-4 border-menthe/30 space-y-4">
+                    <input 
+                      autoFocus
+                      placeholder="Nom de l'exercice..."
+                      className="w-full bg-transparent border-b border-white/10 py-2 font-bold uppercase italic focus:border-menthe outline-none"
+                      value={newEx.name}
+                      onChange={(e) => setNewEx({...newEx, name: e.target.value})}
+                    />
+                    <div className="flex gap-4">
+                      <div className="flex-1">
+                        <label className="text-[9px] uppercase font-black text-white/30">Charge (kg)</label>
+                        <input type="number" className="w-full bg-transparent border-b border-white/10 py-1 outline-none font-black" 
+                          value={newEx.weight} onChange={(e) => setNewEx({...newEx, weight: e.target.value})} />
                       </div>
-                      <button 
-                        onClick={() => handleDeleteExercise(ex.id)}
-                        className="p-2 text-white/10 hover:text-rose-500 transition-colors"
-                      >
-                        <Trash2 size={18} />
+                      <div className="flex-1">
+                        <label className="text-[9px] uppercase font-black text-white/30">Répétitions</label>
+                        <input type="number" className="w-full bg-transparent border-b border-white/10 py-1 outline-none font-black" 
+                          value={newEx.reps} onChange={(e) => setNewEx({...newEx, reps: e.target.value})} />
+                      </div>
+                      <button onClick={handleAddExercise} className="bg-menthe text-black p-3 rounded-xl self-end">
+                        <Check size={20} strokeWidth={3} />
                       </button>
-                    </GlassCard>
-                  </motion.div>
-                ))
+                    </div>
+                  </GlassCard>
+                </motion.div>
               ) : (
-                <GlassCard className="w-full py-12 flex flex-col items-center border-dashed border-white/10">
-                  <p className="text-white/20 text-[10px] uppercase tracking-[0.3em] font-black mb-6">Aucun exercice</p>
-                </GlassCard>
+                <div className="flex justify-center">
+                  <button 
+                    onClick={() => setShowAddForm(true)}
+                    className="w-14 h-14 bg-menthe text-black rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(0,255,163,0.3)] hover:scale-110 transition-all"
+                  >
+                    <Plus size={30} strokeWidth={3} />
+                  </button>
+                </div>
               )}
             </AnimatePresence>
-
-            {/* Bouton Ajouter flottant ou centré sous la liste */}
-            <div className="flex justify-center pt-4">
-              <button 
-                className="w-14 h-14 bg-menthe text-black rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(0,255,163,0.3)] active:scale-90 transition-all hover:scale-110"
-                onClick={() => window.location.hash = "/catalog"} // Redirection vers catalogue
-              >
-                <Plus size={30} strokeWidth={3} />
-              </button>
-            </div>
           </div>
         </div>
       </div>
