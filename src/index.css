@@ -15,20 +15,15 @@ body {
   background: var(--app-bg);
   color: var(--text-primary);
   font-family: 'Inter', sans-serif;
-  -webkit-tap-highlight-color: transparent;
   overflow-x: hidden;
 }
 
 .neo-glass {
-  @apply bg-zinc-900/40 backdrop-blur-xl border border-white/10 rounded-[2.5rem];
-}
-
-.neo-input {
-  @apply bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold outline-none focus:border-menthe/50 transition-all;
+  @apply bg-zinc-900/40 backdrop-blur-2xl border border-white/5 rounded-[2rem];
 }
 
 .btn-primary {
-  @apply bg-menthe text-black font-black uppercase italic tracking-tighter rounded-2xl py-4 active:scale-95 transition-transform shadow-[0_0_20px_rgba(0,255,163,0.3)];
+  @apply bg-menthe text-black font-black uppercase italic tracking-tighter rounded-2xl py-4 active:scale-95 transition-transform shadow-[0_0_30px_rgba(0,255,163,0.25)];
 }
 
 .title-xl {
@@ -36,11 +31,9 @@ body {
 }
 
 .subtitle-xs {
-  @apply text-[10px] font-black text-menthe/60 uppercase tracking-[0.3em] mb-2 block;
+  @apply text-[10px] font-black text-menthe/60 uppercase tracking-[0.4em] mt-2 block;
 }
 
-input::-webkit-outer-spin-button,
-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
+/* Scrollbar hide */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
