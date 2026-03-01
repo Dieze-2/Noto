@@ -8,7 +8,7 @@ import GlassCard from "../components/GlassCard";
 import StatBubble from "../components/StatBubble";
 import { getDailyMetricsRange, DailyMetricsRow } from "../db/dailyMetrics";
 import { motion } from "framer-motion";
-import { getEventsRange, EventRow } from "../db/events"; // Assure-toi que cette fonction existe
+import { getEventsOverlappingRange, EventRow } from "../db/events";
 
 export default function WeekPage() {
   const navigate = useNavigate();
@@ -28,7 +28,7 @@ export default function WeekPage() {
       const [cur, prev, evs] = await Promise.all([
         getDailyMetricsRange(startStr, endStr),
         getDailyMetricsRange(format(subDays(start, 7), "yyyy-MM-dd"), format(subDays(start, 1), "yyyy-MM-dd")),
-        getEventsRange ? getEventsRange(startStr, endStr) : [] 
+        getEventsOverlappingRange(startStr, endStr)
       ]);
       
       setCurrentWeekData(cur);
@@ -82,13 +82,16 @@ export default function WeekPage() {
           {days.map((day) => {
             const dStr = format(day, "yyyy-MM-dd");
             const m = currentWeekData.find(x => x.date === dStr);
-            const event = events.find(e => e.date === dStr);
+            
+            // LOGIQUE CORRIGÉE : On vérifie si dStr est entre start_date et end_date de l'événement
+            const event = events.find(e => dStr >= e.start_date && dStr <= e.end_date);
+            
             const isT = isToday(day);
 
             return (
               <GlassCard 
                 key={dStr} 
-                onClick={() => navigate(`/?date=${dStr}`)} // Navigation Corrective
+                onClick={() => navigate(`/?date=${dStr}`)}
                 className={`flex items-center justify-between p-4 cursor-pointer transition-all border-l-4 ${
                   isT ? 'bg-menthe/5 border-menthe' : 
                   event ? 'bg-orange-500/10 border-orange-500' : 'border-transparent'

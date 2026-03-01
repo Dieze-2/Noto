@@ -11,6 +11,20 @@ export async function getEventsOverlappingRange(from: string, to: string) {
   return data || [];
 }
 
+export type EventRow = {
+  id: string;
+  title: string;
+  start_date: string;
+  end_date: string;
+  color: string;
+  note?: string;
+};
+
+export async function getEventsOverlappingRange(from: string, to: string) {
+  const { data, error } = await supabase
+    .from("events")
+    .select("*")
+	
 export async function createEvent(payload: { 
   title: string; 
   start_date: string; 
