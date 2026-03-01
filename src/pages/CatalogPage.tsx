@@ -13,7 +13,7 @@ export default function CatalogPage() {
   return (
     <div className="min-h-screen bg-black text-white p-6 pb-32">
       <header className="text-center mb-8">
-        <h1 className="title-xl">Catalogue</h1>
+        <h1 className="text-5xl font-black text-menthe italic uppercase tracking-tighter text-center mb-10">Catalogue</h1>
         <input placeholder="CHERCHER..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full neo-glass bg-white/5 p-4 mt-6 outline-none font-black italic uppercase" />
       </header>
 

@@ -2,121 +2,123 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { startOfWeek, addDays, format, isToday, subDays } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Footprints, Flame, Weight, ChevronLeft, ChevronRight } from "lucide-react";
+import { Footprints, Flame, Weight, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import AppShell from "../components/AppShell";
 import GlassCard from "../components/GlassCard";
 import StatBubble from "../components/StatBubble";
 import { getDailyMetricsRange, DailyMetricsRow } from "../db/dailyMetrics";
+import { motion } from "framer-motion";
+import { getEventsRange, EventRow } from "../db/events"; // Assure-toi que cette fonction existe
 
 export default function WeekPage() {
   const navigate = useNavigate();
   const [anchorDate, setAnchorDate] = useState(new Date());
   const [currentWeekData, setCurrentWeekData] = useState<DailyMetricsRow[]>([]);
   const [prevWeekData, setPrevWeekData] = useState<DailyMetricsRow[]>([]);
+  const [events, setEvents] = useState<EventRow[]>([]);
 
   const start = startOfWeek(anchorDate, { weekStartsOn: 1 });
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
 
   useEffect(() => {
     async function load() {
-      const curStart = format(start, "yyyy-MM-dd");
-      const curEnd = format(addDays(start, 6), "yyyy-MM-dd");
-      const prevStart = format(subDays(start, 7), "yyyy-MM-dd");
-      const prevEnd = format(subDays(start, 1), "yyyy-MM-dd");
-
-      const [cur, prev] = await Promise.all([
-        getDailyMetricsRange(curStart, curEnd),
-        getDailyMetricsRange(prevStart, prevEnd)
+      const startStr = format(days[0], "yyyy-MM-dd");
+      const endStr = format(days[6], "yyyy-MM-dd");
+      
+      const [cur, prev, evs] = await Promise.all([
+        getDailyMetricsRange(startStr, endStr),
+        getDailyMetricsRange(format(subDays(start, 7), "yyyy-MM-dd"), format(subDays(start, 1), "yyyy-MM-dd")),
+        getEventsRange ? getEventsRange(startStr, endStr) : [] 
       ]);
+      
       setCurrentWeekData(cur);
       setPrevWeekData(prev);
+      setEvents(evs);
     }
     load();
   }, [anchorDate]);
 
   const stats = useMemo(() => {
-    const calc = (data: DailyMetricsRow[]) => {
-      const d = data.filter(m => (m.steps || 0) > 0 || (m.kcal || 0) > 0 || (m.weight_g || 0) > 0);
-      if (d.length === 0) return { steps: 0, kcal: 0, weight: 0 };
-      return {
-        steps: d.reduce((acc, m) => acc + (m.steps || 0), 0) / d.length,
-        kcal: d.reduce((acc, m) => acc + (m.kcal || 0), 0) / d.length,
-        weight: d.reduce((acc, m) => acc + (m.weight_g || 0), 0) / d.length / 1000
-      };
+    const getAvgWeight = (data: DailyMetricsRow[]) => {
+      const w = data.filter(m => (m.weight_g || 0) > 0);
+      return w.length ? (w.reduce((acc, m) => acc + (m.weight_g || 0), 0) / w.length / 1000) : 0;
     };
-
-    const cur = calc(currentWeekData);
-    const prev = calc(prevWeekData);
-
-    const getVar = (c: number, p: number) => p === 0 ? 0 : ((c - p) / p) * 100;
-
-    return {
-      cur,
-      var: {
-        steps: getVar(cur.steps, prev.steps),
-        kcal: getVar(cur.kcal, prev.kcal),
-        weight: getVar(cur.weight, prev.weight)
-      }
-    };
+    const curW = getAvgWeight(currentWeekData);
+    const prevW = getAvgWeight(prevWeekData);
+    const variation = prevW === 0 ? 0 : ((curW - prevW) / prevW) * 100;
+    return { curW, variation };
   }, [currentWeekData, prevWeekData]);
-
-  const renderVar = (v: number) => (
-    <span className={`text-[10px] font-black ml-1 ${v >= 0 ? 'text-menthe' : 'text-rose-500'}`}>
-      {v > 0 ? '+' : ''}{v.toFixed(1)}%
-    </span>
-  );
 
   return (
     <AppShell>
-      <div className="max-w-xl mx-auto px-4 pt-12 pb-24">
-        <header className="flex items-center justify-between mb-10 px-2">
-          <div className="text-center flex-1">
-            <h1 className="text-5xl font-black text-menthe italic uppercase tracking-tighter">Semaine</h1>
-            <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mt-1">du {format(start, "d MMMM", { locale: fr })}</p>
-          </div>
+      <div className="max-w-xl mx-auto px-4 pt-12 pb-32">
+        <header className="flex flex-col items-center mb-10">
+          <motion.div 
+            drag="x" dragConstraints={{ left: 0, right: 0 }}
+            onDragEnd={(_, info) => { if (info.offset.x > 50) setAnchorDate(subDays(anchorDate, 7)); if (info.offset.x < -50) setAnchorDate(addDays(anchorDate, 7)); }}
+            className="flex items-center justify-between w-full bg-white/5 py-4 rounded-3xl border border-white/5 cursor-grab active:cursor-grabbing"
+          >
+            <button onClick={() => setAnchorDate(subDays(anchorDate, 7))} className="p-2 text-white/20"><ChevronLeft size={32}/></button>
+            <div className="text-center">
+              <h1 className="text-4xl font-black text-menthe italic uppercase tracking-tighter">Semaine</h1>
+              <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">du {format(start, "d MMMM", { locale: fr })}</p>
+            </div>
+            <button onClick={() => setAnchorDate(addDays(anchorDate, 7))} className="p-2 text-white/20"><ChevronRight size={32}/></button>
+          </motion.div>
         </header>
 
-        <div className="grid grid-cols-3 gap-3 mb-10">
-          <div className="relative">
-            <StatBubble icon={Footprints} label="Moy. Pas" value={Math.round(stats.cur.steps)} accent />
-            <div className="absolute top-2 right-2">{renderVar(stats.var.steps)}</div>
-          </div>
-          <div className="relative">
-            <StatBubble icon={Flame} label="Moy. Kcal" value={Math.round(stats.cur.kcal)} colorClass="text-yellow-200" />
-            <div className="absolute top-2 right-2">{renderVar(stats.var.kcal)}</div>
-          </div>
-          <div className="relative">
-            <StatBubble icon={Weight} label="Moy. Poids" value={stats.cur.weight.toFixed(1)} colorClass="text-purple-500" />
-            <div className="absolute top-2 right-2">{renderVar(stats.var.weight)}</div>
-          </div>
+        <div className="grid grid-cols-1 mb-10 px-10">
+          <GlassCard className="flex flex-col items-center p-6 text-center border-menthe/20 bg-menthe/5">
+            <Weight size={24} className="text-purple-500 mb-2" />
+            <p className="text-3xl font-black text-white">{stats.curW.toFixed(1)} <span className="text-sm text-white/40">kg</span></p>
+            <p className="text-[10px] uppercase font-black tracking-widest text-white/30 mt-1">Moyenne Poids</p>
+            <p className={`text-xs font-black mt-2 ${stats.variation >= 0 ? 'text-rose-500' : 'text-menthe'}`}>
+              {stats.variation > 0 ? '+' : ''}{stats.variation.toFixed(1)}% vs S-1
+            </p>
+          </GlassCard>
         </div>
 
         <div className="space-y-3">
           {days.map((day) => {
             const dStr = format(day, "yyyy-MM-dd");
             const m = currentWeekData.find(x => x.date === dStr);
-            const active = isToday(day);
+            const event = events.find(e => e.date === dStr);
+            const isT = isToday(day);
 
             return (
-              <GlassCard key={dStr} onClick={() => navigate(`/?date=${dStr}`)} className={`flex items-center justify-between p-4 cursor-pointer border-l-4 transition-all ${active ? 'border-l-menthe bg-menthe/5' : 'border-l-transparent'}`}>
+              <GlassCard 
+                key={dStr} 
+                onClick={() => navigate(`/?date=${dStr}`)} // Navigation Corrective
+                className={`flex items-center justify-between p-4 cursor-pointer transition-all border-l-4 ${
+                  isT ? 'bg-menthe/5 border-menthe' : 
+                  event ? 'bg-orange-500/10 border-orange-500' : 'border-transparent'
+                }`}
+              >
                 <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-2xl flex flex-col items-center justify-center font-black ${active ? 'bg-menthe text-black' : 'bg-white/5 text-white/40'}`}>
-                    <span className="text-[9px] uppercase leading-none mb-0.5">{format(day, "EEE", { locale: fr })}</span>
+                  <div className={`w-12 h-12 rounded-2xl flex flex-col items-center justify-center font-black ${
+                    isT ? 'bg-menthe text-black' : 
+                    event ? 'bg-orange-500 text-black' : 'bg-white/5 text-white/40'
+                  }`}>
+                    <span className="text-[9px] uppercase leading-none">{format(day, "EEE", { locale: fr })}</span>
                     <span className="text-lg leading-none">{format(day, "d")}</span>
                   </div>
                   <div>
-                    <p className="font-black uppercase italic text-sm text-white">{format(day, "EEEE", { locale: fr })}</p>
-                    <div className="flex gap-3 mt-1 opacity-40">
-                      <Footprints size={14} className={m?.steps ? 'text-menthe' : ''} />
-                      <Flame size={14} className={m?.kcal ? 'text-yellow-200' : ''} />
-                      <Weight size={14} className={m?.weight_g ? 'text-purple-500' : ''} />
-                    </div>
+                    <p className="font-black uppercase italic text-sm text-white">
+                      {format(day, "EEEE", { locale: fr })}
+                      {event && <Sparkles size={12} className="inline ml-2 text-orange-500" />}
+                    </p>
+                    {event ? (
+                       <p className="text-[10px] font-bold text-orange-500/60 uppercase italic">{event.title || "Événement"}</p>
+                    ) : (
+                      <div className="flex gap-4 mt-1">
+                        <Footprints size={14} className={m?.steps ? 'text-menthe' : 'text-white/10'} />
+                        <Flame size={14} className={m?.kcal ? 'text-yellow-200' : 'text-white/10'} />
+                        <Weight size={14} className={m?.weight_g ? 'text-purple-500' : 'text-white/10'} />
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="flex gap-2">
-                   <button onClick={(e) => { e.stopPropagation(); setAnchorDate(subDays(anchorDate, 7)); }} className="p-2 text-white/10 hover:text-white"><ChevronLeft size={16}/></button>
-                   <button onClick={(e) => { e.stopPropagation(); setAnchorDate(addDays(anchorDate, 7)); }} className="p-2 text-white/10 hover:text-white"><ChevronRight size={16}/></button>
-                </div>
+                <ChevronRight size={16} className="text-white/20" />
               </GlassCard>
             );
           })}
