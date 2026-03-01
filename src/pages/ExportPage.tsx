@@ -5,7 +5,7 @@ export default function ExportPage() {
     <div className="max-w-xl mx-auto px-4 pt-8 pb-32 space-y-8">
       <header className="relative text-center">
         <button onClick={() => window.history.back()} className="absolute left-0 top-1/2 -translate-y-1/2 text-white/40 font-black text-[10px] uppercase tracking-widest">← Retour</button>
-        <h1 className="text-4xl font-black text-menthe italic uppercase tracking-tighter">Exportation</h1>
+        
       </header>
 
       <div className="glass-card p-10 rounded-[3rem] text-center space-y-6 border-b-4 border-menthe">

@@ -8,7 +8,7 @@ import { subDays, addDays, format, parseISO, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
 
 export default function TodayPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const dateParam = searchParams.get("date");
   const initialDate = dateParam && isValid(parseISO(dateParam)) ? parseISO(dateParam) : new Date();
   const [currentDate, setCurrentDate] = useState(initialDate);
@@ -17,177 +17,115 @@ export default function TodayPage() {
   const [metrics, setMetrics] = useState({ steps: "", kcal: "", weight: "" });
   const [exercises, setExercises] = useState<any[]>([]);
   const [workoutId, setWorkoutId] = useState<string | null>(null);
-  
   const [newName, setNewName] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [newLoadType, setNewLoadType] = useState<"KG" | "PDC_PLUS" | "TEXT">("KG");
+  const [newLoadType, setNewLoadType] = useState<"KG" | "BODYWEIGHT" | "CALISTHENICS">("KG");
   const [newLoadVal, setNewLoadVal] = useState("");
   const [newReps, setNewReps] = useState("");
-  const [newComment, setNewComment] = useState(""); 
-
-  const [headerTouchStartX, setHeaderTouchStartX] = useState<number | null>(null);
-  const [showDeleteId, setShowDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
-      const d = await getDailyMetricsByDate(dateStr);
-      setMetrics({ 
-        steps: d?.steps?.toString() || "", 
-        kcal: d?.kcal?.toString() || "", 
-        weight: d?.weight_g ? formatKgFR(gramsToKg(d.weight_g), 1).replace(',', '.') : "" 
-      });
-      const w = await getOrCreateWorkout(dateStr);
-      setWorkoutId(w.id);
-      setExercises(await getWorkoutExercises(w.id));
+      const m = await getDailyMetricsByDate(dateStr);
+      setMetrics(m ? { steps: m.steps?.toString() || "", kcal: m.kcal?.toString() || "", weight: m.weight_g ? gramsToKg(m.weight_g).toString().replace('.', ',') : "" } : { steps: "", kcal: "", weight: "" });
+      const wId = await getOrCreateWorkout(dateStr);
+      setWorkoutId(wId);
+      setExercises(await getWorkoutExercises(wId));
     }
     load();
   }, [dateStr]);
 
-  const saveMetrics = async (newVal: any) => {
-    const updated = { ...metrics, ...newVal };
-    setMetrics(updated);
+  const updateMetric = async (key: string, val: string) => {
+    const next = { ...metrics, [key]: val };
+    setMetrics(next);
     await upsertDailyMetrics({
       date: dateStr,
-      steps: parseInt(updated.steps) || null,
-      kcal: parseInt(updated.kcal) || null,
-      weight_g: kgToGramsInt(parseDecimalFlexible(updated.weight)),
-      note: null
+      steps: next.steps ? parseInt(next.steps) : null,
+      kcal: next.kcal ? parseInt(next.kcal) : null,
+      weight_g: next.weight ? kgToGramsInt(parseDecimalFlexible(next.weight)) : null
     });
   };
 
-  const formatLoadLabel = (type: string, grams: number | null) => {
-    const kg = gramsToKg(grams || 0);
-    const val = kg % 1 === 0 ? kg.toString() : formatKgFR(kg, 1).replace(',', '.');
-    return type === "KG" ? `${val} KG` : type === "PDC_PLUS" ? `PDC + ${val} KG` : type;
-  };
-
   return (
-    <div className="max-w-xl mx-auto px-4 pt-4 pb-32 space-y-8 overflow-x-hidden text-lg">
-      <div className="flex justify-center py-6">
-        <div className="w-28 h-28 relative rounded-full border border-white/10 overflow-hidden shadow-2xl">
-            <img src="./logo.png" alt="Logo" className="w-full h-full object-cover" />
+    <div className="min-h-screen bg-black text-white p-6 pb-32">
+      <header className="flex flex-col items-center mb-8 pt-4">
+        <div className="flex items-center gap-6 mb-2">
+          <button onClick={() => setCurrentDate(subDays(currentDate, 1))} className="text-white/20 text-2xl font-black">←</button>
+          <h1 className="title-xl">{format(currentDate, 'dd MMM', { locale: fr })}</h1>
+          <button onClick={() => setCurrentDate(addDays(currentDate, 1))} className="text-white/20 text-2xl font-black">→</button>
         </div>
-      </div>
-      
-      <div 
-        className="flex items-center justify-between bg-white/5 p-3 rounded-2xl touch-pan-y"
-        onTouchStart={(e) => setHeaderTouchStartX(e.touches[0].clientX)}
-        onTouchEnd={(e) => {
-          if (headerTouchStartX === null) return;
-          const diff = e.changedTouches[0].clientX - headerTouchStartX;
-          if (diff > 60) setCurrentDate(subDays(currentDate, 1));
-          if (diff < -60) setCurrentDate(addDays(currentDate, 1));
-          setHeaderTouchStartX(null);
-        }}
-      >
-        <button onClick={() => setCurrentDate(subDays(currentDate, 1))} className="p-4 text-2xl text-white">←</button>
-        <div className="text-center text-white font-black uppercase italic tracking-tighter text-xl">
-            {format(currentDate, 'd MMMM yyyy', { locale: fr })}
-        </div>
-        <button onClick={() => setCurrentDate(addDays(currentDate, 1))} className="p-4 text-2xl text-white">→</button>
-      </div>
+        <p className="subtitle-xs">{format(currentDate, 'EEEE', { locale: fr })}</p>
+      </header>
 
-      <div className="grid grid-cols-3 gap-4">
-        {['steps', 'kcal', 'weight'].map((m) => (
-          <div key={m} className="glass-card p-5 rounded-3xl border-b-2 border-white/10">
-            <p className="text-[10px] font-black text-white/40 uppercase mb-2">{m === 'weight' ? 'Poids (kg)' : m}</p>
-            <input 
-              type="text" 
-              inputMode="decimal"
-              value={(metrics as any)[m]} 
-              onChange={e => saveMetrics({[m]: e.target.value})} 
-              className="w-full bg-transparent text-2xl font-black text-white outline-none" placeholder="-" 
-            />
+      <div className="grid grid-cols-2 gap-4 mb-8">
+        <div className="neo-glass p-6">
+          <p className="subtitle-xs">Poids</p>
+          <input type="text" inputMode="decimal" placeholder="00,0" value={metrics.weight} onChange={e => updateMetric("weight", e.target.value)} className="bg-transparent text-4xl font-black italic w-full outline-none" />
+        </div>
+        <div className="flex flex-col gap-4">
+          <div className="neo-glass p-4 flex-1">
+            <p className="subtitle-xs text-[8px]">Pas</p>
+            <input type="number" value={metrics.steps} onChange={e => updateMetric("steps", e.target.value)} className="bg-transparent text-2xl font-black w-full outline-none" />
           </div>
-        ))}
+          <div className="neo-glass p-4 flex-1">
+            <p className="subtitle-xs text-[8px]">Kcal</p>
+            <input type="number" value={metrics.kcal} onChange={e => updateMetric("kcal", e.target.value)} className="bg-transparent text-2xl font-black w-full outline-none" />
+          </div>
+        </div>
       </div>
 
-      <section className="glass-card p-8 rounded-[2.5rem] space-y-5 border-b-4 border-menthe relative">
-        <input 
-          placeholder="Nom de l'exercice..." 
-          value={newName} 
-          onChange={async (e) => {
-            setNewName(e.target.value);
-            if (e.target.value.length > 1) {
-                const all = await listCatalogExercises();
-                setSuggestions(all.filter(i => i.name.toLowerCase().includes(e.target.value.toLowerCase())).slice(0, 5));
-            } else setSuggestions([]);
-          }} 
-          className="w-full bg-white/5 p-5 rounded-2xl font-bold text-white text-xl outline-none" 
-        />
-        
-        {suggestions.length > 0 && (
-          <div className="absolute z-50 left-8 right-8 top-24 bg-zinc-900 border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
-            {suggestions.map(s => (
-              <div key={s.id} onClick={async () => { 
-                setNewName(s.name); setSuggestions([]);
-                const last = await getLastExerciseByName(s.name);
-                if(last) { setNewLoadType(last.load_type as any); }
-              }} className="p-5 text-white font-bold border-b border-white/5 active:bg-menthe active:text-black text-lg">{s.name}</div>
-            ))}
-          </div>
-        )}
-
-        <div className="grid grid-cols-3 gap-3">
-          {/* Correction lisibilité options select */}
-          <select 
-            value={newLoadType} 
-            onChange={e => setNewLoadType(e.target.value as any)} 
-            className="bg-white/5 p-5 rounded-2xl font-bold text-white outline-none text-base appearance-none [&>option]:bg-zinc-900 [&>option]:text-white"
-          >
-            <option value="KG">KG</option>
-            <option value="PDC_PLUS">PDC +</option>
-          </select>
-          <input placeholder="Charge" inputMode="decimal" value={newLoadVal} onChange={e => setNewLoadVal(e.target.value)} className="bg-white/5 p-5 rounded-2xl font-bold text-white text-xl outline-none" />
-          <input placeholder="Reps" inputMode="numeric" value={newReps} onChange={e => setNewReps(e.target.value)} className="bg-white/5 p-5 rounded-2xl font-bold text-white text-xl outline-none" />
+      <section className="neo-glass p-6 mb-8 border-t-2 border-t-menthe/30">
+        <div className="relative mb-4">
+          <input placeholder="NOM DU MOUVEMENT" value={newName} onChange={async (e) => {
+            const v = e.target.value; setNewName(v);
+            if(v.length > 1) setSuggestions(await listCatalogExercises(v));
+            else setSuggestions([]);
+          }} className="w-full bg-transparent text-xl font-black italic uppercase outline-none" />
+          {suggestions.length > 0 && (
+            <div className="absolute top-full left-0 right-0 z-50 mt-2 neo-glass overflow-hidden shadow-2xl">
+              {suggestions.map(s => (
+                <button key={s.id} onClick={async () => {
+                  setNewName(s.name); setSuggestions([]);
+                  const last = await getLastExerciseByName(s.name);
+                  if(last) { setNewLoadType(last.load_type); setNewLoadVal(gramsToKg(last.load_g || 0).toString().replace('.',',')); setNewReps(last.reps?.toString() || ""); }
+                }} className="w-full text-left p-4 text-[10px] font-black uppercase hover:bg-menthe hover:text-black">
+                  {s.name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-
-        <textarea 
-          placeholder="Notes (séries suivantes...)" 
-          value={newComment} 
-          onChange={e => setNewComment(e.target.value)}
-          className="w-full bg-white/5 p-5 rounded-2xl font-medium text-white text-base outline-none min-h-[100px]"
-        />
-
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          <button onClick={() => setNewLoadType(newLoadType === "KG" ? "BODYWEIGHT" : "KG")} className="bg-white/5 rounded-xl text-[9px] font-black">{newLoadType}</button>
+          <input type="text" inputMode="decimal" placeholder="CHARGE" value={newLoadVal} onChange={e => setNewLoadVal(e.target.value)} className="bg-white/5 rounded-xl p-3 text-center font-black outline-none" />
+          <input type="number" placeholder="REPS" value={newReps} onChange={e => setNewReps(e.target.value)} className="bg-white/5 rounded-xl p-3 text-center font-black outline-none" />
+        </div>
         <button onClick={async () => {
           if(!workoutId || !newName) return;
-          await addWorkoutExercise({ 
-              workout_id: workoutId, 
-              exercise_name: newName, 
-              load_type: newLoadType, 
-              load_g: kgToGramsInt(parseDecimalFlexible(newLoadVal) || 0), 
-              reps: parseInt(newReps) || null,
-              comment: newComment || null
-          });
-          setNewName(""); setNewLoadVal(""); setNewReps(""); setNewComment(""); setExercises(await getWorkoutExercises(workoutId));
-        }} className="w-full bg-menthe text-black py-6 rounded-2xl font-black text-sm uppercase tracking-widest active:scale-95 transition-transform">Enregistrer</button>
+          await addWorkoutExercise({ workout_id: workoutId, exercise_name: newName, load_type: newLoadType, load_g: newLoadType === 'KG' ? kgToGramsInt(parseDecimalFlexible(newLoadVal)) : null, reps: parseInt(newReps) || 0 });
+          setNewName(""); setNewLoadVal(""); setNewReps("");
+          setExercises(await getWorkoutExercises(workoutId)); 
+        }} className="w-full btn-primary">Enregistrer</button>
       </section>
 
-      <div className="space-y-6">
+      <div className="space-y-3">
         {exercises.map(ex => (
-          <div key={ex.id} className="relative overflow-hidden rounded-[2rem] bg-rose-600/20">
-            <div className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center transition-opacity ${showDeleteId === ex.id ? 'opacity-100' : 'opacity-0'}`}>
-                <button onClick={async () => { await deleteWorkoutExercise(ex.id); setExercises(prev => prev.filter(i => i.id !== ex.id)); }} className="w-12 h-12 rounded-full bg-rose-600 text-white text-xl">✕</button>
-            </div>
-            
+          <div key={ex.id} className="relative group overflow-hidden rounded-[2rem] bg-gradient-to-l from-rose-600/40 to-transparent">
             <div 
-              className="relative glass-card p-6 flex flex-col gap-2 transition-transform duration-300"
-              style={{ transform: showDeleteId === ex.id ? 'translateX(-80px)' : 'translateX(0px)' }}
-              onClick={() => setShowDeleteId(showDeleteId === ex.id ? null : ex.id)}
+              className="relative neo-glass p-6 flex justify-between items-center transition-transform duration-500 group-active:-translate-x-full"
+              onTransitionEnd={async (e) => {
+                if(e.propertyName === 'transform') {
+                  await deleteWorkoutExercise(ex.id);
+                  setExercises(prev => prev.filter(i => i.id !== ex.id));
+                }
+              }}
             >
-              <div className="flex justify-between items-start">
+              <div>
                 <h3 className="font-black text-white uppercase italic text-xl">{ex.exercise_name}</h3>
+                <p className="text-[10px] font-black text-menthe uppercase tracking-widest">
+                  {ex.load_type === 'KG' ? `${formatKgFR(gramsToKg(ex.load_g || 0), 1)} kg` : ex.load_type} • {ex.reps} reps
+                </p>
               </div>
-              
-              <p className="text-lg font-black text-white/90">
-                  {formatLoadLabel(ex.load_type, ex.load_g)} • <span className="text-menthe">{ex.reps} reps</span>
-              </p>
-
-              {ex.comment && (
-                <div className="mt-2 p-4 bg-white/5 rounded-xl border-l-2 border-menthe/30">
-                  <p className="text-sm text-white/60 whitespace-pre-wrap leading-relaxed">{ex.comment}</p>
-                </div>
-              )}
+              <div className="text-white/20 text-xs italic">Swipe ←</div>
             </div>
           </div>
         ))}

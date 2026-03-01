@@ -1,51 +1,33 @@
 import { useEffect, useState } from "react";
 import { listCatalogExercises } from "../db/catalog";
 
-const PlayIcon = ({ url }: { url: string }) => (
-  <a href={url} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-menthe flex items-center justify-center shadow-lg">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="black"><path d="M8 5v14l11-7z"/></svg>
-  </a>
-);
-
 export default function CatalogPage() {
   const [allExercises, setAllExercises] = useState<any[]>([]);
   const [filtered, setFiltered] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [showNote, setShowNote] = useState<string | null>(null);
 
-  useEffect(() => {
-    listCatalogExercises().then(data => {
-      setAllExercises(data);
-      setFiltered(data);
-    });
-  }, []);
-
-  useEffect(() => {
-    setFiltered(allExercises.filter(ex => ex.name.toLowerCase().includes(search.toLowerCase())));
-  }, [search, allExercises]);
+  useEffect(() => { listCatalogExercises().then(data => { setAllExercises(data); setFiltered(data); }); }, []);
+  useEffect(() => { setFiltered(allExercises.filter(ex => ex.name.toLowerCase().includes(search.toLowerCase()))); }, [search, allExercises]);
 
   return (
-    <div className="max-w-xl mx-auto px-4 pt-8 pb-32 space-y-8">
-      <header className="text-center">
-        <h1 className="text-4xl font-black text-menthe italic uppercase tracking-tighter">Exercices</h1>
-        <div className="mt-6 glass-card p-2 rounded-full flex items-center px-6 border border-white/5">
-          <input placeholder="Chercher un mouvement..." value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 py-3 bg-transparent text-white font-bold outline-none" />
-        </div>
+    <div className="min-h-screen bg-black text-white p-6 pb-32">
+      <header className="text-center mb-8">
+        <h1 className="title-xl">Catalogue</h1>
+        <input placeholder="CHERCHER..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full neo-glass bg-white/5 p-4 mt-6 outline-none font-black italic uppercase" />
       </header>
 
-      <div className="grid grid-cols-1 gap-4">
+      <div className="space-y-4">
         {filtered.map(ex => (
-          <div key={ex.id} className="glass-card rounded-[2rem] overflow-hidden">
-             <div className="p-5 flex items-center justify-between">
-               <h3 className="font-black text-white text-lg italic uppercase">{ex.name}</h3>
+          <div key={ex.id} className="neo-glass overflow-hidden">
+             <div className="p-6 flex items-center justify-between">
+               <h3 className="font-black text-xl italic uppercase">{ex.name}</h3>
                <div className="flex gap-2">
-                 {ex.note && (
-                   <button onClick={() => setShowNote(showNote === ex.id ? null : ex.id)} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-[8px] font-black text-white uppercase">Note</button>
-                 )}
-                 {ex.youtube_url && <PlayIcon url={ex.youtube_url} />}
+                 {ex.note && <button onClick={() => setShowNote(showNote === ex.id ? null : ex.id)} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-[8px] font-black">NOTE</button>}
+                 {ex.youtube_url && <a href={ex.youtube_url} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-menthe flex items-center justify-center shadow-lg">▶</a>}
                </div>
              </div>
-             {showNote === ex.id && <div className="px-6 pb-6 text-xs text-white/60 font-medium italic border-t border-white/5 pt-4">{ex.note}</div>}
+             {showNote === ex.id && <div className="px-6 pb-6 text-xs text-white/60 font-medium leading-relaxed uppercase tracking-wider">{ex.note}</div>}
           </div>
         ))}
       </div>
