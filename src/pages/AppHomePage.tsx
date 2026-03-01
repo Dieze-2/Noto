@@ -1,167 +1,138 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { getDailyMetricsByDate, upsertDailyMetrics } from "../db/dailyMetrics";
-import { formatKgFR, gramsToKg, kgToGramsInt, parseDecimalFlexible } from "../lib/numberFR";
-import { addWorkoutExercise, getOrCreateWorkout, getWorkoutExercises, deleteWorkoutExercise, getLastExerciseByName } from "../db/workouts";
-import { listCatalogExercises } from "../db/catalog";
-import { subDays, addDays, format, parseISO, isValid } from "date-fns";
+import { motion, AnimatePresence, useExternalRef } from "framer-motion";
+import { Footprints, Flame, Weight, Plus, Trash2, Video, stickyNote } from "lucide-react";
+import { format, parseISO, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
 
-export default function TodayPage() {
+import Layout from "../components/Layout";
+import GlassCard from "../components/GlassCard";
+import StatBubble from "../components/StatBubble";
+import { getDailyMetricsByDate, upsertDailyMetrics } from "../db/dailyMetrics";
+import { addWorkoutExercise, getWorkoutExercises, deleteWorkoutExercise } from "../db/workouts";
+import { gramsToKg, formatKgFR } from "../lib/numberFR";
+
+export default function AppHomePage() {
   const [searchParams] = useSearchParams();
   const dateParam = searchParams.get("date");
-  const initialDate = dateParam && isValid(parseISO(dateParam)) ? parseISO(dateParam) : new Date();
-  const [currentDate, setCurrentDate] = useState(initialDate);
+  const currentDate = dateParam && isValid(parseISO(dateParam)) ? parseISO(dateParam) : new Date();
   const dateStr = useMemo(() => format(currentDate, 'yyyy-MM-dd'), [currentDate]);
-  
-  const [metrics, setMetrics] = useState({ steps: "", kcal: "", weight: "" });
+
+  const [metrics, setMetrics] = useState({ steps: 0, kcal: 0, weight_g: 0 });
   const [exercises, setExercises] = useState<any[]>([]);
-  const [workoutId, setWorkoutId] = useState<string | null>(null);
-  const [newName, setNewName] = useState("");
-  const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [newLoadType, setNewLoadType] = useState<"KG" | "BODYWEIGHT" | "CALISTHENICS">("KG");
-  const [newLoadVal, setNewLoadVal] = useState("");
-  const [newReps, setNewReps] = useState("");
-  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function load() {
+    async function loadData() {
       const m = await getDailyMetricsByDate(dateStr);
-      setMetrics(m ? { steps: m.steps?.toString() || "", kcal: m.kcal?.toString() || "", weight: m.weight_g ? gramsToKg(m.weight_g).toString().replace('.', ',') : "" } : { steps: "", kcal: "", weight: "" });
-      const wId = await getOrCreateWorkout(dateStr);
-      setWorkoutId(wId);
-      setExercises(await getWorkoutExercises(wId));
+      if (m) setMetrics({ steps: m.steps || 0, kcal: m.kcal || 0, weight_g: m.weight_g || 0 });
+      
+      const ex = await getWorkoutExercises(dateStr);
+      setExercises(ex || []);
+      setLoading(false);
     }
-    load();
+    loadData();
   }, [dateStr]);
 
-  const updateMetric = async (key: string, val: string) => {
-    const next = { ...metrics, [key]: val };
-    setMetrics(next);
-    await upsertDailyMetrics({
+  const handleAddSet = async (baseEx: any) => {
+    // Ajoute une nouvelle série basée sur l'exercice existant
+    const newSet = {
+      exercise_name: baseEx.exercise_name,
+      load_g: baseEx.load_g,
+      reps: baseEx.reps,
+      load_type: baseEx.load_type,
       date: dateStr,
-      steps: next.steps ? parseInt(next.steps) : null,
-      kcal: next.kcal ? parseInt(next.kcal) : null,
-      weight_g: next.weight ? kgToGramsInt(parseDecimalFlexible(next.weight)) : null
-    });
+      workout_id: baseEx.workout_id
+    };
+    const added = await addWorkoutExercise(newSet);
+    if (added) setExercises([...exercises, added]);
   };
 
-  const handleSave = async () => {
-    if(!workoutId || !newName) return;
-    await addWorkoutExercise({
-      workout_id: workoutId,
-      exercise_name: newName,
-      load_type: newLoadType,
-      load_g: (newLoadType === 'KG' || newLoadType === 'BODYWEIGHT') ? kgToGramsInt(parseDecimalFlexible(newLoadVal)) : null,
-      reps: parseInt(newReps) || 0
-    });
-    setNewName(""); setNewLoadVal(""); setNewReps(""); setSuggestions([]);
-    setExercises(await getWorkoutExercises(workoutId));
+  const handleDelete = async (id: string) => {
+    await deleteWorkoutExercise(id);
+    setExercises(prev => prev.filter(ex => ex.id !== id));
   };
 
   return (
-    <div 
-      className="min-h-screen bg-black text-white p-4 pb-32"
-      onTouchStart={e => setTouchStartX(e.touches[0].clientX)}
-      onTouchEnd={e => {
-        if(!touchStartX) return;
-        const diff = touchStartX - e.changedTouches[0].clientX;
-        if(diff > 80) setCurrentDate(addDays(currentDate, 1));
-        if(diff < -80) setCurrentDate(subDays(currentDate, 1));
-        setTouchStartX(null);
-      }}
-    >
-      <header className="flex flex-col items-center mb-6 pt-4">
-        <h1 className="title-xl">{format(currentDate, 'dd MMM', { locale: fr })}</h1>
-        <p className="subtitle-xs">{format(currentDate, 'EEEE', { locale: fr })}</p>
-      </header>
-
-      {/* THREE CARDS LAYOUT */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        <div className="neo-glass p-4 flex flex-col items-center text-center">
-          <span className="text-xl mb-1">⚖️</span>
-          <p className="text-[8px] font-black uppercase text-menthe/50 mb-1">Poids</p>
-          <input type="text" inputMode="decimal" value={metrics.weight} onChange={e => updateMetric("weight", e.target.value)} className="bg-transparent text-lg font-black w-full text-center outline-none" placeholder="--" />
+    <Layout>
+      {/* Header avec Logo */}
+      <div className="flex flex-col items-center mb-8">
+        <div className="w-20 h-20 rounded-3xl overflow-hidden mb-4 glass-card p-1">
+          <img src="/logo.png" alt="Logo" className="w-full h-full object-cover rounded-2xl" />
         </div>
-        <div className="neo-glass p-4 flex flex-col items-center text-center border-t-2 border-menthe/30">
-          <span className="text-xl mb-1">👟</span>
-          <p className="text-[8px] font-black uppercase text-menthe/50 mb-1">Pas</p>
-          <input type="number" value={metrics.steps} onChange={e => updateMetric("steps", e.target.value)} className="bg-transparent text-lg font-black w-full text-center outline-none" placeholder="--" />
-        </div>
-        <div className="neo-glass p-4 flex flex-col items-center text-center">
-          <span className="text-xl mb-1">🔥</span>
-          <p className="text-[8px] font-black uppercase text-menthe/50 mb-1">Kcal</p>
-          <input type="number" value={metrics.kcal} onChange={e => updateMetric("kcal", e.target.value)} className="bg-transparent text-lg font-black w-full text-center outline-none" placeholder="--" />
-        </div>
+        <h1 className="page-title text-2xl">{format(currentDate, "EEEE d MMMM", { locale: fr })}</h1>
       </div>
 
-      <section className="neo-glass p-6 mb-8 shadow-2xl">
-        <div className="relative mb-4 border-b border-white/10 pb-2">
-          <input 
-            placeholder="NOM DU MOUVEMENT" 
-            value={newName} 
-            onChange={async (e) => {
-              const v = e.target.value; setNewName(v);
-              if(v.length >= 1) {
-                const list = await listCatalogExercises();
-                setSuggestions(list.filter(ex => ex.name.toLowerCase().includes(v.toLowerCase())).slice(0, 5));
-              } else setSuggestions([]);
-            }} 
-            className="w-full bg-transparent text-xl font-black italic uppercase outline-none" 
-          />
-          {suggestions.length > 0 && (
-            <div className="absolute top-full left-0 right-0 z-50 mt-2 neo-glass border border-menthe/30 overflow-hidden">
-              {suggestions.map(s => (
-                <button key={s.id} onClick={async () => {
-                  setNewName(s.name); setSuggestions([]);
-                  const last = await getLastExerciseByName(s.name);
-                  if(last) { 
-                    setNewLoadType(last.load_type); 
-                    setNewLoadVal(last.load_g ? gramsToKg(last.load_g).toString().replace('.',',') : ""); 
-                    setNewReps(last.reps?.toString() || ""); 
-                  }
-                }} className="w-full text-left p-4 text-[10px] font-black uppercase border-b border-white/5 last:border-0 hover:bg-menthe hover:text-black">
-                  {s.name}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <button onClick={() => setNewLoadType(curr => curr === "KG" ? "BODYWEIGHT" : curr === "BODYWEIGHT" ? "CALISTHENICS" : "KG")} className="bg-white/5 rounded-xl text-[9px] font-black uppercase">
-            {newLoadType === "BODYWEIGHT" ? "PDC +" : newLoadType}
+      {/* KPIs Section */}
+      <div className="grid grid-cols-3 gap-3 mb-8">
+        <StatBubble icon={Footprints} label="Pas" value={metrics.steps.toLocaleString('fr-FR')} accent />
+        <StatBubble icon={Flame} label="Kcal" value={metrics.kcal} />
+        <StatBubble icon={Weight} label="Poids" value={metrics.weight_g ? formatKgFR(gramsToKg(metrics.weight_g), 1) : "—"} unit="kg" />
+      </div>
+
+      {/* Exercices */}
+      <div className="space-y-4">
+        <div className="flex justify-between items-center px-1">
+          <h2 className="title-brutal text-lg">Ma Séance</h2>
+          <button className="bg-menthe text-black p-2 rounded-full active:scale-90 transition-transform">
+            <Plus size={20} />
           </button>
-          <input type="text" inputMode="decimal" placeholder="CHARGE" value={newLoadVal} onChange={e => setNewLoadVal(e.target.value)} className="bg-white/5 rounded-xl p-3 text-center font-black outline-none border border-white/5 focus:border-menthe/30" />
-          <input type="number" placeholder="REPS" value={newReps} onChange={e => setNewReps(e.target.value)} className="bg-white/5 rounded-xl p-3 text-center font-black outline-none border border-white/5 focus:border-menthe/30" />
         </div>
-        <button onClick={handleSave} className="w-full btn-primary">Enregistrer</button>
-      </section>
 
-      <div className="space-y-3">
-        {exercises.map(ex => (
-          <div key={ex.id} className="relative group overflow-hidden rounded-[2rem] bg-rose-600/20">
-            <div 
-              className="relative neo-glass p-6 flex justify-between items-center transition-transform duration-500 group-active:-translate-x-full"
-              onTransitionEnd={async (e) => {
-                if(e.propertyName === 'transform') {
-                  await deleteWorkoutExercise(ex.id);
-                  setExercises(prev => prev.filter(i => i.id !== ex.id));
-                }
-              }}
-            >
-              <div>
-                <h3 className="font-black text-white uppercase italic text-lg leading-tight">{ex.exercise_name}</h3>
-                <p className="text-[10px] font-black text-menthe uppercase tracking-[0.2em] mt-1">
-                  {ex.load_type === 'KG' ? `${formatKgFR(gramsToKg(ex.load_g || 0), 1)} kg` : 
-                   ex.load_type === 'BODYWEIGHT' ? `PDC + ${formatKgFR(gramsToKg(ex.load_g || 0), 1)} kg` : "CALISTHENICS"} 
-                  <span className="text-white/40 mx-2">/</span> {ex.reps} reps
-                </p>
-              </div>
-              <span className="opacity-20 text-[8px] font-black uppercase">Swipe ←</span>
-            </div>
-          </div>
-        ))}
+        <AnimatePresence>
+          {exercises.map((ex) => (
+            <ExerciseCard 
+              key={ex.id} 
+              ex={ex} 
+              onDelete={() => handleDelete(ex.id)} 
+              onAddSet={() => handleAddSet(ex)}
+            />
+          ))}
+        </AnimatePresence>
       </div>
+    </Layout>
+  );
+}
+
+function ExerciseCard({ ex, onDelete, onAddSet }: { ex: any, onDelete: () => void, onAddSet: () => void }) {
+  const threshold = window.innerWidth * 0.6; // Seuil de 60%
+
+  return (
+    <div className="relative overflow-hidden rounded-[2rem]">
+      {/* Fond rouge pour la suppression */}
+      <div className="absolute inset-0 bg-rose-600 flex items-center justify-end px-8">
+        <Trash2 className="text-white" size={24} />
+      </div>
+
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: -window.innerWidth, right: 0 }}
+        dragElastic={0.1}
+        onDragEnd={(_, info) => {
+          if (info.offset.x < -threshold) {
+            onDelete();
+          }
+        }}
+        className="relative glass-card p-5 flex flex-col gap-3"
+        style={{ x: 0 }}
+      >
+        <div className="flex justify-between items-start">
+          <div>
+            <h3 className="font-black text-white uppercase italic text-lg leading-tight">{ex.exercise_name}</h3>
+            <p className="text-menthe font-black text-sm">
+              {ex.load_g > 0 ? `${gramsToKg(ex.load_g)}kg` : "PDC"} <span className="text-white/40 mx-1">•</span> {ex.reps} reps
+            </p>
+          </div>
+          <div className="flex gap-2">
+             <button 
+              onClick={(e) => { e.stopPropagation(); onAddSet(); }}
+              className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center active:bg-menthe active:text-black transition-colors"
+             >
+               <Plus size={18} />
+             </button>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }
