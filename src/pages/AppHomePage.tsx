@@ -67,6 +67,12 @@ export default function TodayPage() {
             <div className="absolute inset-0 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]" />
         </div>
       </div>
+	  
+	  <div className="flex items-center justify-between bg-white/5 p-2 rounded-2xl">
+        <button onClick={() => setCurrentDate(subDays(currentDate, 1))} className="p-3 text-white">←</button>
+        <div className="text-center text-white font-black uppercase italic tracking-tighter">{format(currentDate, 'd MMMM yyyy', { locale: fr })}</div>
+        <button onClick={() => setCurrentDate(addDays(currentDate, 1))} className="p-3 text-white">→</button>
+      </div>
 
       {/* Rétablissement des Metrics */}
       <div className="grid grid-cols-3 gap-3">
@@ -84,11 +90,7 @@ export default function TodayPage() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between bg-white/5 p-2 rounded-2xl">
-        <button onClick={() => setCurrentDate(subDays(currentDate, 1))} className="p-3 text-white">←</button>
-        <div className="text-center text-white font-black uppercase italic tracking-tighter">{format(currentDate, 'd MMMM yyyy', { locale: fr })}</div>
-        <button onClick={() => setCurrentDate(addDays(currentDate, 1))} className="p-3 text-white">→</button>
-      </div>
+      
 
       <section className="glass-card p-6 rounded-[2.5rem] space-y-4 border-b-4 border-menthe relative">
         <input placeholder="Exercice..." value={newName} onChange={e => {
