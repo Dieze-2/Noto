@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format, startOfWeek, addDays, isToday } from "date-fns";
 import { fr } from "date-fns/locale";
-import Layout from "../components/Layout";
+import AppShell from "../components/AppShell";
 import GlassCard from "../components/GlassCard";
 import StatBubble from "../components/StatBubble";
 import { getDailyMetricsRange } from "../db/dailyMetrics";
@@ -32,7 +32,7 @@ export default function WeekPage() {
   }, [metrics]);
 
   return (
-    <Layout title="Semaine" subtitle="Moyennes & Historique">
+    <AppShell title="Semaine" subtitle="Moyennes & Historique">
       <div className="grid grid-cols-3 gap-3 mb-8">
         <StatBubble icon={Footprints} label="Moy. Pas" value={stats.steps.toLocaleString('fr-FR')} />
         <StatBubble icon={Flame} label="Moy. Kcal" value={stats.kcal} />
@@ -66,6 +66,6 @@ export default function WeekPage() {
           );
         })}
       </div>
-    </Layout>
+    </AppShell>
   );
 }
