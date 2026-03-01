@@ -33,19 +33,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center px-6">
-      <div className="w-full max-w-sm space-y-12">
-        <div className="flex justify-center">
-          <img src="/logo.png" alt="Logo" className="w-32 h-32 object-contain" onError={(e) => (e.currentTarget.style.display = 'none')} />
-        </div>
-
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center px-6 text-center">
+      <img src="./logo.png" alt="Logo" className="w-32 h-32 object-contain mb-12" />
+      <div className="w-full max-w-sm space-y-4">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-white font-bold outline-none focus:border-menthe transition-colors" />
-          <input type="password" placeholder="Mot de passe" value={password} onChange={e => setPassword(e.target.value)} required className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-white font-bold outline-none focus:border-menthe transition-colors" />
-          <button type="submit" disabled={loading} className="w-full bg-menthe text-black py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-transform">{loading ? "..." : mode === "login" ? "Connexion" : "Inscription"}</button>
-          <button type="button" onClick={() => setMode(mode === "login" ? "signup" : "login")} className="w-full text-white/40 text-[10px] font-black uppercase tracking-widest hover:text-menthe">{mode === "login" ? "Créer un compte" : "Déjà membre ?"}</button>
+          <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-white font-bold outline-none focus:border-menthe" />
+          <input type="password" placeholder="Mot de passe" value={password} onChange={e => setPassword(e.target.value)} required className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-white font-bold outline-none focus:border-menthe" />
+          <button type="submit" disabled={loading} className="w-full bg-menthe text-black py-4 rounded-2xl font-black text-xs uppercase tracking-widest">{loading ? "..." : mode === "login" ? "Connexion" : "Inscription"}</button>
+          <button type="button" onClick={() => setMode(mode === "login" ? "signup" : "login")} className="w-full text-white/40 text-[10px] font-black uppercase tracking-widest">{mode === "login" ? "Créer un compte" : "Déjà membre ?"}</button>
         </form>
-        {message && <p className="text-center text-xs font-bold text-white uppercase italic">{message}</p>}
+        {message && <p className="text-xs font-bold text-white uppercase italic">{message}</p>}
       </div>
     </div>
   );

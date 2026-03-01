@@ -8,25 +8,33 @@ const PlayIcon = ({ url }: { url: string }) => (
 );
 
 export default function CatalogPage() {
-  const [list, setList] = useState<any[]>([]);
+  const [allExercises, setAllExercises] = useState<any[]>([]);
+  const [filtered, setFiltered] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [showNote, setShowNote] = useState<string | null>(null);
 
   useEffect(() => {
-    listCatalogExercises(search).then(setList);
-  }, [search]);
+    listCatalogExercises().then(data => {
+      setAllExercises(data);
+      setFiltered(data);
+    });
+  }, []);
+
+  useEffect(() => {
+    setFiltered(allExercises.filter(ex => ex.name.toLowerCase().includes(search.toLowerCase())));
+  }, [search, allExercises]);
 
   return (
     <div className="max-w-xl mx-auto px-4 pt-8 pb-32 space-y-8">
       <header className="text-center">
         <h1 className="text-4xl font-black text-menthe italic uppercase tracking-tighter">Exercices</h1>
         <div className="mt-6 glass-card p-2 rounded-full flex items-center px-6 border border-white/5">
-          <input placeholder="Chercher..." value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 py-3 bg-transparent text-white font-bold outline-none" />
+          <input placeholder="Chercher un mouvement..." value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 py-3 bg-transparent text-white font-bold outline-none" />
         </div>
       </header>
 
       <div className="grid grid-cols-1 gap-4">
-        {list.map(ex => (
+        {filtered.map(ex => (
           <div key={ex.id} className="glass-card rounded-[2rem] overflow-hidden">
              <div className="p-5 flex items-center justify-between">
                <h3 className="font-black text-white text-lg italic uppercase">{ex.name}</h3>
@@ -37,11 +45,7 @@ export default function CatalogPage() {
                  {ex.youtube_url && <PlayIcon url={ex.youtube_url} />}
                </div>
              </div>
-             {showNote === ex.id && (
-               <div className="px-6 pb-6 animate-in fade-in duration-300">
-                 <p className="text-xs text-menthe/80 italic">{ex.note}</p>
-               </div>
-             )}
+             {showNote === ex.id && <div className="px-6 pb-6 text-xs text-white/60 font-medium italic border-t border-white/5 pt-4">{ex.note}</div>}
           </div>
         ))}
       </div>

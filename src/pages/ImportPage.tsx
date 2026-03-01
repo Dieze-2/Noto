@@ -9,7 +9,7 @@ export default function ImportPage() {
   return (
     <div className="max-w-xl mx-auto px-4 pt-8 pb-32 space-y-8">
       <header className="text-center space-y-4">
-        <img src="/logo.png" alt="Logo" className="w-24 h-24 mx-auto object-contain" />
+        <img src="./logo.png" alt="Logo" className="w-24 h-24 mx-auto object-contain" />
         <h1 className="text-4xl font-black text-menthe italic uppercase tracking-tighter">Système</h1>
       </header>
 
@@ -27,7 +27,7 @@ export default function ImportPage() {
           <button onClick={() => window.location.hash = "/export"} className="w-full bg-white/5 border border-white/5 py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest text-white">Exporter Backup</button>
           <button onClick={handleLogout} className="w-full bg-rose-600/20 py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest text-rose-500">Déconnexion</button>
         </div>
-        {status && <p className="text-menthe font-black uppercase text-xs tracking-widest animate-pulse">{status}</p>}
+        {status && <p className="text-menthe font-black uppercase text-xs tracking-widest">{status}</p>}
       </section>
     </div>
   );
