@@ -135,7 +135,7 @@ export default function TodayPage() {
 
         <div className="grid grid-cols-3 gap-3">
           <select value={newLoadType} onChange={e => setNewLoadType(e.target.value as any)} className="bg-white/5 p-5 rounded-2xl font-bold text-white outline-none text-base">
-            <option value="KG">KG</option><option value="PDC_PLUS">PDC +</option><option value="TEXT">TXT</option>
+            <option value="KG">KG</option><option value="PDC_PLUS">PDC +</option>
           </select>
           <input placeholder="Charge" inputMode="decimal" value={newLoadVal} onChange={e => setNewLoadVal(e.target.value)} className="bg-white/5 p-5 rounded-2xl font-bold text-white text-xl outline-none" />
           <input placeholder="Reps" inputMode="numeric" value={newReps} onChange={e => setNewReps(e.target.value)} className="bg-white/5 p-5 rounded-2xl font-bold text-white text-xl outline-none" />
@@ -177,7 +177,7 @@ export default function TodayPage() {
             >
               <div className="flex justify-between items-start">
                 <h3 className="font-black text-white uppercase italic text-xl">{ex.exercise_name}</h3>
-                <span className="text-xs font-black text-menthe uppercase tracking-tighter bg-menthe/10 px-3 py-1 rounded-full">Série Master</span>
+                
               </div>
               
               <p className="text-lg font-black text-white/90">
