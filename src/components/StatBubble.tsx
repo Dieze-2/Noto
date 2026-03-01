@@ -7,12 +7,14 @@ interface StatBubbleProps {
   value: string | number;
   unit?: string;
   accent?: boolean;
+  colorClass?: string; // Nouvelle prop pour les couleurs spécifiques
 }
 
-export default function StatBubble({ icon: Icon, label, value, unit, accent }: StatBubbleProps) {
+export default function StatBubble({ icon: Icon, label, value, unit, accent, colorClass }: StatBubbleProps) {
   return (
     <GlassCard className="flex flex-col items-center gap-2 p-4 text-center">
-      <Icon size={20} className={accent ? "text-menthe" : "text-white/40"} />
+      {/* Utilise colorClass si fournie, sinon retombe sur la logique accent/menthe */}
+      <Icon size={20} className={colorClass || (accent ? "text-menthe" : "text-white/40")} />
       <div>
         <p className="text-2xl font-black tabular-nums text-white">
           {value}
