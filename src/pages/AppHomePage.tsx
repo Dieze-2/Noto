@@ -224,7 +224,7 @@ export default function AppHomePage() {
       <div className="grid grid-cols-3 gap-3 mb-12">
         <StatBubble icon={Footprints} label="Pas" value={metrics.steps} onChange={(v) => updateMetric("steps", v)} accent inputMode="numeric" />
         <StatBubble icon={Flame} label="Kcal" value={metrics.kcal} onChange={(v) => updateMetric("kcal", v)} colorClass="text-yellow-200" inputMode="numeric" />
-        <StatBubble icon={Weight} label="Poids" value={metrics.weight} onChange={(v) => updateMetric("weight", v)} unit="kg" colorClass="text-purple-500" inputMode="decimal" />
+        <StatBubble icon={Weight} label="Kg" value={metrics.weight} onChange={(v) => updateMetric("weight", v)} colorClass="text-purple-500" inputMode="decimal" />
       </div>
 
       <div className="space-y-6">
