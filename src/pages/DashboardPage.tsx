@@ -4,20 +4,19 @@ import { useAuth } from "../auth/AuthProvider";
 import { gramsToKg } from "../lib/numberFR";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-
-// Note : On installera 'recharts' pour les graphiques au prochain push
-// npm install recharts
+import GlassCard from "../components/GlassCard";
 
 export default function DashboardPage() {
-  const { user } = useAuth();
-  const [weightHistory, setWeightHistory] = useState<any[]>([]);
+  const { session } = useAuth();
+  const user = session?.user;
+
+  const [weightHistory, setWeightHistory] = useState<{ date: string; poids: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchStats() {
       if (!user) return;
-      
-      // Récupération du poids des 30 derniers jours
+
       const { data, error } = await supabase
         .from("daily_metrics")
         .select("date, weight_g")
@@ -26,54 +25,54 @@ export default function DashboardPage() {
         .limit(30);
 
       if (!error && data) {
-        setWeightHistory(data.map(d => ({
-          date: format(new Date(d.date), "dd MMM", { locale: fr }),
-          poids: gramsToKg(d.weight_g)
-        })));
+        setWeightHistory(
+          data.map((d) => ({
+            date: format(new Date(d.date), "dd MMM", { locale: fr }),
+            poids: gramsToKg(d.weight_g),
+          }))
+        );
       }
       setLoading(false);
     }
-    fetchStats();
+
+    fetchStats().catch(() => setLoading(false));
   }, [user]);
 
+  const currentWeight = weightHistory.length ? weightHistory[weightHistory.length - 1].poids : null;
+
   return (
-    <div className="max-w-xl mx-auto px-4 pt-8 pb-32 space-y-8 animate-in fade-in duration-700">
-      <header>
-        <h1 className="text-3xl font-black text-mineral-900 dark:text-white tracking-tight">Tableau de bord</h1>
-        <p className="text-sauge-600 dark:text-abd1b5 text-[10px] font-black uppercase tracking-[0.3em]">Performance Insights</p>
+    <div className="max-w-xl mx-auto px-4 pt-12 pb-32 space-y-8">
+      <header className="text-center">
+        <h1 className="text-5xl font-black text-menthe italic uppercase tracking-tighter">Dashboard</h1>
+        <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mt-2">Insights</p>
       </header>
 
-      {/* Carte Résumé (Focus Poids) */}
-      <section className="glass-card p-6 rounded-[2.5rem] border-b-4 border-sauge-200">
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            <p className="text-[10px] font-black uppercase text-mineral-700/40 dark:text-white/40 tracking-widest">Poids Actuel</p>
-            <h2 className="text-4xl font-black text-mineral-900 dark:text-white">
-              {weightHistory.length > 0 ? weightHistory[weightHistory.length - 1].poids : "--"} <span className="text-lg">kg</span>
-            </h2>
-          </div>
-          {/* L'indicateur % d'évolution sera ici */}
-          <div className="bg-sauge-100 dark:bg-sauge-900/30 px-3 py-1 rounded-full">
-            <span className="text-[10px] font-black text-sauge-600 dark:text-sauge-200 text-menthe-flash">STABLE</span>
-          </div>
+      <GlassCard className="p-6 rounded-[2.5rem] border border-white/10">
+        <p className="text-[10px] font-black uppercase tracking-widest text-white/30">Poids actuel</p>
+        <div className="mt-2 flex items-end gap-2">
+          <p className="text-5xl font-black uppercase italic text-white">
+            {loading ? "--" : currentWeight?.toFixed(1) ?? "--"}
+          </p>
+          <p className="text-sm font-black uppercase text-white/40 pb-2">kg</p>
         </div>
 
-        {/* Placeholder pour le graphique Recharts */}
-        <div className="h-48 w-full bg-sauge-50/50 dark:bg-mineral-900/50 rounded-3xl flex items-center justify-center border-2 border-dashed border-sauge-200/50">
-           <p className="text-[10px] font-black text-sauge-600 uppercase tracking-widest opacity-40 italic">Graphique en attente de données...</p>
+        <div className="mt-6 h-40 w-full rounded-3xl border-2 border-dashed border-white/10 bg-white/5 flex items-center justify-center">
+          <p className="text-[10px] font-black uppercase tracking-widest text-white/20 italic">
+            Charts à implémenter
+          </p>
         </div>
-      </section>
+      </GlassCard>
 
-      {/* Grille de perfs rapides */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="glass-card p-5 rounded-3xl">
-          <p className="text-[9px] font-black uppercase text-sauge-600 mb-1">Max Tractions</p>
-          <p className="text-xl font-black text-mineral-900 dark:text-white">PDC + 32kg</p>
-        </div>
-        <div className="glass-card p-5 rounded-3xl">
-          <p className="text-[9px] font-black uppercase text-sauge-600 mb-1">Moy. Pas (7j)</p>
-          <p className="text-xl font-black text-mineral-900 dark:text-white">8 450</p>
-        </div>
+        <GlassCard className="p-5 rounded-3xl border border-white/10">
+          <p className="text-[9px] font-black uppercase text-white/30 mb-1 tracking-widest">RP Tractions</p>
+          <p className="text-xl font-black uppercase italic text-white/80">—</p>
+        </GlassCard>
+
+        <GlassCard className="p-5 rounded-3xl border border-white/10">
+          <p className="text-[9px] font-black uppercase text-white/30 mb-1 tracking-widest">Moy. pas (7j)</p>
+          <p className="text-xl font-black uppercase italic text-white/80">—</p>
+        </GlassCard>
       </div>
     </div>
   );
