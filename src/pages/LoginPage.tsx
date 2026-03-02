@@ -22,7 +22,13 @@ export default function LoginPage() {
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { error } = await supabase.auth.signUp({ 
+          email, 
+          password,
+          options: {
+            emailRedirectTo: "https://dieze-2.github.io/Noto/#/"
+          }
+        });
         if (error) throw error;
         setMessage("Vérifie tes e-mails.");
       } else {
