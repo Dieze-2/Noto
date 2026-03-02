@@ -6,8 +6,6 @@ import {
   format,
   isToday,
   subDays,
-  isBefore,
-  startOfDay,
   parseISO,
 } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -32,7 +30,7 @@ export default function WeekPage() {
   const [prevWeekData, setPrevWeekData] = useState<DailyMetricsRow[]>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
 
-  // Drawer NOTE (events)
+  // Drawer NOTE
   const [noteOpen, setNoteOpen] = useState(false);
   const [from, setFrom] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [to, setTo] = useState(() => format(new Date(), "yyyy-MM-dd"));
@@ -58,19 +56,13 @@ export default function WeekPage() {
 
   async function refreshAllEvents() {
     const evs = await getEventsOverlappingRange("2020-01-01", "2030-12-31");
-    setAllEvents(evs.sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime()));
+    setAllEvents(
+      evs.sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())
+    );
   }
 
   useEffect(() => {
-    let alive = true;
-    refreshWeek()
-      .catch(() => {})
-      .finally(() => {
-        if (!alive) return;
-      });
-    return () => {
-      alive = false;
-    };
+    refreshWeek().catch(() => {});
   }, [startStr, endStr, start]);
 
   useEffect(() => {
@@ -78,7 +70,6 @@ export default function WeekPage() {
   }, []);
 
   useEffect(() => {
-    // ESC pour fermer (desktop)
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") setNoteOpen(false);
     }
@@ -101,10 +92,6 @@ export default function WeekPage() {
       variation: prevW ? ((curW - prevW) / prevW) * 100 : 0,
     };
   }, [currentWeekData, prevWeekData]);
-
-  const upcoming = useMemo(() => {
-    return allEvents.filter((e) => !isBefore(startOfDay(parseISO(e.end_date)), startOfDay(new Date())));
-  }, [allEvents]);
 
   return (
     <div className="max-w-xl mx-auto px-4 pt-12 pb-32">
@@ -220,7 +207,6 @@ export default function WeekPage() {
         })}
       </div>
 
-      {/* NOTE button */}
       <div className="mt-10">
         <button
           type="button"
@@ -231,11 +217,9 @@ export default function WeekPage() {
         </button>
       </div>
 
-      {/* Drawer */}
       <AnimatePresence>
         {noteOpen && (
           <>
-            {/* Overlay */}
             <motion.button
               type="button"
               aria-label="Fermer"
@@ -246,26 +230,26 @@ export default function WeekPage() {
               className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm"
             />
 
-            {/* Sheet */}
             <motion.div
-              initial={{ y: 600 }}
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={0.08}
+              onDragEnd={(_, info) => {
+                const shouldClose = info.offset.y > 90 || info.velocity.y > 600;
+                if (shouldClose) setNoteOpen(false);
+              }}
+              initial={{ y: 700 }}
               animate={{ y: 0 }}
-              exit={{ y: 600 }}
+              exit={{ y: 700 }}
               transition={{ type: "spring", damping: 28, stiffness: 260 }}
               className="fixed left-0 right-0 bottom-0 z-[70]"
             >
               <div className="mx-auto max-w-xl">
                 <div className="rounded-t-[2.5rem] border border-white/10 bg-zinc-950/90 backdrop-blur-2xl shadow-[0_-30px_80px_rgba(0,0,0,0.75)]">
-                  <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                  <div className="px-5 pt-4 pb-3 flex items-center justify-between relative">
                     <div className="w-12 h-1.5 rounded-full bg-white/10 mx-auto absolute left-1/2 -translate-x-1/2 top-3" />
-                    <h2 className="text-sm font-black uppercase italic tracking-widest text-white/70">
-                      Planning
-                    </h2>
-                    <button
-                      type="button"
-                      onClick={() => setNoteOpen(false)}
-                      className="p-2 text-white/30 hover:text-white"
-                    >
+                    <h2 className="text-sm font-black uppercase italic tracking-widest text-white/70">Planning</h2>
+                    <button type="button" onClick={() => setNoteOpen(false)} className="p-2 text-white/30 hover:text-white">
                       <X size={18} />
                     </button>
                   </div>
@@ -282,21 +266,11 @@ export default function WeekPage() {
                       <div className="bg-white/5 rounded-2xl overflow-hidden divide-x divide-white/5 flex items-center">
                         <div className="flex-1 p-4">
                           <label className="text-[8px] font-black text-white/30 uppercase block mb-1">Du</label>
-                          <input
-                            type="date"
-                            value={from}
-                            onChange={(e) => setFrom(e.target.value)}
-                            className="bg-transparent w-full text-xs text-white outline-none"
-                          />
+                          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="bg-transparent w-full text-xs text-white outline-none" />
                         </div>
                         <div className="flex-1 p-4 text-right">
                           <label className="text-[8px] font-black text-white/30 uppercase block mb-1">Au</label>
-                          <input
-                            type="date"
-                            value={to}
-                            onChange={(e) => setTo(e.target.value)}
-                            className="bg-transparent w-full text-xs text-white outline-none text-right"
-                          />
+                          <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="bg-transparent w-full text-xs text-white outline-none text-right" />
                         </div>
                       </div>
 
@@ -315,14 +289,13 @@ export default function WeekPage() {
                       </button>
                     </GlassCard>
 
-                    <div className="space-y-4">
-                      {upcoming.map((ev) => (
-                        <GlassCard key={ev.id} className="p-5 rounded-3xl border-l-4 border-menthe flex justify-between items-center">
+                    <div className="space-y-3">
+                      {allEvents.map((ev) => (
+                        <GlassCard key={ev.id} className="p-5 rounded-3xl border-l-4 border-white/10 flex justify-between items-center">
                           <div>
                             <p className="font-black text-white text-lg uppercase italic">{ev.title}</p>
-                            <p className="text-[10px] font-black text-menthe uppercase tracking-widest mt-1 italic">
-                              {format(parseISO(ev.start_date), "d MMM", { locale: fr })} —{" "}
-                              {format(parseISO(ev.end_date), "d MMM yyyy", { locale: fr })}
+                            <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mt-1 italic">
+                              {format(parseISO(ev.start_date), "d MMM", { locale: fr })} — {format(parseISO(ev.end_date), "d MMM yyyy", { locale: fr })}
                             </p>
                           </div>
                           <button
