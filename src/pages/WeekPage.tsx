@@ -1,8 +1,25 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { startOfWeek, addDays, format, isToday, subDays, isBefore, startOfDay, parseISO } from "date-fns";
+import {
+  startOfWeek,
+  addDays,
+  format,
+  isToday,
+  subDays,
+  isBefore,
+  startOfDay,
+  parseISO,
+} from "date-fns";
 import { fr } from "date-fns/locale";
-import { Footprints, Flame, Weight, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import {
+  Footprints,
+  Flame,
+  Weight,
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
+  X,
+} from "lucide-react";
 import GlassCard from "../components/GlassCard";
 import { getDailyMetricsRange, DailyMetricsRow } from "../db/dailyMetrics";
 import { motion, AnimatePresence } from "framer-motion";
@@ -15,8 +32,8 @@ export default function WeekPage() {
   const [prevWeekData, setPrevWeekData] = useState<DailyMetricsRow[]>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
 
-  // Panneau NOTE (events)
-  const [showNote, setShowNote] = useState(false);
+  // Drawer NOTE (events)
+  const [noteOpen, setNoteOpen] = useState(false);
   const [from, setFrom] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [to, setTo] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [title, setTitle] = useState("");
@@ -28,6 +45,17 @@ export default function WeekPage() {
   const startStr = useMemo(() => format(days[0], "yyyy-MM-dd"), [days]);
   const endStr = useMemo(() => format(days[6], "yyyy-MM-dd"), [days]);
 
+  async function refreshWeek() {
+    const [cur, prev, evs] = await Promise.all([
+      getDailyMetricsRange(startStr, endStr),
+      getDailyMetricsRange(format(subDays(start, 7), "yyyy-MM-dd"), format(subDays(start, 1), "yyyy-MM-dd")),
+      getEventsOverlappingRange(startStr, endStr),
+    ]);
+    setCurrentWeekData(cur);
+    setPrevWeekData(prev);
+    setEvents(evs);
+  }
+
   async function refreshAllEvents() {
     const evs = await getEventsOverlappingRange("2020-01-01", "2030-12-31");
     setAllEvents(evs.sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime()));
@@ -35,21 +63,11 @@ export default function WeekPage() {
 
   useEffect(() => {
     let alive = true;
-
-    async function load() {
-      const [cur, prev, evs] = await Promise.all([
-        getDailyMetricsRange(startStr, endStr),
-        getDailyMetricsRange(format(subDays(start, 7), "yyyy-MM-dd"), format(subDays(start, 1), "yyyy-MM-dd")),
-        getEventsOverlappingRange(startStr, endStr),
-      ]);
-
-      if (!alive) return;
-      setCurrentWeekData(cur);
-      setPrevWeekData(prev);
-      setEvents(evs);
-    }
-
-    load().catch(() => {});
+    refreshWeek()
+      .catch(() => {})
+      .finally(() => {
+        if (!alive) return;
+      });
     return () => {
       alive = false;
     };
@@ -59,12 +77,20 @@ export default function WeekPage() {
     refreshAllEvents().catch(() => {});
   }, []);
 
+  useEffect(() => {
+    // ESC pour fermer (desktop)
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setNoteOpen(false);
+    }
+    if (noteOpen) window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [noteOpen]);
+
   const stats = useMemo(() => {
     const getAvg = (data: DailyMetricsRow[], field: "steps" | "kcal" | "weight_g") => {
       const vals = data.map((d) => d[field] || 0).filter((v) => v > 0);
       return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
     };
-
     const curW = getAvg(currentWeekData, "weight_g") / 1000;
     const prevW = getAvg(prevWeekData, "weight_g") / 1000;
 
@@ -194,89 +220,135 @@ export default function WeekPage() {
         })}
       </div>
 
-      {/* NOTE (Events intégré) */}
+      {/* NOTE button */}
       <div className="mt-10">
         <button
           type="button"
-          onClick={() => setShowNote((v) => !v)}
+          onClick={() => setNoteOpen(true)}
           className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl font-black uppercase italic text-xs tracking-widest text-white/60 hover:text-white"
         >
           NOTE
         </button>
+      </div>
 
-        <AnimatePresence>
-          {showNote && (
+      {/* Drawer */}
+      <AnimatePresence>
+        {noteOpen && (
+          <>
+            {/* Overlay */}
+            <motion.button
+              type="button"
+              aria-label="Fermer"
+              onClick={() => setNoteOpen(false)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm"
+            />
+
+            {/* Sheet */}
             <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 12 }}
-              className="mt-4 space-y-6"
+              initial={{ y: 600 }}
+              animate={{ y: 0 }}
+              exit={{ y: 600 }}
+              transition={{ type: "spring", damping: 28, stiffness: 260 }}
+              className="fixed left-0 right-0 bottom-0 z-[70]"
             >
-              <GlassCard className="p-6 rounded-[2.5rem] space-y-4 border-b-4 border-menthe">
-                <input
-                  placeholder="Nom de l'événement..."
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full bg-white/5 p-4 rounded-2xl text-xl font-bold text-white outline-none"
-                />
-
-                <div className="bg-white/5 rounded-2xl overflow-hidden divide-x divide-white/5 flex items-center">
-                  <div className="flex-1 p-4">
-                    <label className="text-[8px] font-black text-white/30 uppercase block mb-1">Du</label>
-                    <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="bg-transparent w-full text-xs text-white outline-none" />
-                  </div>
-                  <div className="flex-1 p-4 text-right">
-                    <label className="text-[8px] font-black text-white/30 uppercase block mb-1">Au</label>
-                    <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="bg-transparent w-full text-xs text-white outline-none text-right" />
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (!title.trim()) return;
-                    await createEvent({ title: title.trim(), start_date: from, end_date: to, color: "#00ffa3" });
-                    setTitle("");
-                    await refreshAllEvents();
-                    // refresh surbrillance semaine
-                    const evs = await getEventsOverlappingRange(startStr, endStr);
-                    setEvents(evs);
-                  }}
-                  className="w-full bg-menthe text-black py-4 rounded-2xl font-black text-xs uppercase tracking-widest"
-                >
-                  Ajouter au calendrier
-                </button>
-              </GlassCard>
-
-              <div className="space-y-4">
-                {upcoming.map((ev) => (
-                  <GlassCard key={ev.id} className="p-5 rounded-3xl border-l-4 border-menthe flex justify-between items-center">
-                    <div>
-                      <p className="font-black text-white text-lg uppercase italic">{ev.title}</p>
-                      <p className="text-[10px] font-black text-menthe uppercase tracking-widest mt-1 italic">
-                        {format(parseISO(ev.start_date), "d MMM", { locale: fr })} — {format(parseISO(ev.end_date), "d MMM yyyy", { locale: fr })}
-                      </p>
-                    </div>
+              <div className="mx-auto max-w-xl">
+                <div className="rounded-t-[2.5rem] border border-white/10 bg-zinc-950/90 backdrop-blur-2xl shadow-[0_-30px_80px_rgba(0,0,0,0.75)]">
+                  <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                    <div className="w-12 h-1.5 rounded-full bg-white/10 mx-auto absolute left-1/2 -translate-x-1/2 top-3" />
+                    <h2 className="text-sm font-black uppercase italic tracking-widest text-white/70">
+                      Planning
+                    </h2>
                     <button
                       type="button"
-                      onClick={async () => {
-                        if (!confirm("Supprimer ?")) return;
-                        await deleteEvent(ev.id);
-                        await refreshAllEvents();
-                        const evs = await getEventsOverlappingRange(startStr, endStr);
-                        setEvents(evs);
-                      }}
-                      className="text-rose-500 font-black text-[10px] uppercase p-2"
+                      onClick={() => setNoteOpen(false)}
+                      className="p-2 text-white/30 hover:text-white"
                     >
-                      Suppr.
+                      <X size={18} />
                     </button>
-                  </GlassCard>
-                ))}
+                  </div>
+
+                  <div className="px-5 pb-6 max-h-[75vh] overflow-auto no-scrollbar space-y-6">
+                    <GlassCard className="p-6 rounded-[2.5rem] space-y-4 border-b-4 border-menthe">
+                      <input
+                        placeholder="Nom de l'événement..."
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        className="w-full bg-white/5 p-4 rounded-2xl text-xl font-bold text-white outline-none"
+                      />
+
+                      <div className="bg-white/5 rounded-2xl overflow-hidden divide-x divide-white/5 flex items-center">
+                        <div className="flex-1 p-4">
+                          <label className="text-[8px] font-black text-white/30 uppercase block mb-1">Du</label>
+                          <input
+                            type="date"
+                            value={from}
+                            onChange={(e) => setFrom(e.target.value)}
+                            className="bg-transparent w-full text-xs text-white outline-none"
+                          />
+                        </div>
+                        <div className="flex-1 p-4 text-right">
+                          <label className="text-[8px] font-black text-white/30 uppercase block mb-1">Au</label>
+                          <input
+                            type="date"
+                            value={to}
+                            onChange={(e) => setTo(e.target.value)}
+                            className="bg-transparent w-full text-xs text-white outline-none text-right"
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!title.trim()) return;
+                          await createEvent({ title: title.trim(), start_date: from, end_date: to, color: "#00ffa3" });
+                          setTitle("");
+                          await refreshAllEvents();
+                          await refreshWeek();
+                        }}
+                        className="w-full bg-menthe text-black py-4 rounded-2xl font-black text-xs uppercase tracking-widest"
+                      >
+                        Ajouter au calendrier
+                      </button>
+                    </GlassCard>
+
+                    <div className="space-y-4">
+                      {upcoming.map((ev) => (
+                        <GlassCard key={ev.id} className="p-5 rounded-3xl border-l-4 border-menthe flex justify-between items-center">
+                          <div>
+                            <p className="font-black text-white text-lg uppercase italic">{ev.title}</p>
+                            <p className="text-[10px] font-black text-menthe uppercase tracking-widest mt-1 italic">
+                              {format(parseISO(ev.start_date), "d MMM", { locale: fr })} —{" "}
+                              {format(parseISO(ev.end_date), "d MMM yyyy", { locale: fr })}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!confirm("Supprimer ?")) return;
+                              await deleteEvent(ev.id);
+                              await refreshAllEvents();
+                              await refreshWeek();
+                            }}
+                            className="text-rose-500 font-black text-[10px] uppercase p-2"
+                          >
+                            Suppr.
+                          </button>
+                        </GlassCard>
+                      ))}
+                    </div>
+
+                    <div className="h-6" />
+                  </div>
+                </div>
               </div>
             </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
