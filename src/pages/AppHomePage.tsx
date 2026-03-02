@@ -3,26 +3,21 @@ import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence, useTransform, useMotionValue } from "framer-motion";
 import { format, addDays, parseISO, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Footprints, Flame, Weight, Plus, ChevronLeft, ChevronRight, Dumbbell, Trash2 } from "lucide-react";
+import { Footprints, Flame, Weight, Plus, ChevronLeft, ChevronRight, Dumbbell, Trash2, Sparkles } from "lucide-react";
 
 import StatBubble from "../components/StatBubble";
 import GlassCard from "../components/GlassCard";
 import { getDailyMetricsByDate, upsertDailyMetrics } from "../db/dailyMetrics";
 import { getOrCreateWorkout, getWorkoutExercises, addWorkoutExercise, deleteWorkoutExercise, WorkoutExerciseRow } from "../db/workouts";
 import { listCatalogExercises, CatalogExercise } from "../db/catalog";
+import { getEventsOverlappingRange, EventRow } from "../db/events";
 
 function getISODateFromParams(dateParam: string | null): string {
   if (dateParam && isValid(parseISO(dateParam))) return dateParam;
   return format(new Date(), "yyyy-MM-dd");
 }
 
-function ExerciseRow({
-  ex,
-  onDelete,
-}: {
-  ex: WorkoutExerciseRow;
-  onDelete: (id: string) => void;
-}) {
+function ExerciseRow({ ex, onDelete }: { ex: WorkoutExerciseRow; onDelete: (id: string) => void }) {
   const x = useMotionValue(0);
   const bgOpacity = useTransform(x, [-100, 0], [1, 0]);
 
@@ -52,17 +47,12 @@ function ExerciseRow({
             <div>
               <p className="font-black text-white uppercase italic leading-none">{ex.exercise_name}</p>
               <p className="text-[11px] font-bold text-white/40 mt-1 uppercase">
-                {ex.load_type === "PDC_PLUS"
-                  ? `PDC + ${(ex.load_g ?? 0) / 1000}`
-                  : `${(ex.load_g ?? 0) / 1000}`}{" "}
-                kg • <span className="text-menthe">{ex.reps ?? 0} reps</span>
+                {ex.load_type === "PDC_PLUS" ? `PDC + ${(ex.load_g ?? 0) / 1000}` : `${(ex.load_g ?? 0) / 1000}`} kg •{" "}
+                <span className="text-menthe">{ex.reps ?? 0} reps</span>
               </p>
             </div>
           </div>
-          <button
-            onClick={() => onDelete(ex.id)}
-            className="p-2 text-white/10 hover:text-rose-500 transition-colors"
-          >
+          <button onClick={() => onDelete(ex.id)} className="p-2 text-white/10 hover:text-rose-500 transition-colors">
             <Trash2 size={18} />
           </button>
         </GlassCard>
@@ -80,13 +70,13 @@ export default function AppHomePage() {
   const [metrics, setMetrics] = useState({ steps: "", kcal: "", weight: "" });
   const [exercises, setExercises] = useState<WorkoutExerciseRow[]>([]);
   const [catalog, setCatalog] = useState<CatalogExercise[]>([]);
+  const [dayEvent, setDayEvent] = useState<EventRow | null>(null);
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [newEx, setNewEx] = useState({ reps: "", weight: "", load_type: "KG" as "KG" | "PDC_PLUS" });
   const [searchTerm, setSearchTerm] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // Assure un URL canonique (si date absente/invalide)
   useEffect(() => {
     const param = searchParams.get("date");
     if (!param || !isValid(parseISO(param))) {
@@ -95,7 +85,6 @@ export default function AppHomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Charger le catalogue une seule fois
   useEffect(() => {
     let alive = true;
     listCatalogExercises()
@@ -109,12 +98,15 @@ export default function AppHomePage() {
     };
   }, []);
 
-  // Charger données liées à la date (metrics + workout)
   useEffect(() => {
     let alive = true;
 
     async function loadData() {
-      const [m, workout] = await Promise.all([getDailyMetricsByDate(dateISO), getOrCreateWorkout(dateISO)]);
+      const [m, workout, evs] = await Promise.all([
+        getDailyMetricsByDate(dateISO),
+        getOrCreateWorkout(dateISO),
+        getEventsOverlappingRange(dateISO, dateISO),
+      ]);
 
       if (!alive) return;
 
@@ -127,6 +119,9 @@ export default function AppHomePage() {
       const ex = await getWorkoutExercises(workout.id);
       if (!alive) return;
       setExercises(ex);
+
+      // Si plusieurs events sur le même jour: on prend le premier (tu peux demander une pile plus tard)
+      setDayEvent(evs[0] ?? null);
     }
 
     loadData().catch(() => {});
@@ -200,14 +195,26 @@ export default function AppHomePage() {
           <button onClick={() => changeDate(-1)} className="p-2 text-white/20 hover:text-white">
             <ChevronLeft size={32} />
           </button>
+
           <div className="text-center">
             <h1 className="text-4xl font-black text-menthe italic uppercase tracking-tighter">
               {format(currentDate, "EEEE d", { locale: fr })}
             </h1>
+
             <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">
               {format(currentDate, "MMMM yyyy", { locale: fr })}
             </p>
+
+            {dayEvent && (
+              <div className="mt-2 flex items-center justify-center gap-2">
+                <Sparkles size={12} className="text-orange-500" />
+                <p className="text-[10px] font-black uppercase italic tracking-widest text-orange-500/90">
+                  {dayEvent.title}
+                </p>
+              </div>
+            )}
           </div>
+
           <button onClick={() => changeDate(1)} className="p-2 text-white/20 hover:text-white">
             <ChevronRight size={32} />
           </button>
@@ -215,9 +222,9 @@ export default function AppHomePage() {
       </header>
 
       <div className="grid grid-cols-3 gap-3 mb-12">
-        <StatBubble icon={Footprints} label="Pas" value={metrics.steps} onChange={(v) => updateMetric("steps", v)} accent />
-        <StatBubble icon={Flame} label="Kcal" value={metrics.kcal} onChange={(v) => updateMetric("kcal", v)} colorClass="text-yellow-200" />
-        <StatBubble icon={Weight} label="Poids" value={metrics.weight} onChange={(v) => updateMetric("weight", v)} unit="kg" colorClass="text-purple-500" />
+        <StatBubble icon={Footprints} label="Pas" value={metrics.steps} onChange={(v) => updateMetric("steps", v)} accent inputMode="numeric" />
+        <StatBubble icon={Flame} label="Kcal" value={metrics.kcal} onChange={(v) => updateMetric("kcal", v)} colorClass="text-yellow-200" inputMode="numeric" />
+        <StatBubble icon={Weight} label="Poids" value={metrics.weight} onChange={(v) => updateMetric("weight", v)} unit="kg" colorClass="text-purple-500" inputMode="decimal" />
       </div>
 
       <div className="space-y-6">
@@ -274,7 +281,6 @@ export default function AppHomePage() {
                 />
               </div>
 
-              {/* Suggestions (optionnel, basique) */}
               {showSuggestions && searchTerm.trim().length > 0 && catalog.length > 0 && (
                 <div className="max-h-48 overflow-auto no-scrollbar space-y-2">
                   {catalog
@@ -307,7 +313,11 @@ export default function AppHomePage() {
                 >
                   Annuler
                 </button>
-                <button type="button" onClick={onAdd} className="flex-1 py-3 bg-menthe rounded-xl font-black uppercase text-xs text-black">
+                <button
+                  type="button"
+                  onClick={onAdd}
+                  className="flex-1 py-3 bg-menthe rounded-xl font-black uppercase text-xs text-black"
+                >
                   Valider
                 </button>
               </div>
