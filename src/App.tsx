@@ -11,6 +11,7 @@ import SettingsPage from "./pages/ImportPage";
 import ExportPage from "./pages/ExportPage";
 import LoginPage from "./pages/LoginPage";
 import PrintPage from "./pages/PrintPage";
+import DashboardPage from "./pages/DashboardPage";
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
@@ -26,15 +27,12 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!session) {
-    return <Navigate to="/login" replace state={{ from: location }} />;
-  }
+  if (!session) return <Navigate to="/login" replace state={{ from: location }} />;
 
   return <AppShell>{children}</AppShell>;
 }
 
 function RootRedirect() {
-  // Conserve ?date si quelqu’un arrive sur /?date=...
   const location = useLocation();
   return <Navigate to={`/today${location.search}`} replace />;
 }
@@ -46,7 +44,6 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
 
-          {/* Root -> today */}
           <Route
             path="/"
             element={
@@ -56,7 +53,6 @@ export default function App() {
             }
           />
 
-          {/* Pages privées */}
           <Route
             path="/today"
             element={
@@ -82,6 +78,16 @@ export default function App() {
             }
           />
           <Route
+            path="/dashboard"
+            element={
+              <PrivateRoute>
+                <DashboardPage />
+              </PrivateRoute>
+            }
+          />
+
+          {/* Optionnel: route cachée */}
+          <Route
             path="/events"
             element={
               <PrivateRoute>
@@ -89,6 +95,7 @@ export default function App() {
               </PrivateRoute>
             }
           />
+
           <Route
             path="/import"
             element={
@@ -106,9 +113,7 @@ export default function App() {
             }
           />
 
-          {/* Print volontairement public (si tu veux le protéger, dis-le) */}
           <Route path="/print" element={<PrintPage />} />
-
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </HashRouter>
