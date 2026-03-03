@@ -2,10 +2,13 @@ import { LucideIcon } from "lucide-react";
 import GlassCard from "./GlassCard";
 
 interface StatBubbleProps {
+  name: "steps" | "kcal" | "weight";
   icon: LucideIcon;
   label: string;
   value: string;
   onChange: (next: string) => void;
+  onFocus?: () => void;
+  onBlur?: () => void;
   unit?: string;
   accent?: boolean;
   colorClass?: string;
@@ -14,10 +17,13 @@ interface StatBubbleProps {
 }
 
 export default function StatBubble({
+  name,
   icon: Icon,
   label,
   value,
   onChange,
+  onFocus,
+  onBlur,
   unit,
   accent,
   colorClass,
@@ -33,8 +39,11 @@ export default function StatBubble({
       <div className="w-full">
         <div className="flex items-baseline justify-center gap-1">
           <input
+            name={name}
             value={value}
             onChange={(e) => onChange(e.target.value)}
+            onFocus={onFocus}
+            onBlur={onBlur}
             inputMode={inputMode}
             placeholder={placeholder}
             className="w-full bg-transparent text-center text-2xl font-black tabular-nums text-white outline-none uppercase italic placeholder:text-white/10"
