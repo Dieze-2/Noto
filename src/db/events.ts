@@ -5,7 +5,7 @@ export type EventRow = {
   title: string;
   start_date: string; // YYYY-MM-DD
   end_date: string;   // YYYY-MM-DD
-  color: string;
+  color: string;      // #RRGGBB
   note?: string;
 };
 
@@ -37,11 +37,19 @@ export async function createEvent(payload: {
       title: payload.title,
       start_date: payload.start_date,
       end_date: payload.end_date,
-      color: payload.color || "#00ffa3",
+      color: payload.color || "#00FFA3",
       note: payload.note,
     },
   ]);
 
+  if (error) throw error;
+}
+
+export async function updateEvent(
+  id: string,
+  patch: Partial<Pick<EventRow, "title" | "start_date" | "end_date" | "color" | "note">>
+) {
+  const { error } = await supabase.from("events").update(patch).eq("id", id);
   if (error) throw error;
 }
 
