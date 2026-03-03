@@ -21,9 +21,12 @@ const EVENT_COLORS = [
   "#F783AC", // pink
 ] as const;
 
+function isHex6(x: string) {
+  return /^#[0-9A-Fa-f]{6}$/.test(x);
+}
+
 function hexWithAlpha(hex: string, alphaHex: string) {
-  // impose #RRGGBB (choix A)
-  if (!/^#[0-9A-Fa-f]{6}$/.test(hex)) return undefined;
+  if (!isHex6(hex)) return undefined;
   return `${hex}${alphaHex}`;
 }
 
@@ -156,27 +159,27 @@ export default function WeekPage() {
         {days.map((day) => {
           const dStr = format(day, "yyyy-MM-dd");
           const m = currentWeekData.find((x) => x.date === dStr);
-          const event = events.find((e) => dStr >= e.start_date && dStr <= e.end_date);
-          const isT = isToday(day);
 
-          const eventColor = event?.color && /^#[0-9A-Fa-f]{6}$/.test(event.color) ? event.color : "#FFA94D";
-          const eventBg = hexWithAlpha(eventColor, "14"); // ~8% alpha
+          const dayEvents = events.filter((e) => dStr >= e.start_date && dStr <= e.end_date);
+          const primary = dayEvents[0] ?? null;
+
+          const isT = isToday(day);
+          const primaryColor = primary?.color && isHex6(primary.color) ? primary.color : "#FFA94D";
+          const bg = hexWithAlpha(primaryColor, "14");
 
           return (
             <GlassCard
               key={dStr}
               onClick={() => navigate(`/today?date=${dStr}`)}
-              className={`flex items-center justify-between p-4 border-l-4 transition-all ${
-                isT ? "border-menthe bg-menthe/5" : "border-transparent"
-              }`}
-              style={!isT && event ? { borderLeftColor: eventColor, backgroundColor: eventBg } : undefined}
+              className={`flex items-center justify-between p-4 border-l-4 transition-all ${isT ? "border-menthe bg-menthe/5" : "border-transparent"}`}
+              style={!isT && primary ? { borderLeftColor: primaryColor, backgroundColor: bg } : undefined}
             >
               <div className="flex items-center gap-4 flex-1">
                 <div
                   className={`w-12 h-12 rounded-2xl flex flex-col items-center justify-center font-black ${
-                    isT ? "bg-menthe text-black" : event ? "text-black" : "bg-white/5 text-white/40"
+                    isT ? "bg-menthe text-black" : primary ? "text-black" : "bg-white/5 text-white/40"
                   }`}
-                  style={!isT && event ? { backgroundColor: eventColor } : undefined}
+                  style={!isT && primary ? { backgroundColor: primaryColor } : undefined}
                 >
                   <span className="text-[9px] uppercase leading-none">{format(day, "EEE", { locale: fr })}</span>
                   <span className="text-lg leading-none">{format(day, "d")}</span>
@@ -185,17 +188,37 @@ export default function WeekPage() {
                 <div className="flex-1">
                   <p className="font-black uppercase italic text-sm text-white flex items-center">
                     {format(day, "EEEE", { locale: fr })}
-                    {event && <Sparkles size={12} className="ml-2" style={{ color: eventColor }} />}
+                    {primary && <Sparkles size={12} className="ml-2" style={{ color: primaryColor }} />}
                   </p>
 
                   <div className="mt-1">
-                    {event && (
-                      <p className="text-[10px] font-bold uppercase italic mb-1" style={{ color: eventColor }}>
-                        {event.title}
+                    {/* Mini dots si events */}
+                    {dayEvents.length > 0 && (
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="flex gap-1">
+                          {dayEvents.slice(0, 6).map((ev) => (
+                            <span
+                              key={ev.id}
+                              className="w-2.5 h-2.5 rounded-full"
+                              style={{ backgroundColor: isHex6(ev.color) ? ev.color : "#FFFFFF" }}
+                              aria-hidden="true"
+                            />
+                          ))}
+                        </div>
+                        <span className="text-[10px] font-black uppercase italic tracking-widest text-white/40">
+                          {dayEvents.length > 1 ? `+${dayEvents.length - 1}` : ""}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Affiche le libellé du primary uniquement (discret) */}
+                    {primary && (
+                      <p className="text-[10px] font-bold uppercase italic" style={{ color: primaryColor }}>
+                        {primary.title}
                       </p>
                     )}
 
-                    <div className="flex gap-4">
+                    <div className="flex gap-4 mt-1">
                       <div className="flex items-center gap-1 text-[10px] font-bold">
                         <Footprints size={12} className={m?.steps ? "text-menthe" : "text-white/10"} />
                         <span className="text-white/40">{m?.steps || 0}</span>
@@ -275,7 +298,6 @@ export default function WeekPage() {
                         className="w-full bg-white/5 p-4 rounded-2xl text-xl font-bold text-white outline-none"
                       />
 
-                      {/* Palette couleur */}
                       <div>
                         <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.3em] mb-2">Couleur</p>
                         <div className="flex flex-wrap gap-2">
@@ -286,7 +308,7 @@ export default function WeekPage() {
                                 key={c}
                                 type="button"
                                 onClick={() => setSelectedColor(c)}
-                                className={`w-10 h-10 rounded-full border ${active ? "border-white" : "border-white/10"} `}
+                                className={`w-10 h-10 rounded-full border ${active ? "border-white" : "border-white/10"}`}
                                 style={{ backgroundColor: c }}
                                 aria-label={`Choisir ${c}`}
                               />
@@ -310,9 +332,8 @@ export default function WeekPage() {
                         type="button"
                         onClick={async () => {
                           if (!title.trim()) return;
-
-                          // impose hex #RRGGBB (choix A)
-                          if (!/^#[0-9A-Fa-f]{6}$/.test(selectedColor)) return;
+                          // on limite strictement au preset
+                          if (!EVENT_COLORS.includes(selectedColor as any)) return;
 
                           await createEvent({
                             title: title.trim(),
@@ -333,18 +354,13 @@ export default function WeekPage() {
 
                     <div className="space-y-3">
                       {allEvents.map((ev) => {
-                        const c = ev.color && /^#[0-9A-Fa-f]{6}$/.test(ev.color) ? ev.color : "#FFFFFF";
+                        const c = isHex6(ev.color) ? ev.color : "#FFFFFF";
                         return (
-                          <GlassCard
-                            key={ev.id}
-                            className="p-5 rounded-3xl border-l-4 flex justify-between items-center"
-                            style={{ borderLeftColor: c }}
-                          >
+                          <GlassCard key={ev.id} className="p-5 rounded-3xl border-l-4 flex justify-between items-center" style={{ borderLeftColor: c }}>
                             <div>
                               <p className="font-black text-white text-lg uppercase italic">{ev.title}</p>
                               <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mt-1 italic">
-                                {format(parseISO(ev.start_date), "d MMM", { locale: fr })} —{" "}
-                                {format(parseISO(ev.end_date), "d MMM yyyy", { locale: fr })}
+                                {format(parseISO(ev.start_date), "d MMM", { locale: fr })} — {format(parseISO(ev.end_date), "d MMM yyyy", { locale: fr })}
                               </p>
                             </div>
                             <button
