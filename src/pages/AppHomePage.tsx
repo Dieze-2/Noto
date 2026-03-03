@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence, useTransform, useMotionValue } from "framer-motion";
 import { format, addDays, parseISO, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -8,9 +8,17 @@ import { Footprints, Flame, Weight, Plus, ChevronLeft, ChevronRight, Dumbbell, T
 import StatBubble from "../components/StatBubble";
 import GlassCard from "../components/GlassCard";
 import { getDailyMetricsByDate, upsertDailyMetrics } from "../db/dailyMetrics";
-import { getOrCreateWorkout, getWorkoutExercises, addWorkoutExercise, deleteWorkoutExercise, WorkoutExerciseRow } from "../db/workouts";
+import {
+  getOrCreateWorkout,
+  getWorkoutExercises,
+  addWorkoutExercise,
+  deleteWorkoutExercise,
+  WorkoutExerciseRow,
+} from "../db/workouts";
 import { listCatalogExercises, CatalogExercise } from "../db/catalog";
 import { getEventsOverlappingRange, EventRow } from "../db/events";
+
+const MAX_DOTS = 4;
 
 function getISODateFromParams(dateParam: string | null): string {
   if (dateParam && isValid(parseISO(dateParam))) return dateParam;
@@ -26,14 +34,7 @@ function ExerciseRow({ ex, onDelete }: { ex: WorkoutExerciseRow; onDelete: (id: 
   const bgOpacity = useTransform(x, [-100, 0], [1, 0]);
 
   return (
-    <motion.div
-      key={ex.id}
-      layout
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0, x: -100 }}
-      className="relative"
-    >
+    <motion.div key={ex.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -100 }} className="relative">
       <motion.div style={{ opacity: bgOpacity }} className="absolute inset-0 bg-rose-600 rounded-[1.5rem]" />
 
       <motion.div
@@ -66,6 +67,7 @@ function ExerciseRow({ ex, onDelete }: { ex: WorkoutExerciseRow; onDelete: (id: 
 }
 
 export default function AppHomePage() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const dateISO = useMemo(() => getISODateFromParams(searchParams.get("date")), [searchParams]);
@@ -212,32 +214,33 @@ export default function AppHomePage() {
             </p>
 
             {dayEvents.length > 0 && (
-              <div className="mt-2 flex flex-col items-center gap-1">
-                <div className="flex items-center justify-center gap-2">
-                  <Sparkles size={12} style={{ color: primaryColor }} />
-                  <div className="flex gap-1">
-                    {dayEvents.slice(0, 6).map((ev) => (
-                      <span
-                        key={ev.id}
-                        className="w-2.5 h-2.5 rounded-full"
-                        style={{ backgroundColor: isHex6(ev.color) ? ev.color : "#FFFFFF" }}
-                        aria-hidden="true"
-                      />
-                    ))}
-                  </div>
-                  {dayEvents.length > 1 && (
-                    <span className="text-[10px] font-black uppercase italic tracking-widest text-white/40">
-                      +{dayEvents.length - 1}
-                    </span>
+              <button
+                type="button"
+                onClick={() => navigate("/week?note=1")}
+                className="mt-2"
+                aria-label="Ouvrir le planning"
+              >
+                <div className="flex flex-col items-center gap-1">
+                  {dayEvents.slice(0, MAX_DOTS).map((ev) => {
+                    const c = isHex6(ev.color) ? ev.color : "#FFFFFF";
+                    return (
+                      <div key={ev.id} className="flex items-center justify-center gap-2">
+                        <Sparkles size={12} style={{ color: primaryColor }} />
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c }} />
+                        <span className="text-[10px] font-black uppercase italic tracking-widest" style={{ color: c }}>
+                          {ev.title}
+                        </span>
+                      </div>
+                    );
+                  })}
+
+                  {dayEvents.length > MAX_DOTS && (
+                    <div className="text-[10px] font-black uppercase italic tracking-widest text-white/30">
+                      +{dayEvents.length - MAX_DOTS}
+                    </div>
                   )}
                 </div>
-
-                {primary && (
-                  <p className="text-[10px] font-black uppercase italic tracking-widest" style={{ color: primaryColor }}>
-                    {primary.title}
-                  </p>
-                )}
-              </div>
+              </button>
             )}
           </div>
 
