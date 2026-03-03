@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence, useTransform, useMotionValue } from "framer-motion";
 import { format, addDays, parseISO, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Footprints, Flame, Weight, Plus, ChevronLeft, ChevronRight, Dumbbell, Trash2, Sparkles } from "lucide-react";
+import { Footprints, Flame, Weight, Plus, ChevronLeft, ChevronRight, Dumbbell, Trash2, Sparkles, X } from "lucide-react";
 
 import StatBubble from "../components/StatBubble";
 import GlassCard from "../components/GlassCard";
@@ -17,19 +17,16 @@ function getISODateFromParams(dateParam: string | null): string {
   return format(new Date(), "yyyy-MM-dd");
 }
 
+function isHexColor(s: string) {
+  return /^#[0-9A-Fa-f]{6}$/.test(s);
+}
+
 function ExerciseRow({ ex, onDelete }: { ex: WorkoutExerciseRow; onDelete: (id: string) => void }) {
   const x = useMotionValue(0);
   const bgOpacity = useTransform(x, [-100, 0], [1, 0]);
 
   return (
-    <motion.div
-      key={ex.id}
-      layout
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0, x: -100 }}
-      className="relative"
-    >
+    <motion.div key={ex.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -100 }} className="relative">
       <motion.div style={{ opacity: bgOpacity }} className="absolute inset-0 bg-rose-600 rounded-[1.5rem]" />
 
       <motion.div
@@ -70,7 +67,9 @@ export default function AppHomePage() {
   const [metrics, setMetrics] = useState({ steps: "", kcal: "", weight: "" });
   const [exercises, setExercises] = useState<WorkoutExerciseRow[]>([]);
   const [catalog, setCatalog] = useState<CatalogExercise[]>([]);
-  const [dayEvent, setDayEvent] = useState<EventRow | null>(null);
+
+  const [dayEvents, setDayEvents] = useState<EventRow[]>([]);
+  const [eventsOpen, setEventsOpen] = useState(false);
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [newEx, setNewEx] = useState({ reps: "", weight: "", load_type: "KG" as "KG" | "PDC_PLUS" });
@@ -79,9 +78,7 @@ export default function AppHomePage() {
 
   useEffect(() => {
     const param = searchParams.get("date");
-    if (!param || !isValid(parseISO(param))) {
-      setSearchParams({ date: dateISO }, { replace: true });
-    }
+    if (!param || !isValid(parseISO(param))) setSearchParams({ date: dateISO }, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -120,8 +117,8 @@ export default function AppHomePage() {
       if (!alive) return;
       setExercises(ex);
 
-      // Si plusieurs events sur le même jour: on prend le premier (tu peux demander une pile plus tard)
-      setDayEvent(evs[0] ?? null);
+      setDayEvents(evs ?? []);
+      setEventsOpen(false);
     }
 
     loadData().catch(() => {});
@@ -129,6 +126,14 @@ export default function AppHomePage() {
       alive = false;
     };
   }, [dateISO]);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setEventsOpen(false);
+    }
+    if (eventsOpen) window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [eventsOpen]);
 
   const updateMetric = async (key: "steps" | "kcal" | "weight", val: string) => {
     const newMetrics = { ...metrics, [key]: val };
@@ -145,8 +150,7 @@ export default function AppHomePage() {
 
   const changeDate = (delta: number) => {
     const d = addDays(currentDate, delta);
-    const nextISO = format(d, "yyyy-MM-dd");
-    setSearchParams({ date: nextISO });
+    setSearchParams({ date: format(d, "yyyy-MM-dd") });
   };
 
   const onAdd = async () => {
@@ -174,6 +178,9 @@ export default function AppHomePage() {
     await deleteWorkoutExercise(id);
     setExercises((prev) => prev.filter((e) => e.id !== id));
   };
+
+  const primaryEvent = dayEvents[0] ?? null;
+  const primaryColor = primaryEvent?.color && isHexColor(primaryEvent.color) ? primaryEvent.color : "#f97316";
 
   return (
     <div className="max-w-xl mx-auto px-4 pt-12 pb-32">
@@ -205,13 +212,26 @@ export default function AppHomePage() {
               {format(currentDate, "MMMM yyyy", { locale: fr })}
             </p>
 
-            {dayEvent && (
+            {dayEvents.length === 1 && primaryEvent && (
               <div className="mt-2 flex items-center justify-center gap-2">
-                <Sparkles size={12} className="text-orange-500" />
-                <p className="text-[10px] font-black uppercase italic tracking-widest text-orange-500/90">
-                  {dayEvent.title}
+                <Sparkles size={12} style={{ color: primaryColor }} />
+                <p className="text-[10px] font-black uppercase italic tracking-widest" style={{ color: primaryColor }}>
+                  {primaryEvent.title}
                 </p>
               </div>
+            )}
+
+            {dayEvents.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setEventsOpen(true)}
+                className="mt-2 inline-flex items-center justify-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10"
+              >
+                <Sparkles size={12} className="text-white/50" />
+                <span className="text-[10px] font-black uppercase italic tracking-widest text-white/60">
+                  {dayEvents.length} events
+                </span>
+              </button>
             )}
           </div>
 
@@ -224,7 +244,7 @@ export default function AppHomePage() {
       <div className="grid grid-cols-3 gap-3 mb-12">
         <StatBubble icon={Footprints} label="Pas" value={metrics.steps} onChange={(v) => updateMetric("steps", v)} accent inputMode="numeric" />
         <StatBubble icon={Flame} label="Kcal" value={metrics.kcal} onChange={(v) => updateMetric("kcal", v)} colorClass="text-yellow-200" inputMode="numeric" />
-        <StatBubble icon={Weight} label="Kg" value={metrics.weight} onChange={(v) => updateMetric("weight", v)} colorClass="text-purple-500" inputMode="decimal" />
+        <StatBubble icon={Weight} label="Poids" value={metrics.weight} onChange={(v) => updateMetric("weight", v)} unit="kg" colorClass="text-purple-500" inputMode="decimal" />
       </div>
 
       <div className="space-y-6">
@@ -333,6 +353,66 @@ export default function AppHomePage() {
           )}
         </div>
       </div>
+
+      {/* Drawer day events */}
+      <AnimatePresence>
+        {eventsOpen && (
+          <>
+            <motion.button
+              type="button"
+              aria-label="Fermer"
+              onClick={() => setEventsOpen(false)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm"
+            />
+
+            <motion.div
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={0.08}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 90 || info.velocity.y > 600) setEventsOpen(false);
+              }}
+              initial={{ y: 700 }}
+              animate={{ y: 0 }}
+              exit={{ y: 700 }}
+              transition={{ type: "spring", damping: 28, stiffness: 260 }}
+              className="fixed left-0 right-0 bottom-0 z-[70]"
+            >
+              <div className="mx-auto max-w-xl">
+                <div className="rounded-t-[2.5rem] border border-white/10 bg-zinc-950/90 backdrop-blur-2xl shadow-[0_-30px_80px_rgba(0,0,0,0.75)]">
+                  <div className="px-5 pt-4 pb-3 flex items-center justify-between relative">
+                    <div className="w-12 h-1.5 rounded-full bg-white/10 mx-auto absolute left-1/2 -translate-x-1/2 top-3" />
+                    <h2 className="text-sm font-black uppercase italic tracking-widest text-white/70">
+                      {dayEvents.length} EVENTS
+                    </h2>
+                    <button type="button" onClick={() => setEventsOpen(false)} className="p-2 text-white/30 hover:text-white">
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  <div className="px-5 pb-6 max-h-[60vh] overflow-auto no-scrollbar space-y-3">
+                    {dayEvents.map((ev) => {
+                      const c = ev.color && isHexColor(ev.color) ? ev.color : "#00ffa3";
+                      return (
+                        <GlassCard key={ev.id} className="p-5 rounded-3xl border-l-4" style={{ borderLeftColor: c }}>
+                          <p className="font-black uppercase italic text-white">{ev.title}</p>
+                          <p className="text-[10px] font-black uppercase tracking-widest mt-1 italic text-white/40">
+                            {format(parseISO(ev.start_date), "d MMM", { locale: fr })} — {format(parseISO(ev.end_date), "d MMM yyyy", { locale: fr })}
+                          </p>
+                        </GlassCard>
+                      );
+                    })}
+                    <div className="h-6" />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
