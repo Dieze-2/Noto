@@ -2,33 +2,40 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { startOfWeek, addDays, format, isToday, subDays, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Footprints, Flame, Weight, ChevronLeft, ChevronRight, Sparkles, X } from "lucide-react";
+import { Footprints, Flame, Weight, ChevronLeft, ChevronRight, Sparkles, X, Pencil, Check, Ban } from "lucide-react";
 import GlassCard from "../components/GlassCard";
 import { getDailyMetricsRange, DailyMetricsRow } from "../db/dailyMetrics";
 import { motion, AnimatePresence } from "framer-motion";
-import { getEventsOverlappingRange, EventRow, createEvent, deleteEvent } from "../db/events";
+import { getEventsOverlappingRange, EventRow, createEvent, deleteEvent, updateEvent } from "../db/events";
 
 const EVENT_COLORS = [
-  "#00FFA3", // menthe
-  "#FF6B6B", // rose/rouge
-  "#FFA94D", // orange
-  "#FFD43B", // jaune
-  "#74C0FC", // bleu clair
-  "#4DABF7", // bleu
-  "#B197FC", // violet
-  "#63E6BE", // teal
-  "#A9E34B", // vert
-  "#F783AC", // pink
+  "#00FFA3",
+  "#FF6B6B",
+  "#FFA94D",
+  "#FFD43B",
+  "#74C0FC",
+  "#4DABF7",
+  "#B197FC",
+  "#63E6BE",
+  "#A9E34B",
+  "#F783AC",
 ] as const;
 
 function isHex6(x: string) {
   return /^#[0-9A-Fa-f]{6}$/.test(x);
 }
-
 function hexWithAlpha(hex: string, alphaHex: string) {
   if (!isHex6(hex)) return undefined;
   return `${hex}${alphaHex}`;
 }
+
+type EditState = {
+  id: string;
+  title: string;
+  start_date: string;
+  end_date: string;
+  color: string;
+};
 
 export default function WeekPage() {
   const navigate = useNavigate();
@@ -44,6 +51,8 @@ export default function WeekPage() {
   const [title, setTitle] = useState("");
   const [allEvents, setAllEvents] = useState<EventRow[]>([]);
   const [selectedColor, setSelectedColor] = useState<string>(EVENT_COLORS[0]);
+
+  const [editing, setEditing] = useState<EditState | null>(null);
 
   const start = useMemo(() => startOfWeek(anchorDate, { weekStartsOn: 1 }), [anchorDate]);
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(start, i)), [start]);
@@ -67,6 +76,10 @@ export default function WeekPage() {
     setAllEvents(evs.sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime()));
   }
 
+  async function refreshAll() {
+    await Promise.all([refreshAllEvents(), refreshWeek()]);
+  }
+
   useEffect(() => {
     refreshWeek().catch(() => {});
   }, [startStr, endStr, start]);
@@ -77,7 +90,10 @@ export default function WeekPage() {
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setNoteOpen(false);
+      if (e.key === "Escape") {
+        setEditing(null);
+        setNoteOpen(false);
+      }
     }
     if (noteOpen) window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -130,11 +146,7 @@ export default function WeekPage() {
         <GlassCard className="p-6 text-center border-menthe/10 relative overflow-hidden">
           <Weight size={20} className="text-purple-500 mx-auto mb-2" />
           <p className="text-2xl font-black text-white">{stats.weight ? stats.weight.toFixed(1) : "--"}kg</p>
-          <div
-            className={`mt-2 inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${
-              stats.variation > 0 ? "bg-rose-500/10 text-rose-500" : "bg-menthe/10 text-menthe"
-            }`}
-          >
+          <div className={`mt-2 inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${stats.variation > 0 ? "bg-rose-500/10 text-rose-500" : "bg-menthe/10 text-menthe"}`}>
             {stats.variation > 0 ? "+" : ""}
             {stats.variation.toFixed(1)}%
           </div>
@@ -176,9 +188,7 @@ export default function WeekPage() {
             >
               <div className="flex items-center gap-4 flex-1">
                 <div
-                  className={`w-12 h-12 rounded-2xl flex flex-col items-center justify-center font-black ${
-                    isT ? "bg-menthe text-black" : primary ? "text-black" : "bg-white/5 text-white/40"
-                  }`}
+                  className={`w-12 h-12 rounded-2xl flex flex-col items-center justify-center font-black ${isT ? "bg-menthe text-black" : primary ? "text-black" : "bg-white/5 text-white/40"}`}
                   style={!isT && primary ? { backgroundColor: primaryColor } : undefined}
                 >
                   <span className="text-[9px] uppercase leading-none">{format(day, "EEE", { locale: fr })}</span>
@@ -192,26 +202,21 @@ export default function WeekPage() {
                   </p>
 
                   <div className="mt-1">
-                    {/* Mini dots si events */}
                     {dayEvents.length > 0 && (
                       <div className="flex items-center gap-2 mb-1">
                         <div className="flex gap-1">
                           {dayEvents.slice(0, 6).map((ev) => (
-                            <span
-                              key={ev.id}
-                              className="w-2.5 h-2.5 rounded-full"
-                              style={{ backgroundColor: isHex6(ev.color) ? ev.color : "#FFFFFF" }}
-                              aria-hidden="true"
-                            />
+                            <span key={ev.id} className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: isHex6(ev.color) ? ev.color : "#FFFFFF" }} />
                           ))}
                         </div>
-                        <span className="text-[10px] font-black uppercase italic tracking-widest text-white/40">
-                          {dayEvents.length > 1 ? `+${dayEvents.length - 1}` : ""}
-                        </span>
+                        {dayEvents.length > 1 && (
+                          <span className="text-[10px] font-black uppercase italic tracking-widest text-white/40">
+                            +{dayEvents.length - 1}
+                          </span>
+                        )}
                       </div>
                     )}
 
-                    {/* Affiche le libellé du primary uniquement (discret) */}
                     {primary && (
                       <p className="text-[10px] font-bold uppercase italic" style={{ color: primaryColor }}>
                         {primary.title}
@@ -258,7 +263,10 @@ export default function WeekPage() {
             <motion.button
               type="button"
               aria-label="Fermer"
-              onClick={() => setNoteOpen(false)}
+              onClick={() => {
+                setEditing(null);
+                setNoteOpen(false);
+              }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -271,7 +279,10 @@ export default function WeekPage() {
               dragElastic={0.08}
               onDragEnd={(_, info) => {
                 const shouldClose = info.offset.y > 90 || info.velocity.y > 600;
-                if (shouldClose) setNoteOpen(false);
+                if (shouldClose) {
+                  setEditing(null);
+                  setNoteOpen(false);
+                }
               }}
               initial={{ y: 700 }}
               animate={{ y: 0 }}
@@ -284,12 +295,20 @@ export default function WeekPage() {
                   <div className="px-5 pt-4 pb-3 flex items-center justify-between relative">
                     <div className="w-12 h-1.5 rounded-full bg-white/10 mx-auto absolute left-1/2 -translate-x-1/2 top-3" />
                     <h2 className="text-sm font-black uppercase italic tracking-widest text-white/70">Planning</h2>
-                    <button type="button" onClick={() => setNoteOpen(false)} className="p-2 text-white/30 hover:text-white">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditing(null);
+                        setNoteOpen(false);
+                      }}
+                      className="p-2 text-white/30 hover:text-white"
+                    >
                       <X size={18} />
                     </button>
                   </div>
 
                   <div className="px-5 pb-6 max-h-[75vh] overflow-auto no-scrollbar space-y-6">
+                    {/* CREATE */}
                     <GlassCard className="p-6 rounded-[2.5rem] space-y-4 border-b-4 border-menthe">
                       <input
                         placeholder="Nom de l'événement..."
@@ -332,7 +351,6 @@ export default function WeekPage() {
                         type="button"
                         onClick={async () => {
                           if (!title.trim()) return;
-                          // on limite strictement au preset
                           if (!EVENT_COLORS.includes(selectedColor as any)) return;
 
                           await createEvent({
@@ -343,8 +361,7 @@ export default function WeekPage() {
                           });
 
                           setTitle("");
-                          await refreshAllEvents();
-                          await refreshWeek();
+                          await refreshAll();
                         }}
                         className="w-full bg-menthe text-black py-4 rounded-2xl font-black text-xs uppercase tracking-widest"
                       >
@@ -352,29 +369,141 @@ export default function WeekPage() {
                       </button>
                     </GlassCard>
 
+                    {/* LIST */}
                     <div className="space-y-3">
                       {allEvents.map((ev) => {
                         const c = isHex6(ev.color) ? ev.color : "#FFFFFF";
+                        const isEditing = editing?.id === ev.id;
+
                         return (
-                          <GlassCard key={ev.id} className="p-5 rounded-3xl border-l-4 flex justify-between items-center" style={{ borderLeftColor: c }}>
-                            <div>
-                              <p className="font-black text-white text-lg uppercase italic">{ev.title}</p>
-                              <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mt-1 italic">
-                                {format(parseISO(ev.start_date), "d MMM", { locale: fr })} — {format(parseISO(ev.end_date), "d MMM yyyy", { locale: fr })}
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                if (!confirm("Supprimer ?")) return;
-                                await deleteEvent(ev.id);
-                                await refreshAllEvents();
-                                await refreshWeek();
-                              }}
-                              className="text-rose-500 font-black text-[10px] uppercase p-2"
-                            >
-                              Suppr.
-                            </button>
+                          <GlassCard key={ev.id} className="p-5 rounded-3xl border-l-4" style={{ borderLeftColor: c }}>
+                            {!isEditing ? (
+                              <div className="flex justify-between items-center gap-4">
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c }} />
+                                    <p className="font-black text-white text-lg uppercase italic truncate">{ev.title}</p>
+                                  </div>
+                                  <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mt-1 italic">
+                                    {format(parseISO(ev.start_date), "d MMM", { locale: fr })} —{" "}
+                                    {format(parseISO(ev.end_date), "d MMM yyyy", { locale: fr })}
+                                  </p>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setEditing({
+                                        id: ev.id,
+                                        title: ev.title,
+                                        start_date: ev.start_date,
+                                        end_date: ev.end_date,
+                                        color: c,
+                                      })
+                                    }
+                                    className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/60"
+                                    aria-label="Éditer"
+                                  >
+                                    <Pencil size={16} />
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      if (!confirm("Supprimer ?")) return;
+                                      await deleteEvent(ev.id);
+                                      await refreshAll();
+                                    }}
+                                    className="text-rose-500 font-black text-[10px] uppercase px-2 py-2"
+                                  >
+                                    Suppr.
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="space-y-4">
+                                <div className="flex items-center justify-between gap-3">
+                                  <input
+                                    value={editing.title}
+                                    onChange={(e) => setEditing({ ...editing, title: e.target.value })}
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 font-black uppercase italic text-white outline-none focus:border-menthe"
+                                  />
+                                  <div className="flex gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        const patchTitle = editing.title.trim();
+                                        if (!patchTitle) return;
+                                        if (!EVENT_COLORS.includes(editing.color as any)) return;
+
+                                        await updateEvent(editing.id, {
+                                          title: patchTitle,
+                                          start_date: editing.start_date,
+                                          end_date: editing.end_date,
+                                          color: editing.color,
+                                        });
+                                        setEditing(null);
+                                        await refreshAll();
+                                      }}
+                                      className="w-10 h-10 rounded-full bg-menthe text-black flex items-center justify-center"
+                                      aria-label="Sauver"
+                                    >
+                                      <Check size={16} />
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditing(null)}
+                                      className="w-10 h-10 rounded-full bg-white/5 border border-white/10 text-white/60 flex items-center justify-center"
+                                      aria-label="Annuler"
+                                    >
+                                      <Ban size={16} />
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.3em] mb-2">Couleur</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {EVENT_COLORS.map((col) => {
+                                      const active = editing.color.toLowerCase() === col.toLowerCase();
+                                      return (
+                                        <button
+                                          key={col}
+                                          type="button"
+                                          onClick={() => setEditing({ ...editing, color: col })}
+                                          className={`w-10 h-10 rounded-full border ${active ? "border-white" : "border-white/10"}`}
+                                          style={{ backgroundColor: col }}
+                                          aria-label={`Choisir ${col}`}
+                                        />
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+
+                                <div className="bg-white/5 rounded-2xl overflow-hidden divide-x divide-white/5 flex items-center">
+                                  <div className="flex-1 p-4">
+                                    <label className="text-[8px] font-black text-white/30 uppercase block mb-1">Du</label>
+                                    <input
+                                      type="date"
+                                      value={editing.start_date}
+                                      onChange={(e) => setEditing({ ...editing, start_date: e.target.value })}
+                                      className="bg-transparent w-full text-xs text-white outline-none"
+                                    />
+                                  </div>
+                                  <div className="flex-1 p-4 text-right">
+                                    <label className="text-[8px] font-black text-white/30 uppercase block mb-1">Au</label>
+                                    <input
+                                      type="date"
+                                      value={editing.end_date}
+                                      onChange={(e) => setEditing({ ...editing, end_date: e.target.value })}
+                                      className="bg-transparent w-full text-xs text-white outline-none text-right"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </GlassCard>
                         );
                       })}
