@@ -1,8 +1,19 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { startOfWeek, addDays, format, isToday, subDays, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Footprints, Flame, Weight, ChevronLeft, ChevronRight, Sparkles, X, Pencil, Check, Ban } from "lucide-react";
+import {
+  Footprints,
+  Flame,
+  Weight,
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
+  X,
+  Pencil,
+  Check,
+  Ban,
+} from "lucide-react";
 import GlassCard from "../components/GlassCard";
 import { getDailyMetricsRange, DailyMetricsRow } from "../db/dailyMetrics";
 import { motion, AnimatePresence } from "framer-motion";
@@ -21,12 +32,14 @@ const EVENT_COLORS = [
   "#F783AC",
 ] as const;
 
+const MAX_DOTS = 4;
+
 function isHex6(x: string) {
   return /^#[0-9A-Fa-f]{6}$/.test(x);
 }
-function hexWithAlpha(hex: string, alphaHex: string) {
-  if (!isHex6(hex)) return undefined;
-  return `${hex}${alphaHex}`;
+
+function normalizeHex(x: string) {
+  return x.toUpperCase();
 }
 
 type EditState = {
@@ -34,11 +47,13 @@ type EditState = {
   title: string;
   start_date: string;
   end_date: string;
-  color: string;
+  color: string; // must be one of presets
 };
 
 export default function WeekPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [anchorDate, setAnchorDate] = useState(new Date());
   const [currentWeekData, setCurrentWeekData] = useState<DailyMetricsRow[]>([]);
   const [prevWeekData, setPrevWeekData] = useState<DailyMetricsRow[]>([]);
@@ -54,9 +69,14 @@ export default function WeekPage() {
 
   const [editing, setEditing] = useState<EditState | null>(null);
 
+  // Support open drawer from URL: /week?note=1
+  useEffect(() => {
+    const note = searchParams.get("note");
+    if (note === "1") setNoteOpen(true);
+  }, [searchParams]);
+
   const start = useMemo(() => startOfWeek(anchorDate, { weekStartsOn: 1 }), [anchorDate]);
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(start, i)), [start]);
-
   const startStr = useMemo(() => format(days[0], "yyyy-MM-dd"), [days]);
   const endStr = useMemo(() => format(days[6], "yyyy-MM-dd"), [days]);
 
@@ -93,11 +113,15 @@ export default function WeekPage() {
       if (e.key === "Escape") {
         setEditing(null);
         setNoteOpen(false);
+        // clean param
+        const sp = new URLSearchParams(searchParams);
+        sp.delete("note");
+        setSearchParams(sp, { replace: true });
       }
     }
     if (noteOpen) window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [noteOpen]);
+  }, [noteOpen, searchParams, setSearchParams]);
 
   const stats = useMemo(() => {
     const getAvg = (data: DailyMetricsRow[], field: "steps" | "kcal" | "weight_g") => {
@@ -114,6 +138,21 @@ export default function WeekPage() {
       variation: prevW ? ((curW - prevW) / prevW) * 100 : 0,
     };
   }, [currentWeekData, prevWeekData]);
+
+  function openNoteDrawer() {
+    setNoteOpen(true);
+    const sp = new URLSearchParams(searchParams);
+    sp.set("note", "1");
+    setSearchParams(sp, { replace: true });
+  }
+
+  function closeNoteDrawer() {
+    setEditing(null);
+    setNoteOpen(false);
+    const sp = new URLSearchParams(searchParams);
+    sp.delete("note");
+    setSearchParams(sp, { replace: true });
+  }
 
   return (
     <div className="max-w-xl mx-auto px-4 pt-12 pb-32">
@@ -146,7 +185,11 @@ export default function WeekPage() {
         <GlassCard className="p-6 text-center border-menthe/10 relative overflow-hidden">
           <Weight size={20} className="text-purple-500 mx-auto mb-2" />
           <p className="text-2xl font-black text-white">{stats.weight ? stats.weight.toFixed(1) : "--"}kg</p>
-          <div className={`mt-2 inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${stats.variation > 0 ? "bg-rose-500/10 text-rose-500" : "bg-menthe/10 text-menthe"}`}>
+          <div
+            className={`mt-2 inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${
+              stats.variation > 0 ? "bg-rose-500/10 text-rose-500" : "bg-menthe/10 text-menthe"
+            }`}
+          >
             {stats.variation > 0 ? "+" : ""}
             {stats.variation.toFixed(1)}%
           </div>
@@ -174,22 +217,23 @@ export default function WeekPage() {
 
           const dayEvents = events.filter((e) => dStr >= e.start_date && dStr <= e.end_date);
           const primary = dayEvents[0] ?? null;
+          const primaryColor = primary?.color && isHex6(primary.color) ? primary.color : "#FFA94D";
 
           const isT = isToday(day);
-          const primaryColor = primary?.color && isHex6(primary.color) ? primary.color : "#FFA94D";
-          const bg = hexWithAlpha(primaryColor, "14");
 
           return (
             <GlassCard
               key={dStr}
               onClick={() => navigate(`/today?date=${dStr}`)}
-              className={`flex items-center justify-between p-4 border-l-4 transition-all ${isT ? "border-menthe bg-menthe/5" : "border-transparent"}`}
-              style={!isT && primary ? { borderLeftColor: primaryColor, backgroundColor: bg } : undefined}
+              className={`flex items-center justify-between p-4 border-l-4 transition-all ${
+                isT ? "border-menthe bg-menthe/5" : "border-transparent"
+              }`}
             >
               <div className="flex items-center gap-4 flex-1">
                 <div
-                  className={`w-12 h-12 rounded-2xl flex flex-col items-center justify-center font-black ${isT ? "bg-menthe text-black" : primary ? "text-black" : "bg-white/5 text-white/40"}`}
-                  style={!isT && primary ? { backgroundColor: primaryColor } : undefined}
+                  className={`w-12 h-12 rounded-2xl flex flex-col items-center justify-center font-black ${
+                    isT ? "bg-menthe text-black" : "bg-white/5 text-white/40"
+                  }`}
                 >
                   <span className="text-[9px] uppercase leading-none">{format(day, "EEE", { locale: fr })}</span>
                   <span className="text-lg leading-none">{format(day, "d")}</span>
@@ -203,24 +247,33 @@ export default function WeekPage() {
 
                   <div className="mt-1">
                     {dayEvents.length > 0 && (
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="flex gap-1">
-                          {dayEvents.slice(0, 6).map((ev) => (
-                            <span key={ev.id} className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: isHex6(ev.color) ? ev.color : "#FFFFFF" }} />
-                          ))}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openNoteDrawer();
+                        }}
+                        className="w-full text-left"
+                      >
+                        <div className="flex flex-col gap-1">
+                          {dayEvents.slice(0, MAX_DOTS).map((ev) => {
+                            const c = ev.color && isHex6(ev.color) ? ev.color : "#FFFFFF";
+                            return (
+                              <div key={ev.id} className="flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c }} />
+                                <span className="text-[10px] font-black uppercase italic tracking-widest" style={{ color: c }}>
+                                  {ev.title}
+                                </span>
+                              </div>
+                            );
+                          })}
+                          {dayEvents.length > MAX_DOTS && (
+                            <div className="text-[10px] font-black uppercase italic tracking-widest text-white/30">
+                              +{dayEvents.length - MAX_DOTS}
+                            </div>
+                          )}
                         </div>
-                        {dayEvents.length > 1 && (
-                          <span className="text-[10px] font-black uppercase italic tracking-widest text-white/40">
-                            +{dayEvents.length - 1}
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    {primary && (
-                      <p className="text-[10px] font-bold uppercase italic" style={{ color: primaryColor }}>
-                        {primary.title}
-                      </p>
+                      </button>
                     )}
 
                     <div className="flex gap-4 mt-1">
@@ -250,7 +303,7 @@ export default function WeekPage() {
       <div className="mt-10">
         <button
           type="button"
-          onClick={() => setNoteOpen(true)}
+          onClick={openNoteDrawer}
           className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl font-black uppercase italic text-xs tracking-widest text-white/60 hover:text-white"
         >
           NOTE
@@ -263,10 +316,7 @@ export default function WeekPage() {
             <motion.button
               type="button"
               aria-label="Fermer"
-              onClick={() => {
-                setEditing(null);
-                setNoteOpen(false);
-              }}
+              onClick={closeNoteDrawer}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -279,10 +329,7 @@ export default function WeekPage() {
               dragElastic={0.08}
               onDragEnd={(_, info) => {
                 const shouldClose = info.offset.y > 90 || info.velocity.y > 600;
-                if (shouldClose) {
-                  setEditing(null);
-                  setNoteOpen(false);
-                }
+                if (shouldClose) closeNoteDrawer();
               }}
               initial={{ y: 700 }}
               animate={{ y: 0 }}
@@ -295,20 +342,12 @@ export default function WeekPage() {
                   <div className="px-5 pt-4 pb-3 flex items-center justify-between relative">
                     <div className="w-12 h-1.5 rounded-full bg-white/10 mx-auto absolute left-1/2 -translate-x-1/2 top-3" />
                     <h2 className="text-sm font-black uppercase italic tracking-widest text-white/70">Planning</h2>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditing(null);
-                        setNoteOpen(false);
-                      }}
-                      className="p-2 text-white/30 hover:text-white"
-                    >
+                    <button type="button" onClick={closeNoteDrawer} className="p-2 text-white/30 hover:text-white">
                       <X size={18} />
                     </button>
                   </div>
 
                   <div className="px-5 pb-6 max-h-[75vh] overflow-auto no-scrollbar space-y-6">
-                    {/* CREATE */}
                     <GlassCard className="p-6 rounded-[2.5rem] space-y-4 border-b-4 border-menthe">
                       <input
                         placeholder="Nom de l'événement..."
@@ -321,7 +360,7 @@ export default function WeekPage() {
                         <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.3em] mb-2">Couleur</p>
                         <div className="flex flex-wrap gap-2">
                           {EVENT_COLORS.map((c) => {
-                            const active = selectedColor.toLowerCase() === c.toLowerCase();
+                            const active = normalizeHex(selectedColor) === normalizeHex(c);
                             return (
                               <button
                                 key={c}
@@ -351,13 +390,13 @@ export default function WeekPage() {
                         type="button"
                         onClick={async () => {
                           if (!title.trim()) return;
-                          if (!EVENT_COLORS.includes(selectedColor as any)) return;
+                          if (!EVENT_COLORS.map(normalizeHex).includes(normalizeHex(selectedColor))) return;
 
                           await createEvent({
                             title: title.trim(),
                             start_date: from,
                             end_date: to,
-                            color: selectedColor,
+                            color: normalizeHex(selectedColor),
                           });
 
                           setTitle("");
@@ -369,10 +408,9 @@ export default function WeekPage() {
                       </button>
                     </GlassCard>
 
-                    {/* LIST */}
                     <div className="space-y-3">
                       {allEvents.map((ev) => {
-                        const c = isHex6(ev.color) ? ev.color : "#FFFFFF";
+                        const c = ev.color && isHex6(ev.color) ? normalizeHex(ev.color) : "#FFFFFF";
                         const isEditing = editing?.id === ev.id;
 
                         return (
@@ -435,14 +473,17 @@ export default function WeekPage() {
                                       onClick={async () => {
                                         const patchTitle = editing.title.trim();
                                         if (!patchTitle) return;
-                                        if (!EVENT_COLORS.includes(editing.color as any)) return;
+
+                                        const ok = EVENT_COLORS.map(normalizeHex).includes(normalizeHex(editing.color));
+                                        if (!ok) return;
 
                                         await updateEvent(editing.id, {
                                           title: patchTitle,
                                           start_date: editing.start_date,
                                           end_date: editing.end_date,
-                                          color: editing.color,
+                                          color: normalizeHex(editing.color),
                                         });
+
                                         setEditing(null);
                                         await refreshAll();
                                       }}
@@ -467,7 +508,7 @@ export default function WeekPage() {
                                   <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.3em] mb-2">Couleur</p>
                                   <div className="flex flex-wrap gap-2">
                                     {EVENT_COLORS.map((col) => {
-                                      const active = editing.color.toLowerCase() === col.toLowerCase();
+                                      const active = normalizeHex(editing.color) === normalizeHex(col);
                                       return (
                                         <button
                                           key={col}
