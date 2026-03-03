@@ -8,15 +8,22 @@ import { getDailyMetricsRange, DailyMetricsRow } from "../db/dailyMetrics";
 import { motion, AnimatePresence } from "framer-motion";
 import { getEventsOverlappingRange, EventRow, createEvent, deleteEvent } from "../db/events";
 
-const EVENT_COLOR_PRESETS = ["#00ffa3", "#f97316", "#a855f7", "#ef4444", "#22c55e", "#38bdf8"] as const;
+const EVENT_COLORS = [
+  "#00FFA3", // menthe
+  "#FF6B6B", // rose/rouge
+  "#FFA94D", // orange
+  "#FFD43B", // jaune
+  "#74C0FC", // bleu clair
+  "#4DABF7", // bleu
+  "#B197FC", // violet
+  "#63E6BE", // teal
+  "#A9E34B", // vert
+  "#F783AC", // pink
+] as const;
 
-function isHexColor(s: string) {
-  return /^#[0-9A-Fa-f]{6}$/.test(s);
-}
-
-function withAlphaHex(hex: string, alphaHex: string) {
-  // alphaHex = "14" => ~8% opacity
-  if (!isHexColor(hex)) return undefined;
+function hexWithAlpha(hex: string, alphaHex: string) {
+  // impose #RRGGBB (choix A)
+  if (!/^#[0-9A-Fa-f]{6}$/.test(hex)) return undefined;
   return `${hex}${alphaHex}`;
 }
 
@@ -33,7 +40,7 @@ export default function WeekPage() {
   const [to, setTo] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [title, setTitle] = useState("");
   const [allEvents, setAllEvents] = useState<EventRow[]>([]);
-  const [color, setColor] = useState<string>("#00ffa3");
+  const [selectedColor, setSelectedColor] = useState<string>(EVENT_COLORS[0]);
 
   const start = useMemo(() => startOfWeek(anchorDate, { weekStartsOn: 1 }), [anchorDate]);
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(start, i)), [start]);
@@ -149,15 +156,11 @@ export default function WeekPage() {
         {days.map((day) => {
           const dStr = format(day, "yyyy-MM-dd");
           const m = currentWeekData.find((x) => x.date === dStr);
-
-          // si plusieurs events le même jour: prend le premier (visuel semaine)
-          const dayEvents = events.filter((e) => dStr >= e.start_date && dStr <= e.end_date);
-          const event = dayEvents[0];
-
+          const event = events.find((e) => dStr >= e.start_date && dStr <= e.end_date);
           const isT = isToday(day);
 
-          const eventColor = event?.color && isHexColor(event.color) ? event.color : "#f97316";
-          const bg = withAlphaHex(eventColor, "14");
+          const eventColor = event?.color && /^#[0-9A-Fa-f]{6}$/.test(event.color) ? event.color : "#FFA94D";
+          const eventBg = hexWithAlpha(eventColor, "14"); // ~8% alpha
 
           return (
             <GlassCard
@@ -166,7 +169,7 @@ export default function WeekPage() {
               className={`flex items-center justify-between p-4 border-l-4 transition-all ${
                 isT ? "border-menthe bg-menthe/5" : "border-transparent"
               }`}
-              style={!isT && event ? { borderLeftColor: eventColor, backgroundColor: bg } : undefined}
+              style={!isT && event ? { borderLeftColor: eventColor, backgroundColor: eventBg } : undefined}
             >
               <div className="flex items-center gap-4 flex-1">
                 <div
@@ -189,7 +192,6 @@ export default function WeekPage() {
                     {event && (
                       <p className="text-[10px] font-bold uppercase italic mb-1" style={{ color: eventColor }}>
                         {event.title}
-                        {dayEvents.length > 1 ? ` +${dayEvents.length - 1}` : ""}
                       </p>
                     )}
 
@@ -245,7 +247,8 @@ export default function WeekPage() {
               dragConstraints={{ top: 0, bottom: 0 }}
               dragElastic={0.08}
               onDragEnd={(_, info) => {
-                if (info.offset.y > 90 || info.velocity.y > 600) setNoteOpen(false);
+                const shouldClose = info.offset.y > 90 || info.velocity.y > 600;
+                if (shouldClose) setNoteOpen(false);
               }}
               initial={{ y: 700 }}
               animate={{ y: 0 }}
@@ -272,65 +275,57 @@ export default function WeekPage() {
                         className="w-full bg-white/5 p-4 rounded-2xl text-xl font-bold text-white outline-none"
                       />
 
-                      <div className="grid grid-cols-1 gap-3">
-                        <div className="bg-white/5 rounded-2xl overflow-hidden divide-x divide-white/5 flex items-center">
-                          <div className="flex-1 p-4">
-                            <label className="text-[8px] font-black text-white/30 uppercase block mb-1">Du</label>
-                            <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="bg-transparent w-full text-xs text-white outline-none" />
-                          </div>
-                          <div className="flex-1 p-4 text-right">
-                            <label className="text-[8px] font-black text-white/30 uppercase block mb-1">Au</label>
-                            <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="bg-transparent w-full text-xs text-white outline-none text-right" />
-                          </div>
-                        </div>
-
-                        <div className="bg-white/5 rounded-2xl p-4">
-                          <p className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-3">Couleur</p>
-                          <div className="flex flex-wrap gap-2">
-                            {EVENT_COLOR_PRESETS.map((c) => (
+                      {/* Palette couleur */}
+                      <div>
+                        <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.3em] mb-2">Couleur</p>
+                        <div className="flex flex-wrap gap-2">
+                          {EVENT_COLORS.map((c) => {
+                            const active = selectedColor.toLowerCase() === c.toLowerCase();
+                            return (
                               <button
                                 key={c}
                                 type="button"
-                                onClick={() => setColor(c)}
-                                className={`w-10 h-10 rounded-full border ${
-                                  color === c ? "border-white/60" : "border-white/10"
-                                }`}
+                                onClick={() => setSelectedColor(c)}
+                                className={`w-10 h-10 rounded-full border ${active ? "border-white" : "border-white/10"} `}
                                 style={{ backgroundColor: c }}
-                                aria-label={`Couleur ${c}`}
+                                aria-label={`Choisir ${c}`}
                               />
-                            ))}
-                          </div>
+                            );
+                          })}
+                        </div>
+                      </div>
 
-                          <div className="mt-3 flex items-center gap-2">
-                            <input
-                              value={color}
-                              onChange={(e) => setColor(e.target.value)}
-                              className="flex-1 bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-xs font-black uppercase italic text-white outline-none focus:border-menthe"
-                              placeholder="#00ffa3"
-                            />
-                            <div className="w-10 h-10 rounded-xl border border-white/10" style={{ backgroundColor: isHexColor(color) ? color : "#000" }} />
-                          </div>
-
-                          {!isHexColor(color) && (
-                            <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-rose-500">
-                              HEX requis (#RRGGBB)
-                            </p>
-                          )}
+                      <div className="bg-white/5 rounded-2xl overflow-hidden divide-x divide-white/5 flex items-center">
+                        <div className="flex-1 p-4">
+                          <label className="text-[8px] font-black text-white/30 uppercase block mb-1">Du</label>
+                          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="bg-transparent w-full text-xs text-white outline-none" />
+                        </div>
+                        <div className="flex-1 p-4 text-right">
+                          <label className="text-[8px] font-black text-white/30 uppercase block mb-1">Au</label>
+                          <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="bg-transparent w-full text-xs text-white outline-none text-right" />
                         </div>
                       </div>
 
                       <button
                         type="button"
-                        disabled={!title.trim() || !isHexColor(color)}
                         onClick={async () => {
                           if (!title.trim()) return;
-                          if (!isHexColor(color)) return;
-                          await createEvent({ title: title.trim(), start_date: from, end_date: to, color });
+
+                          // impose hex #RRGGBB (choix A)
+                          if (!/^#[0-9A-Fa-f]{6}$/.test(selectedColor)) return;
+
+                          await createEvent({
+                            title: title.trim(),
+                            start_date: from,
+                            end_date: to,
+                            color: selectedColor,
+                          });
+
                           setTitle("");
                           await refreshAllEvents();
                           await refreshWeek();
                         }}
-                        className="w-full bg-menthe disabled:opacity-30 disabled:cursor-not-allowed text-black py-4 rounded-2xl font-black text-xs uppercase tracking-widest"
+                        className="w-full bg-menthe text-black py-4 rounded-2xl font-black text-xs uppercase tracking-widest"
                       >
                         Ajouter au calendrier
                       </button>
@@ -338,13 +333,18 @@ export default function WeekPage() {
 
                     <div className="space-y-3">
                       {allEvents.map((ev) => {
-                        const c = isHexColor(ev.color) ? ev.color : "#00ffa3";
+                        const c = ev.color && /^#[0-9A-Fa-f]{6}$/.test(ev.color) ? ev.color : "#FFFFFF";
                         return (
-                          <GlassCard key={ev.id} className="p-5 rounded-3xl border-l-4 flex justify-between items-center" style={{ borderLeftColor: c }}>
+                          <GlassCard
+                            key={ev.id}
+                            className="p-5 rounded-3xl border-l-4 flex justify-between items-center"
+                            style={{ borderLeftColor: c }}
+                          >
                             <div>
                               <p className="font-black text-white text-lg uppercase italic">{ev.title}</p>
-                              <p className="text-[10px] font-black uppercase tracking-widest mt-1 italic text-white/40">
-                                {format(parseISO(ev.start_date), "d MMM", { locale: fr })} — {format(parseISO(ev.end_date), "d MMM yyyy", { locale: fr })}
+                              <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mt-1 italic">
+                                {format(parseISO(ev.start_date), "d MMM", { locale: fr })} —{" "}
+                                {format(parseISO(ev.end_date), "d MMM yyyy", { locale: fr })}
                               </p>
                             </div>
                             <button
