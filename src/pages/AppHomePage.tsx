@@ -17,6 +17,10 @@ function getISODateFromParams(dateParam: string | null): string {
   return format(new Date(), "yyyy-MM-dd");
 }
 
+function isHex6(x: string) {
+  return /^#[0-9A-Fa-f]{6}$/.test(x);
+}
+
 function ExerciseRow({ ex, onDelete }: { ex: WorkoutExerciseRow; onDelete: (id: string) => void }) {
   const x = useMotionValue(0);
   const bgOpacity = useTransform(x, [-100, 0], [1, 0]);
@@ -71,7 +75,6 @@ export default function AppHomePage() {
   const [exercises, setExercises] = useState<WorkoutExerciseRow[]>([]);
   const [catalog, setCatalog] = useState<CatalogExercise[]>([]);
   const [dayEvents, setDayEvents] = useState<EventRow[]>([]);
-  const [eventsExpanded, setEventsExpanded] = useState(false);
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [newEx, setNewEx] = useState({ reps: "", weight: "", load_type: "KG" as "KG" | "PDC_PLUS" });
@@ -122,7 +125,6 @@ export default function AppHomePage() {
       setExercises(ex);
 
       setDayEvents(evs ?? []);
-      setEventsExpanded(false);
     }
 
     loadData().catch(() => {});
@@ -176,6 +178,9 @@ export default function AppHomePage() {
     setExercises((prev) => prev.filter((e) => e.id !== id));
   };
 
+  const primary = dayEvents[0] ?? null;
+  const primaryColor = primary?.color && isHex6(primary.color) ? primary.color : "#FFA94D";
+
   return (
     <div className="max-w-xl mx-auto px-4 pt-12 pb-32">
       <header className="flex flex-col items-center mb-10">
@@ -207,48 +212,31 @@ export default function AppHomePage() {
             </p>
 
             {dayEvents.length > 0 && (
-              <div className="mt-2">
-                <button
-                  type="button"
-                  onClick={() => setEventsExpanded((v) => !v)}
-                  className="inline-flex items-center justify-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10"
-                >
-                  <Sparkles size={12} style={{ color: dayEvents[0].color }} />
-                  <span className="text-[10px] font-black uppercase italic tracking-widest text-white/70">
-                    {dayEvents.length === 1 ? dayEvents[0].title : `${dayEvents.length} EVENTS`}
-                  </span>
-
-                  <span className="flex gap-1">
-                    {dayEvents.slice(0, 5).map((ev) => (
+              <div className="mt-2 flex flex-col items-center gap-1">
+                <div className="flex items-center justify-center gap-2">
+                  <Sparkles size={12} style={{ color: primaryColor }} />
+                  <div className="flex gap-1">
+                    {dayEvents.slice(0, 6).map((ev) => (
                       <span
                         key={ev.id}
                         className="w-2.5 h-2.5 rounded-full"
-                        style={{ backgroundColor: ev.color }}
+                        style={{ backgroundColor: isHex6(ev.color) ? ev.color : "#FFFFFF" }}
                         aria-hidden="true"
                       />
                     ))}
-                  </span>
-                </button>
-
-                <AnimatePresence>
-                  {eventsExpanded && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 8 }}
-                      className="mt-2 space-y-1"
-                    >
-                      {dayEvents.map((ev) => (
-                        <div key={ev.id} className="flex items-center justify-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: ev.color }} />
-                          <span className="text-[10px] font-black uppercase italic tracking-widest" style={{ color: ev.color }}>
-                            {ev.title}
-                          </span>
-                        </div>
-                      ))}
-                    </motion.div>
+                  </div>
+                  {dayEvents.length > 1 && (
+                    <span className="text-[10px] font-black uppercase italic tracking-widest text-white/40">
+                      +{dayEvents.length - 1}
+                    </span>
                   )}
-                </AnimatePresence>
+                </div>
+
+                {primary && (
+                  <p className="text-[10px] font-black uppercase italic tracking-widest" style={{ color: primaryColor }}>
+                    {primary.title}
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -293,9 +281,7 @@ export default function AppHomePage() {
                     <button
                       key={type}
                       type="button"
-                      className={`flex-1 rounded-lg font-black text-[9px] uppercase ${
-                        newEx.load_type === type ? "bg-menthe text-black" : "text-white/30"
-                      }`}
+                      className={`flex-1 rounded-lg font-black text-[9px] uppercase ${newEx.load_type === type ? "bg-menthe text-black" : "text-white/30"}`}
                       onClick={() => setNewEx({ ...newEx, load_type: type })}
                     >
                       {type === "PDC_PLUS" ? "PDC+" : "KG"}
@@ -351,11 +337,7 @@ export default function AppHomePage() {
                 >
                   Annuler
                 </button>
-                <button
-                  type="button"
-                  onClick={onAdd}
-                  className="flex-1 py-3 bg-menthe rounded-xl font-black uppercase text-xs text-black"
-                >
+                <button type="button" onClick={onAdd} className="flex-1 py-3 bg-menthe rounded-xl font-black uppercase text-xs text-black">
                   Valider
                 </button>
               </div>
