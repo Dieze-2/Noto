@@ -5,6 +5,21 @@ import { getExerciseMasterHistory, listTrackedExercises } from "../db/workouts";
 import type { ExerciseMasterPoint } from "../db/workouts";
 import { format, subMonths } from "date-fns";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { getFirstWeightDate } from "../db/dailyMetrics";
+import { getFirstExerciseDate } from "../db/workouts";
+
+const [firstWeightDate, setFirstWeightDate] = useState<string | null>(null);
+const [firstExerciseDate, setFirstExerciseDate] = useState<string | null>(null);
+
+useEffect(() => {
+  getFirstWeightDate().then(setFirstWeightDate).catch(() => setFirstWeightDate(null));
+}, []);
+
+useEffect(() => {
+  if (!selectedExercise) { setFirstExerciseDate(null); return; }
+  getFirstExerciseDate(selectedExercise).then(setFirstExerciseDate).catch(() => setFirstExerciseDate(null));
+}, [selectedExercise]);
+
 
 type PdcMode = "LEST" | "TOTAL";
 type Range = "3M" | "6M" | "TOUT";
@@ -16,12 +31,13 @@ function isoMonthsAgo(months: number) {
   return format(subMonths(new Date(), months), "yyyy-MM-dd");
 }
 
-function rangeToFromTo(r: Range) {
+function rangeToFromTo(r: Range, firstDate: string | null) {
   const to = isoToday();
-  if (r === "TOUT") return { from: "2020-01-01", to };
+  if (r === "TOUT") return { from: firstDate ?? to, to }; // si pas de données => from=to
   if (r === "6M") return { from: isoMonthsAgo(6), to };
   return { from: isoMonthsAgo(3), to };
 }
+
 
 function buildWeightLookup(rows: { date: string; weight_g: number | null }[]) {
   const sorted = [...rows].sort((a, b) => a.date.localeCompare(b.date));
@@ -57,8 +73,9 @@ export default function DashboardPage() {
     listTrackedExercises().then(setTrackedExercises).catch(() => setTrackedExercises([]));
   }, []);
 
-  const weightFromTo = useMemo(() => rangeToFromTo(weightRange), [weightRange]);
-  const exerciseFromTo = useMemo(() => rangeToFromTo(exerciseRange), [exerciseRange]);
+  const weightFromTo = useMemo(() => rangeToFromTo(weightRange, firstWeightDate), [weightRange, firstWeightDate]);
+  const exerciseFromTo = useMemo(() => rangeToFromTo(exerciseRange, firstExerciseDate), [exerciseRange, firstExerciseDate]);
+
 
   useEffect(() => {
     getDailyMetricsRange(weightFromTo.from, weightFromTo.to)
