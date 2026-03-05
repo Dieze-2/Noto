@@ -114,9 +114,8 @@ export default function WeekPage() {
   // Create form
   const [title, setTitle] = useState("");
   const [selectedColor, setSelectedColor] = useState<string>(EVENT_COLORS[0]);
-  const [range, setRange] = useState<DateRange | undefined>(() => {
-    const today = new Date();
-    return { from: today, to: addDays(today, 1) };
+  const [range, setRange] = useState<DateRange | undefined>(undefined);
+
   });
 
   const [allEvents, setAllEvents] = useState<EventRow[]>([]);
@@ -190,8 +189,8 @@ export default function WeekPage() {
   }, [currentWeekData, prevWeekData]);
 
   function openNoteDrawer() {
-    const today = new Date();
-    setRange({ from: today, to: addDays(today, 1) });
+    setRange(undefined);
+
 
     setNoteOpen(true);
     const sp = new URLSearchParams(searchParams);
@@ -490,19 +489,22 @@ export default function WeekPage() {
                           if (!title.trim()) return;
                           if (!EVENT_COLORS.map(normalizeHex).includes(normalizeHex(selectedColor))) return;
                           if (!range?.from || !range?.to) return;
-
+                      
                           await createEvent({
                             title: title.trim(),
                             start_date: toISO(range.from),
                             end_date: toISO(range.to),
                             color: normalizeHex(selectedColor),
                           });
-
+                      
+                          // reset form
                           setTitle("");
-                          const today = new Date();
-                          setRange({ from: today, to: addDays(today, 1) });
-
+                          setRange(undefined);
+                      
                           await refreshAll();
+                      
+                          // close drawer (same as X)
+                          closeNoteDrawer();
                         }}
                         className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest ${
                           canCreate ? "bg-menthe text-black" : "bg-white/5 text-white/20 border border-white/10"
@@ -510,6 +512,7 @@ export default function WeekPage() {
                       >
                         Ajouter au calendrier
                       </button>
+
                     </GlassCard>
 
                     {/* LIST */}
