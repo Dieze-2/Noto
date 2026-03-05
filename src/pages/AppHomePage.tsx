@@ -22,8 +22,11 @@ import {
   updateWorkoutExercise,
   updateExerciseSet,
 } from "../db/workouts";
-import { listCatalogExercises, CatalogExercise } from "../db/catalog";
-import { getEventsOverlappingRange, EventRow } from "../db/events";
+import { listCatalogExercises } from "../db/catalog";
+import type { CatalogExercise } from "../db/catalog";
+
+import { getEventsOverlappingRange } from "../db/events";
+import type { EventRow } from "../db/events";
 
 const MAX_DOTS = 4;
 const METRICS_DEBOUNCE_MS = 600;
