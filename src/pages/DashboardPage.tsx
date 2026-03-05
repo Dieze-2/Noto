@@ -1,23 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import GlassCard from "../components/GlassCard";
-import { listCatalogExercises } from "../db/catalog";
-import type { CatalogExercise } from "../db/catalog";
-
 import { getExerciseMasterHistory } from "../db/workouts";
 import type { ExerciseMasterPoint } from "../db/workouts";
-
+import { listTrackedExercises } from "../db/workouts";
 import { getDailyMetricsRange } from "../db/dailyMetrics";
-
 import { format, subMonths } from "date-fns";
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-} from "recharts";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
 type PdcMode = "LEST" | "TOTAL";
 type WeightRange = "3M" | "6M" | "ALL";
@@ -29,7 +17,6 @@ function isoMonthsAgo(months: number) {
   return format(subMonths(new Date(), months), "yyyy-MM-dd");
 }
 
-// fallback poids : dernier poids connu <= date
 function buildWeightLookup(rows: { date: string; weight_g: number | null }[]) {
   const sorted = [...rows].sort((a, b) => a.date.localeCompare(b.date));
   let last: number | null = null;
@@ -46,25 +33,32 @@ function isMobile() {
 }
 
 export default function DashboardPage() {
-  const [catalog, setCatalog] = useState<CatalogExercise[]>([]);
-  const [exerciseQuery, setExerciseQuery] = useState("Tractions");
-  const [selectedExercise, setSelectedExercise] = useState<string>("Tractions");
+  const [trackedExercises, setTrackedExercises] = useState<string[]>([]);
+  const [exerciseQuery, setExerciseQuery] = useState("");
+  const [selectedExercise, setSelectedExercise] = useState<string>("");
 
   const [pdcMode, setPdcMode] = useState<PdcMode>("LEST");
-
   const [weightRange, setWeightRange] = useState<WeightRange>("3M");
 
   const [exerciseRows, setExerciseRows] = useState<ExerciseMasterPoint[]>([]);
   const [weightRows, setWeightRows] = useState<{ date: string; weight_g: number | null }[]>([]);
-
   const [modal, setModal] = useState<null | "exercise" | "weight">(null);
 
-  // Catalogue (pour suggestions)
+  // Load tracked exercises from DB
   useEffect(() => {
-    listCatalogExercises().then(setCatalog).catch(() => {});
+    listTrackedExercises()
+      .then((names) => {
+        setTrackedExercises(names);
+        // auto-select first if none
+        if (!selectedExercise && names.length > 0) {
+          setSelectedExercise(names[0]);
+          setExerciseQuery(names[0]);
+        }
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Range dates poids
   const weightFromTo = useMemo(() => {
     const to = isoToday();
     if (weightRange === "ALL") return { from: "2020-01-01", to };
@@ -72,7 +66,6 @@ export default function DashboardPage() {
     return { from: isoMonthsAgo(3), to };
   }, [weightRange]);
 
-  // Charge exercice : on prend large (ALL) pour historique long (tu pourras ajouter des ranges après)
   const exerciseFromTo = useMemo(() => {
     const to = isoToday();
     return { from: "2020-01-01", to };
@@ -93,20 +86,17 @@ export default function DashboardPage() {
 
   const weightLookup = useMemo(() => buildWeightLookup(weightRows), [weightRows]);
 
-  // --- Data chart poids ---
   const weightChartData = useMemo(() => {
     return weightRows
       .filter((r) => r.weight_g != null)
       .map((r) => ({
-        date: r.date.slice(5), // MM-DD
+        date: r.date.slice(5),
         iso: r.date,
         kg: (r.weight_g ?? 0) / 1000,
       }));
   }, [weightRows]);
 
-  // --- Data chart exercice ---
   const exerciseChartData = useMemo(() => {
-    // group by day and take max (B)
     const byDay = new Map<string, ExerciseMasterPoint[]>();
     for (const r of exerciseRows) {
       const arr = byDay.get(r.date) ?? [];
@@ -117,34 +107,29 @@ export default function DashboardPage() {
     const points: { iso: string; date: string; valueKg: number }[] = [];
 
     for (const [date, arr] of byDay.entries()) {
-      // compute numeric value according to mode
-      const vals = arr.map((r) => {
-        const loadKg = (r.load_g ?? 0) / 1000;
+      const vals = arr
+        .map((r) => {
+          const loadKg = (r.load_g ?? 0) / 1000;
 
-        if (r.load_type === "KG") return loadKg;
-        if (r.load_type === "PDC_PLUS") {
-          if (pdcMode === "LEST") return loadKg;
+          if (r.load_type === "KG") return loadKg;
+          if (r.load_type === "PDC_PLUS") {
+            if (pdcMode === "LEST") return loadKg;
+            const w = weightLookup.get(date) ?? null;
+            if (w == null) return Number.NaN;
+            return w / 1000 + loadKg;
+          }
+          if (r.load_type === "PDC") {
+            if (pdcMode === "LEST") return 0;
+            const w = weightLookup.get(date) ?? null;
+            return w == null ? Number.NaN : w / 1000;
+          }
 
-          // TOTAL => poids du jour (fallback B)
-          const w = weightLookup.get(date) ?? null;
-          if (w == null) return Number.NaN;
-          return (w / 1000) + loadKg;
-        }
-        if (r.load_type === "PDC") {
-          if (pdcMode === "LEST") return 0;
-          const w = weightLookup.get(date) ?? null;
-          return w == null ? Number.NaN : (w / 1000);
-        }
-        // TEXT => ignore
-        return Number.NaN;
-      }).filter((v) => Number.isFinite(v));
+          return Number.NaN;
+        })
+        .filter((v) => Number.isFinite(v));
 
       if (!vals.length) continue;
-      points.push({
-        iso: date,
-        date: date.slice(5),
-        valueKg: Math.max(...vals),
-      });
+      points.push({ iso: date, date: date.slice(5), valueKg: Math.max(...vals) });
     }
 
     return points.sort((a, b) => a.iso.localeCompare(b.iso));
@@ -152,12 +137,9 @@ export default function DashboardPage() {
 
   const suggestions = useMemo(() => {
     const q = exerciseQuery.trim().toLowerCase();
-    if (!q) return [];
-    return catalog
-      .map((c) => c.name)
-      .filter((n) => n.toLowerCase().includes(q))
-      .slice(0, 8);
-  }, [catalog, exerciseQuery]);
+    if (!q) return trackedExercises.slice(0, 8);
+    return trackedExercises.filter((n) => n.toLowerCase().includes(q)).slice(0, 8);
+  }, [trackedExercises, exerciseQuery]);
 
   function ChartShell({
     title,
@@ -186,9 +168,7 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        <div className="mt-6 h-56">
-          {children}
-        </div>
+        <div className="mt-6 h-56">{children}</div>
       </GlassCard>
     );
   }
@@ -203,17 +183,11 @@ export default function DashboardPage() {
     children: React.ReactNode;
   }) {
     if (!open) return null;
-
     const mobile = isMobile();
 
     return (
       <div className="fixed inset-0 z-[90]">
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-          aria-label="Fermer"
-        />
+        <button type="button" onClick={onClose} className="absolute inset-0 bg-black/80 backdrop-blur-sm" aria-label="Fermer" />
         <div className="absolute inset-0 flex items-center justify-center p-4">
           <div className="w-full max-w-5xl">
             <div className="glass-card border border-white/10 rounded-[2.5rem] overflow-hidden">
@@ -228,7 +202,7 @@ export default function DashboardPage() {
 
               <div className="p-4 bg-black">
                 <div
-                  className={`w-full ${mobile ? "h-[70vh]" : "h-[70vh]"}`}
+                  className="w-full h-[70vh]"
                   style={mobile ? { transform: "rotate(90deg)", transformOrigin: "center", height: "70vw" } : undefined}
                 >
                   {children}
@@ -241,15 +215,7 @@ export default function DashboardPage() {
     );
   }
 
-  const exerciseTitle = useMemo(() => {
-    if (!selectedExercise) return "Exercice";
-    return selectedExercise;
-  }, [selectedExercise]);
-
-  const exerciseSubtitle = useMemo(() => {
-    if (pdcMode === "LEST") return "PDC+ = LEST (KG)";
-    return "PDC+ = TOTAL (PDC + LEST)";
-  }, [pdcMode]);
+  const exerciseSubtitle = pdcMode === "LEST" ? "PDC+ = LEST (KG)" : "PDC+ = TOTAL (PDC + LEST)";
 
   return (
     <div className="max-w-xl mx-auto px-4 pt-12 pb-32 space-y-8">
@@ -258,14 +224,13 @@ export default function DashboardPage() {
         <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mt-2">Charts</p>
       </header>
 
-      {/* Select exercise + mode */}
       <GlassCard className="p-6 rounded-[2.5rem] border border-white/10 space-y-4">
         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Exercice</p>
 
         <input
           value={exerciseQuery}
           onChange={(e) => setExerciseQuery(e.target.value)}
-          placeholder="Tractions..."
+          placeholder="Rechercher..."
           className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 font-black uppercase italic text-white outline-none focus:border-menthe"
         />
 
@@ -305,12 +270,7 @@ export default function DashboardPage() {
         </div>
       </GlassCard>
 
-      {/* Exercise chart */}
-      <ChartShell
-        title={exerciseTitle}
-        subtitle={exerciseSubtitle}
-        onOpen={() => setModal("exercise")}
-      >
+      <ChartShell title={selectedExercise || "Exercice"} subtitle={exerciseSubtitle} onOpen={() => setModal("exercise")}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={exerciseChartData}>
             <CartesianGrid stroke="rgba(255,255,255,0.06)" />
@@ -326,7 +286,6 @@ export default function DashboardPage() {
         </ResponsiveContainer>
       </ChartShell>
 
-      {/* Weight chart */}
       <GlassCard className="p-6 rounded-[2.5rem] border border-white/10">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -374,7 +333,6 @@ export default function DashboardPage() {
         </div>
       </GlassCard>
 
-      {/* MODALS */}
       <Modal open={modal === "exercise"} onClose={() => setModal(null)}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={exerciseChartData}>
