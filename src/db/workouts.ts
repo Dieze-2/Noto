@@ -22,12 +22,28 @@ export type WorkoutExerciseRow = {
   created_at: string;
 };
 
+export type WorkoutExerciseSetRow = {
+  id: string;
+  user_id: string;
+  workout_exercise_id: string;
+
+  reps: number | null;
+  load_type: "PDC" | "PDC_PLUS" | "KG" | "TEXT";
+  load_g: number | null;
+  load_text: string | null;
+
+  sort_order: number;
+  comment: string | null;
+
+  created_at: string;
+  updated_at: string;
+};
+
 export async function getOrCreateWorkout(dateISO: string): Promise<WorkoutRow> {
   const { data: authData } = await supabase.auth.getUser();
   const userId = authData.user?.id;
   if (!userId) throw new Error("Not authenticated");
 
-  // On cherche le workout
   const { data, error } = await supabase
     .from("workouts")
     .select("*")
@@ -36,9 +52,8 @@ export async function getOrCreateWorkout(dateISO: string): Promise<WorkoutRow> {
     .maybeSingle();
 
   if (error) throw error;
-  if (data) return data;
+  if (data) return data as WorkoutRow;
 
-  // Sinon on le crée
   const { data: newData, error: insError } = await supabase
     .from("workouts")
     .insert({ user_id: userId, date: dateISO })
@@ -46,7 +61,7 @@ export async function getOrCreateWorkout(dateISO: string): Promise<WorkoutRow> {
     .single();
 
   if (insError) throw insError;
-  return newData;
+  return newData as WorkoutRow;
 }
 
 export async function getWorkoutExercises(workoutId: string): Promise<WorkoutExerciseRow[]> {
@@ -57,33 +72,32 @@ export async function getWorkoutExercises(workoutId: string): Promise<WorkoutExe
     .order("sort_order", { ascending: true });
 
   if (error) throw error;
-  return data || [];
+  return (data ?? []) as WorkoutExerciseRow[];
 }
 
 export async function addWorkoutExercise(payload: Partial<WorkoutExerciseRow>) {
-  const { error } = await supabase
-    .from("workout_exercises")
-    .insert(payload);
+  const { error } = await supabase.from("workout_exercises").insert(payload);
   if (error) throw error;
 }
 
 export async function deleteWorkoutExercise(id: string) {
-  const { error } = await supabase
-    .from("workout_exercises")
-    .delete()
-    .eq("id", id);
+  // IMPORTANT: si tu as mis FK ON DELETE CASCADE sur workout_exercise_sets.workout_exercise_id
+  // alors supprimer un master supprimera ses sets.
+  const { error } = await supabase.from("workout_exercises").delete().eq("id", id);
   if (error) throw error;
 }
 
 export async function getLastExerciseByName(name: string) {
   const { data, error } = await supabase
-    .from('workout_exercises')
-    .select(`
+    .from("workout_exercises")
+    .select(
+      `
       *,
       workouts!inner(date)
-    `)
-    .ilike('exercise_name', name)
-    .order('created_at', { ascending: false })
+    `
+    )
+    .ilike("exercise_name", name)
+    .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
@@ -91,8 +105,65 @@ export async function getLastExerciseByName(name: string) {
   if (data) {
     return {
       ...data,
-      date: data.workouts.date
+      date: (data as any).workouts.date,
     };
   }
   return null;
+}
+
+/* -----------------------------
+   SETS API (workout_exercise_sets)
+------------------------------ */
+
+export async function getExerciseSets(workoutExerciseId: string): Promise<WorkoutExerciseSetRow[]> {
+  const { data, error } = await supabase
+    .from("workout_exercise_sets")
+    .select("*")
+    .eq("workout_exercise_id", workoutExerciseId)
+    .order("sort_order", { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []) as WorkoutExerciseSetRow[];
+}
+
+export async function addExerciseSet(payload: {
+  workout_exercise_id: string;
+  reps: number | null;
+  load_type: "PDC" | "PDC_PLUS" | "KG" | "TEXT";
+  load_g: number | null;
+  load_text?: string | null;
+  sort_order: number;
+  comment?: string | null;
+}) {
+  const { data: authData, error: authErr } = await supabase.auth.getUser();
+  if (authErr) throw authErr;
+
+  const userId = authData.user?.id;
+  if (!userId) throw new Error("Not authenticated");
+
+  const { error } = await supabase.from("workout_exercise_sets").insert({
+    user_id: userId,
+    workout_exercise_id: payload.workout_exercise_id,
+    reps: payload.reps,
+    load_type: payload.load_type,
+    load_g: payload.load_g,
+    load_text: payload.load_text ?? null,
+    sort_order: payload.sort_order,
+    comment: payload.comment ?? null,
+  });
+
+  if (error) throw error;
+}
+
+export async function deleteExerciseSet(id: string) {
+  const { error } = await supabase.from("workout_exercise_sets").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function updateExerciseSet(
+  id: string,
+  patch: Partial<Pick<WorkoutExerciseSetRow, "reps" | "load_type" | "load_g" | "load_text" | "sort_order" | "comment">>
+) {
+  const { error } = await supabase.from("workout_exercise_sets").update(patch).eq("id", id);
+  if (error) throw error;
 }
