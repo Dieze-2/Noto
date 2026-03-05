@@ -187,12 +187,7 @@ export default function DashboardPage() {
         <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mt-2">Charts</p>
       </header>
 
-      {/* DEBUG (discret, à supprimer quand ok) */}
-      <div className="text-[9px] font-black uppercase tracking-[0.3em] text-white/20 text-center">
-        WEIGHT:{weightRows.length} EX:{exerciseRows.length} EXPTS:{exerciseChartData.length} FIRSTW:{firstWeightDate ?? "--"} FIRSTE:{firstExerciseDate ?? "--"}
-      </div>
-
-      {/* POIDS */}
+     {/* POIDS */}
       <GlassCard className="p-6 rounded-[2.5rem] border border-white/10">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -223,7 +218,7 @@ export default function DashboardPage() {
       <LineChart width={520} height={220} data={weightChartData}>
         <CartesianGrid stroke="rgba(255,255,255,0.06)" />
         <XAxis dataKey="date" stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
-        <YAxis stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
+        <YAxis stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }}  reverse={false} domain={["auto", "auto"]}/>
         <Tooltip contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16 }} />
         <Line type="monotone" dataKey="kg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
       </LineChart>
