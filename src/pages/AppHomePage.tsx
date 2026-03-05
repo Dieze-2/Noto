@@ -317,7 +317,6 @@ export default function AppHomePage() {
           value={metrics.steps}
           onChange={(v) => updateMetric("steps", v)}
           onBlur={() => flushMetricsForDate(dateISO).catch(() => {})}
-          onEnter={() => flushMetricsForDate(dateISO).catch(() => {})}
           accent
           inputMode="numeric"
           placeholder=""
@@ -329,7 +328,6 @@ export default function AppHomePage() {
           value={metrics.kcal}
           onChange={(v) => updateMetric("kcal", v)}
           onBlur={() => flushMetricsForDate(dateISO).catch(() => {})}
-          onEnter={() => flushMetricsForDate(dateISO).catch(() => {})}
           colorClass="text-yellow-200"
           inputMode="numeric"
           placeholder=""
@@ -341,7 +339,6 @@ export default function AppHomePage() {
           value={metrics.weight}
           onChange={(v) => updateMetric("weight", v)}
           onBlur={() => flushMetricsForDate(dateISO).catch(() => {})}
-          onEnter={() => flushMetricsForDate(dateISO).catch(() => {})}
           colorClass="text-purple-500"
           inputMode="decimal"
           placeholder=""
