@@ -223,3 +223,19 @@ export async function getExerciseMasterHistory(
     reps: r.reps as number,
   }));
 }
+
+export async function listTrackedExercises(): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("workout_exercises")
+    .select("exercise_name")
+    .order("exercise_name", { ascending: true });
+
+  if (error) throw error;
+
+  const names = Array.from(
+    new Set((data ?? []).map((r: any) => String(r.exercise_name)).filter(Boolean))
+  );
+
+  return names.sort((a, b) => a.localeCompare(b));
+}
+
