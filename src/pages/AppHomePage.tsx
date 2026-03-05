@@ -7,7 +7,7 @@ import { Footprints, Flame, Weight, Plus, ChevronLeft, ChevronRight, Dumbbell, T
 
 import StatBubble from "../components/StatBubble";
 import GlassCard from "../components/GlassCard";
-import { getDailyMetricsByDate, upsertDailyMetrics } from "../db/dailyMetrics";
+import { getDailyMetricsByDate, saveDailyMetrics } from "../db/dailyMetrics";
 import { getOrCreateWorkout, getWorkoutExercises, addWorkoutExercise, deleteWorkoutExercise, WorkoutExerciseRow } from "../db/workouts";
 import { listCatalogExercises, CatalogExercise } from "../db/catalog";
 import { getEventsOverlappingRange, EventRow } from "../db/events";
@@ -127,7 +127,7 @@ export default function AppHomePage() {
       if (inFlightRef.current) {
         try { await inFlightRef.current; } catch { /* ignore */ }
       }
-      inFlightRef.current = upsertDailyMetrics(payload);
+      inFlightRef.current = saveDailyMetrics(payload);
       await inFlightRef.current;
     };
 
