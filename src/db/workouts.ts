@@ -197,26 +197,18 @@ export async function getExerciseMasterHistory(
   toISO: string
 ): Promise<ExerciseMasterPoint[]> {
   const { data, error } = await supabase
-    .from("workout_exercises")
-    .select(
-      `
-      exercise_name,
-      load_type,
-      load_g,
-      reps,
-      workouts!inner(date)
-    `
-    )
-    .eq("exercise_name", exerciseName)           // IMPORTANT: exact match
-    .gte("workouts.date", fromISO)
-    .lte("workouts.date", toISO)
-    .order("workouts.date", { ascending: true });
+    .from("v_workout_exercises_flat")
+    .select("workout_date, exercise_name, load_type, load_g, reps")
+    .eq("exercise_name", exerciseName)
+    .gte("workout_date", fromISO)
+    .lte("workout_date", toISO)
+    .order("workout_date", { ascending: true });
 
   if (error) throw error;
 
   const rows = (data ?? []) as any[];
   return rows.map((r) => ({
-    date: r.workouts.date as string,
+    date: r.workout_date as string,
     exercise_name: r.exercise_name as string,
     load_type: r.load_type as ExerciseMasterPoint["load_type"],
     load_g: r.load_g as number | null,
@@ -225,9 +217,10 @@ export async function getExerciseMasterHistory(
 }
 
 
+
 export async function listTrackedExercises(): Promise<string[]> {
   const { data, error } = await supabase
-    .from("workout_exercises")
+    .from("v_workout_exercises_flat")
     .select("exercise_name")
     .order("exercise_name", { ascending: true });
 
@@ -240,15 +233,17 @@ export async function listTrackedExercises(): Promise<string[]> {
   return names.sort((a, b) => a.localeCompare(b));
 }
 
+
 export async function getFirstExerciseDate(exerciseName: string): Promise<string | null> {
   const { data, error } = await supabase
-    .from("workout_exercises")
-    .select("workouts!inner(date)")
+    .from("v_workout_exercises_flat")
+    .select("workout_date")
     .eq("exercise_name", exerciseName)
-    .order("workouts.date", { ascending: true })
+    .order("workout_date", { ascending: true })
     .limit(1)
     .maybeSingle();
 
   if (error) throw error;
-  return (data as any)?.workouts?.date ?? null;
+  return (data as any)?.workout_date ?? null;
 }
+
