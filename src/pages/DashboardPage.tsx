@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import GlassCard from "../components/GlassCard";
-import { getExerciseMasterHistory } from "../db/workouts";
-import type { ExerciseMasterPoint } from "../db/workouts";
-import { listTrackedExercises } from "../db/workouts";
 import { getDailyMetricsRange } from "../db/dailyMetrics";
+import { getExerciseMasterHistory, listTrackedExercises } from "../db/workouts";
+import type { ExerciseMasterPoint } from "../db/workouts";
 import { format, subMonths } from "date-fns";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
@@ -34,29 +33,21 @@ function isMobile() {
 
 export default function DashboardPage() {
   const [trackedExercises, setTrackedExercises] = useState<string[]>([]);
-  const [exerciseQuery, setExerciseQuery] = useState("");
-  const [selectedExercise, setSelectedExercise] = useState<string>("");
+  const [selectedExercise, setSelectedExercise] = useState<string>(""); // default: none
 
   const [pdcMode, setPdcMode] = useState<PdcMode>("LEST");
   const [weightRange, setWeightRange] = useState<WeightRange>("3M");
 
   const [exerciseRows, setExerciseRows] = useState<ExerciseMasterPoint[]>([]);
   const [weightRows, setWeightRows] = useState<{ date: string; weight_g: number | null }[]>([]);
+
   const [modal, setModal] = useState<null | "exercise" | "weight">(null);
 
-  // Load tracked exercises from DB
+  const [info, setInfo] = useState<null | PdcMode>(null); // tooltip LEST/TOTAL
+
+  // Tracked exercises
   useEffect(() => {
-    listTrackedExercises()
-      .then((names) => {
-        setTrackedExercises(names);
-        // auto-select first if none
-        if (!selectedExercise && names.length > 0) {
-          setSelectedExercise(names[0]);
-          setExerciseQuery(names[0]);
-        }
-      })
-      .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    listTrackedExercises().then(setTrackedExercises).catch(() => setTrackedExercises([]));
   }, []);
 
   const weightFromTo = useMemo(() => {
@@ -74,11 +65,14 @@ export default function DashboardPage() {
   useEffect(() => {
     getDailyMetricsRange(weightFromTo.from, weightFromTo.to)
       .then((rows) => setWeightRows(rows.map((r) => ({ date: r.date, weight_g: r.weight_g }))))
-      .catch(() => {});
+      .catch(() => setWeightRows([]));
   }, [weightFromTo]);
 
   useEffect(() => {
-    if (!selectedExercise) return;
+    if (!selectedExercise) {
+      setExerciseRows([]);
+      return;
+    }
     getExerciseMasterHistory(selectedExercise, exerciseFromTo.from, exerciseFromTo.to)
       .then(setExerciseRows)
       .catch(() => setExerciseRows([]));
@@ -112,12 +106,15 @@ export default function DashboardPage() {
           const loadKg = (r.load_g ?? 0) / 1000;
 
           if (r.load_type === "KG") return loadKg;
+
           if (r.load_type === "PDC_PLUS") {
             if (pdcMode === "LEST") return loadKg;
+
             const w = weightLookup.get(date) ?? null;
             if (w == null) return Number.NaN;
             return w / 1000 + loadKg;
           }
+
           if (r.load_type === "PDC") {
             if (pdcMode === "LEST") return 0;
             const w = weightLookup.get(date) ?? null;
@@ -129,17 +126,16 @@ export default function DashboardPage() {
         .filter((v) => Number.isFinite(v));
 
       if (!vals.length) continue;
-      points.push({ iso: date, date: date.slice(5), valueKg: Math.max(...vals) });
+
+      points.push({
+        iso: date,
+        date: date.slice(5),
+        valueKg: Math.max(...vals),
+      });
     }
 
     return points.sort((a, b) => a.iso.localeCompare(b.iso));
   }, [exerciseRows, pdcMode, weightLookup]);
-
-  const suggestions = useMemo(() => {
-    const q = exerciseQuery.trim().toLowerCase();
-    if (!q) return trackedExercises.slice(0, 8);
-    return trackedExercises.filter((n) => n.toLowerCase().includes(q)).slice(0, 8);
-  }, [trackedExercises, exerciseQuery]);
 
   function ChartShell({
     title,
@@ -192,19 +188,14 @@ export default function DashboardPage() {
           <div className="w-full max-w-5xl">
             <div className="glass-card border border-white/10 rounded-[2.5rem] overflow-hidden">
               <div className="p-4 flex items-center justify-between">
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">
-                  {mobile ? "MODE PAYSAGE (SIMULÉ)" : "ZOOM"}
-                </p>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">{mobile ? "MODE PAYSAGE (SIMULÉ)" : "ZOOM"}</p>
                 <button onClick={onClose} className="text-white/40 font-black text-[10px] uppercase tracking-widest">
                   Fermer
                 </button>
               </div>
 
               <div className="p-4 bg-black">
-                <div
-                  className="w-full h-[70vh]"
-                  style={mobile ? { transform: "rotate(90deg)", transformOrigin: "center", height: "70vw" } : undefined}
-                >
+                <div className="w-full h-[70vh]" style={mobile ? { transform: "rotate(90deg)", transformOrigin: "center", height: "70vw" } : undefined}>
                   {children}
                 </div>
               </div>
@@ -215,7 +206,9 @@ export default function DashboardPage() {
     );
   }
 
-  const exerciseSubtitle = pdcMode === "LEST" ? "PDC+ = LEST (KG)" : "PDC+ = TOTAL (PDC + LEST)";
+  const hasWeightData = weightChartData.length >= 2;
+  const hasExercise = !!selectedExercise;
+  const hasExerciseData = exerciseChartData.length >= 2;
 
   return (
     <div className="max-w-xl mx-auto px-4 pt-12 pb-32 space-y-8">
@@ -224,68 +217,7 @@ export default function DashboardPage() {
         <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mt-2">Charts</p>
       </header>
 
-      <GlassCard className="p-6 rounded-[2.5rem] border border-white/10 space-y-4">
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Exercice</p>
-
-        <input
-          value={exerciseQuery}
-          onChange={(e) => setExerciseQuery(e.target.value)}
-          placeholder="Rechercher..."
-          className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 font-black uppercase italic text-white outline-none focus:border-menthe"
-        />
-
-        {suggestions.length > 0 && (
-          <div className="space-y-2">
-            {suggestions.map((name) => (
-              <button
-                key={name}
-                type="button"
-                onClick={() => {
-                  setSelectedExercise(name);
-                  setExerciseQuery(name);
-                }}
-                className={`w-full text-left bg-white/5 border border-white/10 rounded-2xl px-4 py-3 font-black uppercase italic text-xs ${
-                  name === selectedExercise ? "border-menthe/40 text-menthe" : "text-white/70"
-                }`}
-              >
-                {name}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="flex bg-white/5 rounded-2xl p-1">
-          {(["LEST", "TOTAL"] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setPdcMode(m)}
-              className={`flex-1 py-3 rounded-xl font-black uppercase italic text-[10px] tracking-widest ${
-                pdcMode === m ? "bg-menthe text-black" : "text-white/30"
-              }`}
-            >
-              {m}
-            </button>
-          ))}
-        </div>
-      </GlassCard>
-
-      <ChartShell title={selectedExercise || "Exercice"} subtitle={exerciseSubtitle} onOpen={() => setModal("exercise")}>
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={exerciseChartData}>
-            <CartesianGrid stroke="rgba(255,255,255,0.06)" />
-            <XAxis dataKey="date" stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
-            <YAxis stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
-            <Tooltip
-              contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16 }}
-              labelStyle={{ color: "rgba(255,255,255,0.7)", fontWeight: 900 }}
-              itemStyle={{ color: "#00FFA3", fontWeight: 900 }}
-            />
-            <Line type="monotone" dataKey="valueKg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
-          </LineChart>
-        </ResponsiveContainer>
-      </ChartShell>
-
+      {/* POIDS EN PREMIER */}
       <GlassCard className="p-6 rounded-[2.5rem] border border-white/10">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -317,22 +249,117 @@ export default function DashboardPage() {
         </div>
 
         <div className="mt-6 h-56">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={weightChartData}>
-              <CartesianGrid stroke="rgba(255,255,255,0.06)" />
-              <XAxis dataKey="date" stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
-              <YAxis stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
-              <Tooltip
-                contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16 }}
-                labelStyle={{ color: "rgba(255,255,255,0.7)", fontWeight: 900 }}
-                itemStyle={{ color: "#00FFA3", fontWeight: 900 }}
-              />
-              <Line type="monotone" dataKey="kg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
-            </LineChart>
-          </ResponsiveContainer>
+          {hasWeightData ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={weightChartData}>
+                <CartesianGrid stroke="rgba(255,255,255,0.06)" />
+                <XAxis dataKey="date" stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
+                <YAxis stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
+                <Tooltip
+                  contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16 }}
+                  labelStyle={{ color: "rgba(255,255,255,0.7)", fontWeight: 900 }}
+                  itemStyle={{ color: "#00FFA3", fontWeight: 900 }}
+                />
+                <Line type="monotone" dataKey="kg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-full w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">
+              PAS ASSEZ DE DONNÉES POIDS
+            </div>
+          )}
         </div>
       </GlassCard>
 
+      {/* EXERCICE */}
+      <GlassCard className="p-6 rounded-[2.5rem] border border-white/10 space-y-4">
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Exercice</p>
+
+        <select
+          value={selectedExercise}
+          onChange={(e) => setSelectedExercise(e.target.value)}
+          className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 font-black uppercase italic text-white outline-none focus:border-menthe"
+        >
+          <option value="">—</option>
+          {trackedExercises.map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
+        </select>
+
+        {/* Toggle LEST/TOTAL + info */}
+        <div className="flex bg-white/5 rounded-2xl p-1 relative">
+          {(["LEST", "TOTAL"] as const).map((m) => (
+            <div key={m} className="flex-1 flex gap-2 items-center">
+              <button
+                type="button"
+                onClick={() => setPdcMode(m)}
+                className={`flex-1 py-3 rounded-xl font-black uppercase italic text-[10px] tracking-widest ${
+                  pdcMode === m ? "bg-menthe text-black" : "text-white/30"
+                }`}
+              >
+                {m}
+              </button>
+              <button
+                type="button"
+                onClick={() => setInfo(info === m ? null : m)}
+                className="w-9 h-9 rounded-full bg-white/5 border border-white/10 text-[10px] font-black text-white/50"
+              >
+                i
+              </button>
+            </div>
+          ))}
+
+          {info && (
+            <button
+              type="button"
+              onClick={() => setInfo(null)}
+              className="absolute left-0 right-0 top-[3.2rem] mx-auto w-full bg-black/80 border border-white/10 rounded-2xl px-4 py-3 text-left"
+            >
+              <p className="text-[10px] font-black uppercase italic tracking-widest text-white/70">
+                {info === "LEST"
+                  ? "UNIQUEMENT LA CHARGE PORTÉE OU FIXÉE SUR UNE BARRE"
+                  : "POIDS DU CORPS + CHARGE LESTÉE"}
+              </p>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">
+                TAP POUR FERMER
+              </p>
+            </button>
+          )}
+        </div>
+      </GlassCard>
+
+      {/* Chart exercice (seulement si exercice choisi) */}
+      {hasExercise && (
+        <ChartShell
+          title={selectedExercise}
+          subtitle={pdcMode === "LEST" ? "PDC+ = LEST (KG)" : "PDC+ = TOTAL (PDC + LEST)"}
+          onOpen={() => setModal("exercise")}
+        >
+          {hasExerciseData ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={exerciseChartData}>
+                <CartesianGrid stroke="rgba(255,255,255,0.06)" />
+                <XAxis dataKey="date" stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
+                <YAxis stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
+                <Tooltip
+                  contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16 }}
+                  labelStyle={{ color: "rgba(255,255,255,0.7)", fontWeight: 900 }}
+                  itemStyle={{ color: "#00FFA3", fontWeight: 900 }}
+                />
+                <Line type="monotone" dataKey="valueKg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-full w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">
+              PAS ASSEZ DE DONNÉES
+            </div>
+          )}
+        </ChartShell>
+      )}
+
+      {/* MODALS */}
       <Modal open={modal === "exercise"} onClose={() => setModal(null)}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={exerciseChartData}>
