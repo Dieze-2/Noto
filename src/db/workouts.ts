@@ -239,3 +239,16 @@ export async function listTrackedExercises(): Promise<string[]> {
 
   return names.sort((a, b) => a.localeCompare(b));
 }
+
+export async function getFirstExerciseDate(exerciseName: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("workout_exercises")
+    .select("workouts!inner(date)")
+    .eq("exercise_name", exerciseName)
+    .order("workouts.date", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data as any)?.workouts?.date ?? null;
+}
