@@ -1,8 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import GlassCard from "../components/GlassCard";
-import { listCatalogExercises, CatalogExercise } from "../db/catalog";
+import { listCatalogExercises } from "../db/catalog";
+import type { CatalogExercise } from "../db/catalog";
+
+import { getExerciseMasterHistory } from "../db/workouts";
+import type { ExerciseMasterPoint } from "../db/workouts";
+
 import { getDailyMetricsRange } from "../db/dailyMetrics";
-import { getExerciseMasterHistory, ExerciseMasterPoint } from "../db/workouts";
+
 import { format, subMonths } from "date-fns";
 import {
   ResponsiveContainer,
