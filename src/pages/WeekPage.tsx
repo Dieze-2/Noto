@@ -24,7 +24,8 @@ import type { EventRow } from "../db/events";
 
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
 
-import { DayPicker, DateRange } from "react-day-picker";
+import type { DateRange } from "react-day-picker";
+
 import "react-day-picker/dist/style.css";
 
 const EVENT_COLORS = [
