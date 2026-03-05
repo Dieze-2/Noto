@@ -1,25 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import GlassCard from "../components/GlassCard";
-import { getDailyMetricsRange } from "../db/dailyMetrics";
-import { getExerciseMasterHistory, listTrackedExercises } from "../db/workouts";
+import { getDailyMetricsRange, getFirstWeightDate } from "../db/dailyMetrics";
+import { getExerciseMasterHistory, listTrackedExercises, getFirstExerciseDate } from "../db/workouts";
 import type { ExerciseMasterPoint } from "../db/workouts";
 import { format, subMonths } from "date-fns";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
-import { getFirstWeightDate } from "../db/dailyMetrics";
-import { getFirstExerciseDate } from "../db/workouts";
-
-const [firstWeightDate, setFirstWeightDate] = useState<string | null>(null);
-const [firstExerciseDate, setFirstExerciseDate] = useState<string | null>(null);
-
-useEffect(() => {
-  getFirstWeightDate().then(setFirstWeightDate).catch(() => setFirstWeightDate(null));
-}, []);
-
-useEffect(() => {
-  if (!selectedExercise) { setFirstExerciseDate(null); return; }
-  getFirstExerciseDate(selectedExercise).then(setFirstExerciseDate).catch(() => setFirstExerciseDate(null));
-}, [selectedExercise]);
-
 
 type PdcMode = "LEST" | "TOTAL";
 type Range = "3M" | "6M" | "TOUT";
@@ -30,14 +15,12 @@ function isoToday() {
 function isoMonthsAgo(months: number) {
   return format(subMonths(new Date(), months), "yyyy-MM-dd");
 }
-
 function rangeToFromTo(r: Range, firstDate: string | null) {
   const to = isoToday();
-  if (r === "TOUT") return { from: firstDate ?? to, to }; // si pas de données => from=to
+  if (r === "TOUT") return { from: firstDate ?? to, to };
   if (r === "6M") return { from: isoMonthsAgo(6), to };
   return { from: isoMonthsAgo(3), to };
 }
-
 
 function buildWeightLookup(rows: { date: string; weight_g: number | null }[]) {
   const sorted = [...rows].sort((a, b) => a.date.localeCompare(b.date));
@@ -62,20 +45,41 @@ export default function DashboardPage() {
   const [info, setInfo] = useState<null | PdcMode>(null);
 
   const [weightRange, setWeightRange] = useState<Range>("3M");
-  const [exerciseRange, setExerciseRange] = useState<Range>("ALL");
+  const [exerciseRange, setExerciseRange] = useState<Range>("TOUT");
 
   const [exerciseRows, setExerciseRows] = useState<ExerciseMasterPoint[]>([]);
   const [weightRows, setWeightRows] = useState<{ date: string; weight_g: number | null }[]>([]);
 
+  const [firstWeightDate, setFirstWeightDate] = useState<string | null>(null);
+  const [firstExerciseDate, setFirstExerciseDate] = useState<string | null>(null);
+
   const [modal, setModal] = useState<null | "exercise" | "weight">(null);
 
+  // exercises list (from DB)
   useEffect(() => {
-    listTrackedExercises().then(setTrackedExercises).catch(() => setTrackedExercises([]));
+    listTrackedExercises()
+      .then((names) => setTrackedExercises(names))
+      .catch(() => setTrackedExercises([]));
   }, []);
+
+  // first weight date (for TOUT)
+  useEffect(() => {
+    getFirstWeightDate().then(setFirstWeightDate).catch(() => setFirstWeightDate(null));
+  }, []);
+
+  // first exercise date (for TOUT)
+  useEffect(() => {
+    if (!selectedExercise) {
+      setFirstExerciseDate(null);
+      return;
+    }
+    // IMPORTANT: sanitize just in case (trim)
+    const name = selectedExercise.trim();
+    getFirstExerciseDate(name).then(setFirstExerciseDate).catch(() => setFirstExerciseDate(null));
+  }, [selectedExercise]);
 
   const weightFromTo = useMemo(() => rangeToFromTo(weightRange, firstWeightDate), [weightRange, firstWeightDate]);
   const exerciseFromTo = useMemo(() => rangeToFromTo(exerciseRange, firstExerciseDate), [exerciseRange, firstExerciseDate]);
-
 
   useEffect(() => {
     getDailyMetricsRange(weightFromTo.from, weightFromTo.to)
@@ -88,7 +92,8 @@ export default function DashboardPage() {
       setExerciseRows([]);
       return;
     }
-    getExerciseMasterHistory(selectedExercise, exerciseFromTo.from, exerciseFromTo.to)
+    const name = selectedExercise.trim();
+    getExerciseMasterHistory(name, exerciseFromTo.from, exerciseFromTo.to)
       .then(setExerciseRows)
       .catch(() => setExerciseRows([]));
   }, [selectedExercise, exerciseFromTo.from, exerciseFromTo.to]);
@@ -140,19 +145,14 @@ export default function DashboardPage() {
         .filter((v) => Number.isFinite(v));
 
       if (!vals.length) continue;
-
-      points.push({
-        iso: date,
-        date: date.slice(5),
-        valueKg: Math.max(...vals),
-      });
+      points.push({ iso: date, date: date.slice(5), valueKg: Math.max(...vals) });
     }
 
     return points.sort((a, b) => a.iso.localeCompare(b.iso));
   }, [exerciseRows, pdcMode, weightLookup]);
 
   const hasWeightData = weightChartData.length >= 1;
-  const hasExercise = !!selectedExercise;
+  const hasExercise = selectedExercise.trim().length > 0;
   const hasExerciseData = exerciseChartData.length >= 1;
 
   function Modal({ open, onClose, children }: { open: boolean; onClose: () => void; children: React.ReactNode }) {
@@ -186,6 +186,11 @@ export default function DashboardPage() {
         <h1 className="text-5xl font-black text-menthe italic uppercase tracking-tighter">Dashboard</h1>
         <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mt-2">Charts</p>
       </header>
+
+      {/* DEBUG (discret, à supprimer quand ok) */}
+      <div className="text-[9px] font-black uppercase tracking-[0.3em] text-white/20 text-center">
+        WEIGHT:{weightRows.length} EX:{exerciseRows.length} EXPTS:{exerciseChartData.length} FIRSTW:{firstWeightDate ?? "--"} FIRSTE:{firstExerciseDate ?? "--"}
+      </div>
 
       {/* POIDS */}
       <GlassCard className="p-6 rounded-[2.5rem] border border-white/10">
@@ -288,9 +293,7 @@ export default function DashboardPage() {
               className="absolute left-0 right-0 top-[3.2rem] mx-auto w-full bg-black/80 border border-white/10 rounded-2xl px-4 py-3 text-left"
             >
               <p className="text-[10px] font-black uppercase italic tracking-widest text-white/70">
-                {info === "LEST"
-                  ? "UNIQUEMENT LA CHARGE PORTÉE OU FIXÉE SUR UNE BARRE"
-                  : "POIDS DU CORPS + CHARGE LESTÉE"}
+                {info === "LEST" ? "UNIQUEMENT LA CHARGE PORTÉE OU FIXÉE SUR UNE BARRE" : "POIDS DU CORPS + CHARGE LESTÉE"}
               </p>
               <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">TAP POUR FERMER</p>
             </button>
@@ -303,7 +306,7 @@ export default function DashboardPage() {
         <GlassCard className="p-6 rounded-[2.5rem] border border-white/10">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">{selectedExercise}</h2>
+              <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">{selectedExercise.trim()}</h2>
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">
                 {pdcMode === "LEST" ? "PDC+ = LEST (KG)" : "PDC+ = TOTAL (PDC + LEST)"}
               </p>
