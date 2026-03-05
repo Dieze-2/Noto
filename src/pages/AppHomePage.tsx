@@ -19,7 +19,6 @@ function getISODateFromParams(dateParam: string | null): string {
   if (dateParam && isValid(parseISO(dateParam))) return dateParam;
   return format(new Date(), "yyyy-MM-dd");
 }
-
 function isHex6(x: string) {
   return /^#[0-9A-Fa-f]{6}$/.test(x);
 }
@@ -78,19 +77,14 @@ export default function AppHomePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // --- Debounce machinery ---
+  // --- Debounce state ---
   const debounceTimerRef = useRef<number | null>(null);
   const pendingRef = useRef(metrics);
   const inFlightRef = useRef<Promise<any> | null>(null);
-  const dateRef = useRef(dateISO);
 
-  useEffect(() => {
-    dateRef.current = dateISO;
-  }, [dateISO]);
-
-  function metricsToPayload(m: { steps: string; kcal: string; weight: string }) {
+  function buildPayload(date: string, m: { steps: string; kcal: string; weight: string }) {
     return {
-      date: dateRef.current,
+      date,
       steps: parseInt(m.steps) || 0,
       kcal: parseInt(m.kcal) || 0,
       weight_g: Math.round((parseFloat(m.weight) || 0) * 1000),
@@ -98,19 +92,22 @@ export default function AppHomePage() {
     };
   }
 
-  async function flushMetricsNow() {
+  async function flushMetricsForDate(date: string) {
     if (debounceTimerRef.current) {
       window.clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = null;
     }
 
     const snap = pendingRef.current;
-    const payload = metricsToPayload(snap);
+    const payload = buildPayload(date, snap);
 
-    // sérialise : si une req est en cours, on attend puis on pousse la dernière valeur
     const run = async () => {
       if (inFlightRef.current) {
-        try { await inFlightRef.current; } catch { /* ignore */ }
+        try {
+          await inFlightRef.current;
+        } catch {
+          // ignore
+        }
       }
       inFlightRef.current = upsertDailyMetrics(payload);
       await inFlightRef.current;
@@ -119,22 +116,17 @@ export default function AppHomePage() {
     await run();
   }
 
-  function scheduleMetricsFlush(next: { steps: string; kcal: string; weight: string }) {
+  function scheduleFlushForCurrentDate(next: { steps: string; kcal: string; weight: string }) {
     pendingRef.current = next;
 
     if (debounceTimerRef.current) window.clearTimeout(debounceTimerRef.current);
+    const dateCaptured = dateISO; // CRITICAL: capture date at schedule time
+
     debounceTimerRef.current = window.setTimeout(() => {
-      flushMetricsNow().catch(() => {});
+      flushMetricsForDate(dateCaptured).catch(() => {});
     }, METRICS_DEBOUNCE_MS);
   }
 
-  // flush auto quand on change de date (évite perte)
-  useEffect(() => {
-    flushMetricsNow().catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateISO]);
-
-  // cleanup unmount
   useEffect(() => {
     return () => {
       if (debounceTimerRef.current) window.clearTimeout(debounceTimerRef.current);
@@ -199,16 +191,15 @@ export default function AppHomePage() {
     };
   }, [dateISO]);
 
-  // --- Metrics handler (debounced) ---
   const updateMetric = (key: "steps" | "kcal" | "weight", val: string) => {
     const next = { ...pendingRef.current, [key]: val };
     setMetrics(next);
-    scheduleMetricsFlush(next);
+    scheduleFlushForCurrentDate(next);
   };
 
   const changeDate = async (delta: number) => {
-    // flush avant navigation date (stabilité)
-    await flushMetricsNow().catch(() => {});
+    // Flush TOUJOURS pour la date actuelle AVANT de changer l'URL
+    await flushMetricsForDate(dateISO).catch(() => {});
     const d = addDays(currentDate, delta);
     const nextISO = format(d, "yyyy-MM-dd");
     setSearchParams({ date: nextISO });
@@ -312,11 +303,8 @@ export default function AppHomePage() {
           label="Pas"
           value={metrics.steps}
           onChange={(v) => updateMetric("steps", v)}
-          onBlur={() => flushMetricsNow().catch(() => {})}
-          onEnter={() => flushMetricsNow().catch(() => {})}
-          onFocus={() => {
-            // rien
-          }}
+          onBlur={() => flushMetricsForDate(dateISO).catch(() => {})}
+          onEnter={() => flushMetricsForDate(dateISO).catch(() => {})}
           accent
           inputMode="numeric"
         />
@@ -326,8 +314,8 @@ export default function AppHomePage() {
           label="Kcal"
           value={metrics.kcal}
           onChange={(v) => updateMetric("kcal", v)}
-          onBlur={() => flushMetricsNow().catch(() => {})}
-          onEnter={() => flushMetricsNow().catch(() => {})}
+          onBlur={() => flushMetricsForDate(dateISO).catch(() => {})}
+          onEnter={() => flushMetricsForDate(dateISO).catch(() => {})}
           colorClass="text-yellow-200"
           inputMode="numeric"
         />
@@ -337,8 +325,8 @@ export default function AppHomePage() {
           label="Kg"
           value={metrics.weight}
           onChange={(v) => updateMetric("weight", v)}
-          onBlur={() => flushMetricsNow().catch(() => {})}
-          onEnter={() => flushMetricsNow().catch(() => {})}
+          onBlur={() => flushMetricsForDate(dateISO).catch(() => {})}
+          onEnter={() => flushMetricsForDate(dateISO).catch(() => {})}
           colorClass="text-purple-500"
           inputMode="decimal"
         />
