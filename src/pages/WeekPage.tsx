@@ -16,9 +16,13 @@ import {
   Trash2,
 } from "lucide-react";
 import GlassCard from "../components/GlassCard";
-import { getDailyMetricsRange, DailyMetricsRow } from "../db/dailyMetrics";
+import { getDailyMetricsRange } from "../db/dailyMetrics";
+import type { DailyMetricsRow } from "../db/dailyMetrics";
+
+import { getEventsOverlappingRange } from "../db/events";
+import type { EventRow } from "../db/events";
+
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
-import { getEventsOverlappingRange, EventRow, createEvent, deleteEvent, updateEvent } from "../db/events";
 
 import { DayPicker, DateRange } from "react-day-picker";
 import "react-day-picker/dist/style.css";
