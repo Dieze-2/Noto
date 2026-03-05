@@ -200,7 +200,6 @@ export async function getExerciseMasterHistory(
     .from("workout_exercises")
     .select(
       `
-      id,
       exercise_name,
       load_type,
       load_g,
@@ -208,7 +207,7 @@ export async function getExerciseMasterHistory(
       workouts!inner(date)
     `
     )
-    .ilike("exercise_name", exerciseName)
+    .eq("exercise_name", exerciseName)           // IMPORTANT: exact match
     .gte("workouts.date", fromISO)
     .lte("workouts.date", toISO)
     .order("workouts.date", { ascending: true });
@@ -224,6 +223,7 @@ export async function getExerciseMasterHistory(
     reps: r.reps as number,
   }));
 }
+
 
 export async function listTrackedExercises(): Promise<string[]> {
   const { data, error } = await supabase
