@@ -167,3 +167,11 @@ export async function updateExerciseSet(
   const { error } = await supabase.from("workout_exercise_sets").update(patch).eq("id", id);
   if (error) throw error;
 }
+
+export async function updateWorkoutExercise(
+  id: string,
+  patch: Partial<Pick<WorkoutExerciseRow, "reps" | "load_type" | "load_g" | "load_text" | "comment" | "sort_order" | "exercise_name">>
+) {
+  const { error } = await supabase.from("workout_exercises").update(patch).eq("id", id);
+  if (error) throw error;
+}
