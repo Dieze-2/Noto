@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence, useTransform, useMotionValue } from "framer-motion";
 import { format, addDays, parseISO, isValid } from "date-fns";
@@ -8,17 +8,12 @@ import { Footprints, Flame, Weight, Plus, ChevronLeft, ChevronRight, Dumbbell, T
 import StatBubble from "../components/StatBubble";
 import GlassCard from "../components/GlassCard";
 import { getDailyMetricsByDate, upsertDailyMetrics } from "../db/dailyMetrics";
-import {
-  getOrCreateWorkout,
-  getWorkoutExercises,
-  addWorkoutExercise,
-  deleteWorkoutExercise,
-  WorkoutExerciseRow,
-} from "../db/workouts";
+import { getOrCreateWorkout, getWorkoutExercises, addWorkoutExercise, deleteWorkoutExercise, WorkoutExerciseRow } from "../db/workouts";
 import { listCatalogExercises, CatalogExercise } from "../db/catalog";
 import { getEventsOverlappingRange, EventRow } from "../db/events";
 
 const MAX_DOTS = 4;
+const METRICS_DEBOUNCE_MS = 600;
 
 function getISODateFromParams(dateParam: string | null): string {
   if (dateParam && isValid(parseISO(dateParam))) return dateParam;
@@ -83,6 +78,70 @@ export default function AppHomePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
 
+  // --- Debounce machinery ---
+  const debounceTimerRef = useRef<number | null>(null);
+  const pendingRef = useRef(metrics);
+  const inFlightRef = useRef<Promise<any> | null>(null);
+  const dateRef = useRef(dateISO);
+
+  useEffect(() => {
+    dateRef.current = dateISO;
+  }, [dateISO]);
+
+  function metricsToPayload(m: { steps: string; kcal: string; weight: string }) {
+    return {
+      date: dateRef.current,
+      steps: parseInt(m.steps) || 0,
+      kcal: parseInt(m.kcal) || 0,
+      weight_g: Math.round((parseFloat(m.weight) || 0) * 1000),
+      note: null as string | null,
+    };
+  }
+
+  async function flushMetricsNow() {
+    if (debounceTimerRef.current) {
+      window.clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+
+    const snap = pendingRef.current;
+    const payload = metricsToPayload(snap);
+
+    // sérialise : si une req est en cours, on attend puis on pousse la dernière valeur
+    const run = async () => {
+      if (inFlightRef.current) {
+        try { await inFlightRef.current; } catch { /* ignore */ }
+      }
+      inFlightRef.current = upsertDailyMetrics(payload);
+      await inFlightRef.current;
+    };
+
+    await run();
+  }
+
+  function scheduleMetricsFlush(next: { steps: string; kcal: string; weight: string }) {
+    pendingRef.current = next;
+
+    if (debounceTimerRef.current) window.clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = window.setTimeout(() => {
+      flushMetricsNow().catch(() => {});
+    }, METRICS_DEBOUNCE_MS);
+  }
+
+  // flush auto quand on change de date (évite perte)
+  useEffect(() => {
+    flushMetricsNow().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateISO]);
+
+  // cleanup unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) window.clearTimeout(debounceTimerRef.current);
+    };
+  }, []);
+
+  // --- URL canonique ---
   useEffect(() => {
     const param = searchParams.get("date");
     if (!param || !isValid(parseISO(param))) {
@@ -91,6 +150,7 @@ export default function AppHomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // --- Catalogue chargé une fois ---
   useEffect(() => {
     let alive = true;
     listCatalogExercises()
@@ -104,6 +164,7 @@ export default function AppHomePage() {
     };
   }, []);
 
+  // --- Data load par date ---
   useEffect(() => {
     let alive = true;
 
@@ -116,11 +177,14 @@ export default function AppHomePage() {
 
       if (!alive) return;
 
-      setMetrics({
+      const nextMetrics = {
         steps: m?.steps?.toString() || "",
         kcal: m?.kcal?.toString() || "",
         weight: m?.weight_g ? (m.weight_g / 1000).toString() : "",
-      });
+      };
+
+      setMetrics(nextMetrics);
+      pendingRef.current = nextMetrics;
 
       const ex = await getWorkoutExercises(workout.id);
       if (!alive) return;
@@ -135,20 +199,16 @@ export default function AppHomePage() {
     };
   }, [dateISO]);
 
-  const updateMetric = async (key: "steps" | "kcal" | "weight", val: string) => {
-    const newMetrics = { ...metrics, [key]: val };
-    setMetrics(newMetrics);
-
-    await upsertDailyMetrics({
-      date: dateISO,
-      steps: parseInt(newMetrics.steps) || 0,
-      kcal: parseInt(newMetrics.kcal) || 0,
-      weight_g: Math.round((parseFloat(newMetrics.weight) || 0) * 1000),
-      note: null,
-    });
+  // --- Metrics handler (debounced) ---
+  const updateMetric = (key: "steps" | "kcal" | "weight", val: string) => {
+    const next = { ...pendingRef.current, [key]: val };
+    setMetrics(next);
+    scheduleMetricsFlush(next);
   };
 
-  const changeDate = (delta: number) => {
+  const changeDate = async (delta: number) => {
+    // flush avant navigation date (stabilité)
+    await flushMetricsNow().catch(() => {});
     const d = addDays(currentDate, delta);
     const nextISO = format(d, "yyyy-MM-dd");
     setSearchParams({ date: nextISO });
@@ -214,12 +274,7 @@ export default function AppHomePage() {
             </p>
 
             {dayEvents.length > 0 && (
-              <button
-                type="button"
-                onClick={() => navigate("/week?note=1")}
-                className="mt-2"
-                aria-label="Ouvrir le planning"
-              >
+              <button type="button" onClick={() => navigate("/week?note=1")} className="mt-2" aria-label="Ouvrir le planning">
                 <div className="flex flex-col items-center gap-1">
                   {dayEvents.slice(0, MAX_DOTS).map((ev) => {
                     const c = isHex6(ev.color) ? ev.color : "#FFFFFF";
@@ -251,9 +306,39 @@ export default function AppHomePage() {
       </header>
 
       <div className="grid grid-cols-3 gap-3 mb-12">
-        <StatBubble icon={Footprints} label="Pas" value={metrics.steps} onChange={(v) => updateMetric("steps", v)} accent inputMode="numeric" />
-        <StatBubble icon={Flame} label="Kcal" value={metrics.kcal} onChange={(v) => updateMetric("kcal", v)} colorClass="text-yellow-200" inputMode="numeric" />
-        <StatBubble icon={Weight} label="Kg" value={metrics.weight} onChange={(v) => updateMetric("weight", v)} colorClass="text-purple-500" inputMode="decimal" />
+        <StatBubble
+          name="steps"
+          icon={Footprints}
+          label="Pas"
+          value={metrics.steps}
+          onChange={(v) => updateMetric("steps", v)}
+          onBlur={() => flushMetricsNow().catch(() => {})}
+          onFocus={() => {
+            // rien
+          }}
+          accent
+          inputMode="numeric"
+        />
+        <StatBubble
+          name="kcal"
+          icon={Flame}
+          label="Kcal"
+          value={metrics.kcal}
+          onChange={(v) => updateMetric("kcal", v)}
+          onBlur={() => flushMetricsNow().catch(() => {})}
+          colorClass="text-yellow-200"
+          inputMode="numeric"
+        />
+        <StatBubble
+          name="weight"
+          icon={Weight}
+          label="Kg"
+          value={metrics.weight}
+          onChange={(v) => updateMetric("weight", v)}
+          onBlur={() => flushMetricsNow().catch(() => {})}
+          colorClass="text-purple-500"
+          inputMode="decimal"
+        />
       </div>
 
       <div className="space-y-6">
