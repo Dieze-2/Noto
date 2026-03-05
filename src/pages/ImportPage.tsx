@@ -4,7 +4,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 
 function isStrongPassword(pwd: string) {
-  // min 8, 1 lettre, 1 chiffre, 1 special
   if (pwd.length < 8) return false;
   const hasLetter = /[A-Za-z]/.test(pwd);
   const hasDigit = /\d/.test(pwd);
@@ -44,8 +43,8 @@ export default function ImportPage() {
 
       setPwd1("");
       setPwd2("");
-      setStatus("MOT DE PASSE MIS À JOUR.");
       setPwdOpen(false);
+      setStatus("MOT DE PASSE MIS À JOUR.");
     } catch (e: any) {
       setStatus(e?.message?.toUpperCase?.() ?? "ERREUR.");
     } finally {
@@ -71,7 +70,6 @@ export default function ImportPage() {
 
         <div className="text-center">
           <h1 className="text-5xl font-black text-menthe italic uppercase tracking-tighter">Système</h1>
-          <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mt-2">Profil / Backup</p>
         </div>
       </header>
 
@@ -85,7 +83,7 @@ export default function ImportPage() {
             Backup (Import / Export)
           </button>
 
-          {/* Change password drawer */}
+          {/* Drawer open */}
           <button
             onClick={() => {
               setStatus(null);
@@ -108,10 +106,11 @@ export default function ImportPage() {
         {status && <p className="text-menthe font-black uppercase text-xs tracking-widest mt-4">{status}</p>}
       </section>
 
-      {/* Drawer Password */}
+      {/* DRAWER */}
       <AnimatePresence>
         {pwdOpen && (
           <>
+            {/* Overlay */}
             <motion.button
               type="button"
               aria-label="Fermer"
@@ -122,6 +121,7 @@ export default function ImportPage() {
               className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm"
             />
 
+            {/* Sheet */}
             <motion.div
               drag="y"
               dragConstraints={{ top: 0, bottom: 0 }}
