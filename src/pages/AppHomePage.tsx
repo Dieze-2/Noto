@@ -313,6 +313,7 @@ export default function AppHomePage() {
           value={metrics.steps}
           onChange={(v) => updateMetric("steps", v)}
           onBlur={() => flushMetricsNow().catch(() => {})}
+          onEnter={() => flushMetricsNow().catch(() => {})}
           onFocus={() => {
             // rien
           }}
@@ -326,6 +327,7 @@ export default function AppHomePage() {
           value={metrics.kcal}
           onChange={(v) => updateMetric("kcal", v)}
           onBlur={() => flushMetricsNow().catch(() => {})}
+          onEnter={() => flushMetricsNow().catch(() => {})}
           colorClass="text-yellow-200"
           inputMode="numeric"
         />
@@ -336,6 +338,7 @@ export default function AppHomePage() {
           value={metrics.weight}
           onChange={(v) => updateMetric("weight", v)}
           onBlur={() => flushMetricsNow().catch(() => {})}
+          onEnter={() => flushMetricsNow().catch(() => {})}
           colorClass="text-purple-500"
           inputMode="decimal"
         />
