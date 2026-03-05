@@ -40,19 +40,19 @@ export default function ExportPage() {
       </div>
 
       {/* IMPORT */}
-      <div className="glass-card p-10 rounded-[3rem] text-center space-y-6 border-b-4 border-white/10">
+      <div className="glass-card p-10 rounded-[3rem] text-center space-y-6 border-b-4 border-menthe">
         <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center text-4xl mx-auto shadow-2xl border border-white/10">
           ⬆
         </div>
         <div>
           <h2 className="text-xl font-black text-white uppercase tracking-tight">Restauration</h2>
           <p className="text-[11px] font-bold text-white/40 mt-2 uppercase tracking-widest leading-relaxed">
-            Importez un fichier JSON (format NOTO).
+            Importez un fichier JSON.
           </p>
         </div>
 
-        <label className="w-full block bg-white/5 border border-white/10 py-5 rounded-2xl font-black text-xs uppercase tracking-widest text-white cursor-pointer hover:bg-white/10">
-          Importer (.json)
+        <label className="w-full block bg-menthe text-black py-5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg cursor-pointer">
+          Importer
           <input
             type="file"
             accept=".json"
@@ -73,7 +73,7 @@ export default function ExportPage() {
               };
               reader.readAsText(file);
 
-              // reset input (permet re-import du même fichier)
+              // reset input (re-import possible)
               e.currentTarget.value = "";
             }}
           />
@@ -85,12 +85,6 @@ export default function ExportPage() {
           <p className="text-[9px] font-black text-white uppercase tracking-[0.2em] text-center">{status}</p>
         </div>
       )}
-
-      <div className="glass-card p-6 rounded-[2rem] opacity-50">
-        <p className="text-[9px] font-black text-white uppercase tracking-[0.2em] text-center">
-          Format compatible NOTO. Import écrase/merge selon la logique du module importExport.
-        </p>
-      </div>
     </div>
   );
 }
