@@ -52,13 +52,11 @@ type EditState = {
 
 function SwipeDeleteEventRow({
   ev,
-  color,
   isEditing,
   onDelete,
   children,
 }: {
   ev: EventRow;
-  color: string;
   isEditing: boolean;
   onDelete: (id: string) => void;
   children: React.ReactNode;
@@ -66,7 +64,6 @@ function SwipeDeleteEventRow({
   const x = useMotionValue(0);
   const bgOpacity = useTransform(x, [-120, 0], [1, 0]);
 
-  // Si édition: on ne swipe pas (sinon UX cassée)
   if (isEditing) {
     return (
       <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="relative">
@@ -77,8 +74,14 @@ function SwipeDeleteEventRow({
 
   return (
     <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -80 }} className="relative">
-      <motion.div style={{ opacity: bgOpacity }} className="absolute inset-0 bg-rose-600 rounded-3xl flex items-center justify-end px-6">
-        <Trash2 size={18} className="text-white" />
+      <motion.div
+        style={{ opacity: bgOpacity }}
+        className="absolute inset-0 bg-rose-600 rounded-3xl flex items-center justify-end px-6"
+      >
+        <div className="flex items-center gap-2 text-white">
+          <Trash2 size={18} />
+          <span className="text-[10px] font-black uppercase tracking-widest">Suppr.</span>
+        </div>
       </motion.div>
 
       <motion.div
@@ -107,23 +110,42 @@ export default function WeekPage() {
 
   // Drawer NOTE
   const [noteOpen, setNoteOpen] = useState(false);
-  const [from, setFrom] = useState(() => format(new Date(), "yyyy-MM-dd"));
-  const [to, setTo] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [title, setTitle] = useState("");
   const [allEvents, setAllEvents] = useState<EventRow[]>([]);
   const [selectedColor, setSelectedColor] = useState<string>(EVENT_COLORS[0]);
 
   const [editing, setEditing] = useState<EditState | null>(null);
 
+  const start = useMemo(() => startOfWeek(anchorDate, { weekStartsOn: 1 }), [anchorDate]);
+  const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(start, i)), [start]);
+  const startStr = useMemo(() => format(days[0], "yyyy-MM-dd"), [days]);
+  const endStr = useMemo(() => format(days[6], "yyyy-MM-dd"), [days]);
+
+  // Init range pickers ON WEEK range (not today)
+  const [from, setFrom] = useState(() => startStr);
+  const [to, setTo] = useState(() => endStr);
+
+  useEffect(() => {
+    // keep create form aligned with current week
+    setFrom(startStr);
+    setTo(endStr);
+  }, [startStr, endStr]);
+
+  // Support open drawer from URL: /week?note=1
   useEffect(() => {
     const note = searchParams.get("note");
     if (note === "1") setNoteOpen(true);
   }, [searchParams]);
 
-  const start = useMemo(() => startOfWeek(anchorDate, { weekStartsOn: 1 }), [anchorDate]);
-  const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(start, i)), [start]);
-  const startStr = useMemo(() => format(days[0], "yyyy-MM-dd"), [days]);
-  const endStr = useMemo(() => format(days[6], "yyyy-MM-dd"), [days]);
+  const onChangeFrom = (v: string) => {
+    setFrom(v);
+    if (to && v && v > to) setTo(v);
+  };
+
+  const onChangeTo = (v: string) => {
+    setTo(v);
+    if (from && v && v < from) setFrom(v);
+  };
 
   async function refreshWeek() {
     const [cur, prev, evs] = await Promise.all([
@@ -197,7 +219,7 @@ export default function WeekPage() {
   }
 
   async function handleSwipeDeleteEvent(id: string) {
-    // Optimistic UI
+    // Optimistic
     setAllEvents((prev) => prev.filter((e) => e.id !== id));
     setEvents((prev) => prev.filter((e) => e.id !== id));
 
@@ -205,7 +227,6 @@ export default function WeekPage() {
       await deleteEvent(id);
       await refreshAll();
     } catch {
-      // rollback en cas d'échec
       await refreshAll();
     }
   }
@@ -239,9 +260,13 @@ export default function WeekPage() {
         <GlassCard className="p-6 text-center border-menthe/10 relative overflow-hidden">
           <Weight size={20} className="text-purple-500 mx-auto mb-2" />
           <p className="text-2xl font-black text-white">{stats.weight ? stats.weight.toFixed(1) : "--"}kg</p>
-          <div className={`mt-2 inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${stats.variation > 0 ? "bg-rose-500/10 text-rose-500" : "bg-menthe/10 text-menthe"}`}>
+          <div
+            className={`mt-2 inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${
+              stats.variation > 0 ? "bg-rose-500/10 text-rose-500" : "bg-menthe/10 text-menthe"
+            }`}
+          >
             {stats.variation > 0 ? "+" : ""}
-            {stats.variation.toFixed(1)}%
+            {stats.variation.toFixed(2)}%
           </div>
         </GlassCard>
 
@@ -266,7 +291,6 @@ export default function WeekPage() {
           const m = currentWeekData.find((x) => x.date === dStr);
 
           const dayEvents = events.filter((e) => dStr >= e.start_date && dStr <= e.end_date);
-          const primaryColor = dayEvents[0]?.color && isHex6(dayEvents[0].color) ? dayEvents[0].color : "#FFA94D";
           const isT = isToday(day);
 
           return (
@@ -284,7 +308,7 @@ export default function WeekPage() {
                 <div className="flex-1">
                   <p className="font-black uppercase italic text-sm text-white flex items-center">
                     {format(day, "EEEE", { locale: fr })}
-                    {dayEvents.length > 0 && <Sparkles size={12} className="ml-2" style={{ color: primaryColor }} />}
+                    {dayEvents.length > 0 && <Sparkles size={12} className="ml-2" style={{ color: dayEvents[0].color }} />}
                   </p>
 
                   <div className="mt-1">
@@ -343,7 +367,11 @@ export default function WeekPage() {
       </div>
 
       <div className="mt-10">
-        <button type="button" onClick={openNoteDrawer} className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl font-black uppercase italic text-xs tracking-widest text-white/60 hover:text-white">
+        <button
+          type="button"
+          onClick={openNoteDrawer}
+          className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl font-black uppercase italic text-xs tracking-widest text-white/60 hover:text-white"
+        >
           NOTE
         </button>
       </div>
@@ -386,6 +414,7 @@ export default function WeekPage() {
                   </div>
 
                   <div className="px-5 pb-6 max-h-[75vh] overflow-auto no-scrollbar space-y-6">
+                    {/* CREATE */}
                     <GlassCard className="p-6 rounded-[2.5rem] space-y-4 border-b-4 border-menthe">
                       <input
                         placeholder="Nom de l'événement..."
@@ -416,11 +445,23 @@ export default function WeekPage() {
                       <div className="bg-white/5 rounded-2xl overflow-hidden divide-x divide-white/5 flex items-center">
                         <div className="flex-1 p-4">
                           <label className="text-[8px] font-black text-white/30 uppercase block mb-1">Du</label>
-                          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="bg-transparent w-full text-xs text-white outline-none" />
+                          <input
+                            type="date"
+                            value={from}
+                            max={to || undefined}
+                            onChange={(e) => onChangeFrom(e.target.value)}
+                            className="bg-transparent w-full text-xs text-white outline-none"
+                          />
                         </div>
                         <div className="flex-1 p-4 text-right">
                           <label className="text-[8px] font-black text-white/30 uppercase block mb-1">Au</label>
-                          <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="bg-transparent w-full text-xs text-white outline-none text-right" />
+                          <input
+                            type="date"
+                            value={to}
+                            min={from || undefined}
+                            onChange={(e) => onChangeTo(e.target.value)}
+                            className="bg-transparent w-full text-xs text-white outline-none text-right"
+                          />
                         </div>
                       </div>
 
@@ -429,6 +470,7 @@ export default function WeekPage() {
                         onClick={async () => {
                           if (!title.trim()) return;
                           if (!EVENT_COLORS.map(normalizeHex).includes(normalizeHex(selectedColor))) return;
+                          if (to < from) return; // safety
 
                           await createEvent({
                             title: title.trim(),
@@ -446,6 +488,7 @@ export default function WeekPage() {
                       </button>
                     </GlassCard>
 
+                    {/* LIST (swipe delete) */}
                     <div className="space-y-3">
                       <AnimatePresence mode="popLayout">
                         {allEvents.map((ev) => {
@@ -453,13 +496,7 @@ export default function WeekPage() {
                           const isEditing = editing?.id === ev.id;
 
                           return (
-                            <SwipeDeleteEventRow
-                              key={ev.id}
-                              ev={ev}
-                              color={c}
-                              isEditing={isEditing}
-                              onDelete={handleSwipeDeleteEvent}
-                            >
+                            <SwipeDeleteEventRow key={ev.id} ev={ev} isEditing={isEditing} onDelete={handleSwipeDeleteEvent}>
                               <GlassCard className="p-5 rounded-3xl border-l-4" style={{ borderLeftColor: c }}>
                                 {!isEditing ? (
                                   <div className="flex justify-between items-center gap-4">
@@ -522,6 +559,8 @@ export default function WeekPage() {
                                             const ok = EVENT_COLORS.map(normalizeHex).includes(normalizeHex(editing.color));
                                             if (!ok) return;
 
+                                            if (editing.end_date < editing.start_date) return;
+
                                             await updateEvent(editing.id, {
                                               title: patchTitle,
                                               start_date: editing.start_date,
@@ -574,7 +613,16 @@ export default function WeekPage() {
                                         <input
                                           type="date"
                                           value={editing.start_date}
-                                          onChange={(e) => setEditing({ ...editing, start_date: e.target.value })}
+                                          max={editing.end_date || undefined}
+                                          onChange={(e) => {
+                                            const v = e.target.value;
+                                            setEditing((prev) => {
+                                              if (!prev) return prev;
+                                              const next = { ...prev, start_date: v };
+                                              if (next.end_date && v > next.end_date) next.end_date = v;
+                                              return next;
+                                            });
+                                          }}
                                           className="bg-transparent w-full text-xs text-white outline-none"
                                         />
                                       </div>
@@ -583,7 +631,16 @@ export default function WeekPage() {
                                         <input
                                           type="date"
                                           value={editing.end_date}
-                                          onChange={(e) => setEditing({ ...editing, end_date: e.target.value })}
+                                          min={editing.start_date || undefined}
+                                          onChange={(e) => {
+                                            const v = e.target.value;
+                                            setEditing((prev) => {
+                                              if (!prev) return prev;
+                                              const next = { ...prev, end_date: v };
+                                              if (next.start_date && v < next.start_date) next.start_date = v;
+                                              return next;
+                                            });
+                                          }}
                                           className="bg-transparent w-full text-xs text-white outline-none text-right"
                                         />
                                       </div>
