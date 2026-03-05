@@ -16,7 +16,10 @@ export type WorkoutExerciseRow = {
   load_type: "PDC" | "PDC_PLUS" | "KG" | "TEXT";
   load_g: number | null;
   load_text: string | null;
-  reps: number | null;
+
+  // CLEAN: reps non-null (DB: NOT NULL default 0)
+  reps: number;
+
   comment: string | null;
   sort_order: number;
   created_at: string;
@@ -27,7 +30,9 @@ export type WorkoutExerciseSetRow = {
   user_id: string;
   workout_exercise_id: string;
 
-  reps: number | null;
+  // CLEAN: reps non-null (DB: NOT NULL default 0)
+  reps: number;
+
   load_type: "PDC" | "PDC_PLUS" | "KG" | "TEXT";
   load_g: number | null;
   load_text: string | null;
@@ -81,9 +86,15 @@ export async function addWorkoutExercise(payload: Partial<WorkoutExerciseRow>) {
 }
 
 export async function deleteWorkoutExercise(id: string) {
-  // IMPORTANT: si tu as mis FK ON DELETE CASCADE sur workout_exercise_sets.workout_exercise_id
-  // alors supprimer un master supprimera ses sets.
   const { error } = await supabase.from("workout_exercises").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function updateWorkoutExercise(
+  id: string,
+  patch: Partial<Pick<WorkoutExerciseRow, "reps" | "load_type" | "load_g" | "load_text" | "comment" | "sort_order" | "exercise_name">>
+) {
+  const { error } = await supabase.from("workout_exercises").update(patch).eq("id", id);
   if (error) throw error;
 }
 
@@ -128,7 +139,7 @@ export async function getExerciseSets(workoutExerciseId: string): Promise<Workou
 
 export async function addExerciseSet(payload: {
   workout_exercise_id: string;
-  reps: number | null;
+  reps: number; // CLEAN: non-null
   load_type: "PDC" | "PDC_PLUS" | "KG" | "TEXT";
   load_g: number | null;
   load_text?: string | null;
@@ -168,28 +179,18 @@ export async function updateExerciseSet(
   if (error) throw error;
 }
 
-export async function updateWorkoutExercise(
-  id: string,
-  patch: Partial<Pick<WorkoutExerciseRow, "reps" | "load_type" | "load_g" | "load_text" | "comment" | "sort_order" | "exercise_name">>
-) {
-  const { error } = await supabase.from("workout_exercises").update(patch).eq("id", id);
-  if (error) throw error;
-}
-
+/* -----------------------------
+   DASHBOARD API
+------------------------------ */
 
 export type ExerciseMasterPoint = {
   date: string; // YYYY-MM-DD
   exercise_name: string;
   load_type: "PDC" | "PDC_PLUS" | "KG" | "TEXT";
   load_g: number | null;
-  reps: number; // not null in your DB now
+  reps: number; // CLEAN: non-null
 };
 
-/**
- * Retourne les masters d'un exercice sur une plage.
- * IMPORTANT: on ne sort que les masters (workout_exercises).
- * On agrège côté client pour "un point par jour" (max).
- */
 export async function getExerciseMasterHistory(
   exerciseName: string,
   fromISO: string,
@@ -238,4 +239,3 @@ export async function listTrackedExercises(): Promise<string[]> {
 
   return names.sort((a, b) => a.localeCompare(b));
 }
-
