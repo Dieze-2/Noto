@@ -337,7 +337,7 @@ export default function AppHomePage() {
   const onAddSet = async () => {
     if (!setTarget) return;
     const reps = toIntOrNull(newSet.reps);
-    if (reps == null || reps < 0) return;
+    if (reps == null) return;
 
     const existing = setsByMaster[setTarget.id] ?? [];
     await addExerciseSet({
@@ -379,7 +379,7 @@ export default function AppHomePage() {
     if (!name) return;
 
     const reps = toIntOrNull(masterForm.reps);
-    if (reps == null || reps < 0) return;
+    if (reps == null) return;
 
     await addWorkoutExercise({
       workout_id: workoutId,
@@ -403,8 +403,12 @@ export default function AppHomePage() {
   const primary = dayEvents[0] ?? null;
   const primaryColor = primary?.color && isHex6(primary.color) ? primary.color : "#FFA94D";
 
-  const masterCanValidate = masterForm.exercise_name.trim().length > 0 && (toIntOrNull(masterForm.reps) ?? 0) > 0;
-  const setCanValidate = (toIntOrNull(newSet.reps) ?? 0) > 0;
+  const masterReps = toIntOrNull(masterForm.reps);
+  const masterCanValidate = masterForm.exercise_name.trim().length > 0 && masterReps !== null;
+
+  const setReps = toIntOrNull(newSet.reps);
+  const setCanValidate = setReps !== null;
+
 
   return (
     <div className="max-w-xl mx-auto px-4 pt-12 pb-32">
