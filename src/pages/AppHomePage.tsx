@@ -3,12 +3,23 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence, useTransform, useMotionValue } from "framer-motion";
 import { format, addDays, parseISO, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Footprints, Flame, Weight, Plus, ChevronLeft, ChevronRight, Dumbbell, Trash2, Sparkles } from "lucide-react";
+import { Footprints, Flame, Weight, Plus, ChevronLeft, ChevronRight, Dumbbell, Trash2, Sparkles, X } from "lucide-react";
 
 import StatBubble from "../components/StatBubble";
 import GlassCard from "../components/GlassCard";
+
 import { getDailyMetricsByDate, saveDailyMetrics } from "../db/dailyMetrics";
-import { getOrCreateWorkout, getWorkoutExercises, addWorkoutExercise, deleteWorkoutExercise, WorkoutExerciseRow } from "../db/workouts";
+import {
+  getOrCreateWorkout,
+  getWorkoutExercises,
+  addWorkoutExercise,
+  deleteWorkoutExercise,
+  getExerciseSets,
+  addExerciseSet,
+  deleteExerciseSet,
+  WorkoutExerciseRow,
+  WorkoutExerciseSetRow,
+} from "../db/workouts";
 import { listCatalogExercises, CatalogExercise } from "../db/catalog";
 import { getEventsOverlappingRange, EventRow } from "../db/events";
 
@@ -22,7 +33,6 @@ function getISODateFromParams(dateParam: string | null): string {
 function isHex6(x: string) {
   return /^#[0-9A-Fa-f]{6}$/.test(x);
 }
-
 function toIntOrNull(s: string): number | null {
   const t = s.trim();
   if (!t) return null;
@@ -37,12 +47,25 @@ function toGramsOrNull(kgText: string): number | null {
   return Math.round(n * 1000);
 }
 
-function ExerciseRow({ ex, onDelete }: { ex: WorkoutExerciseRow; onDelete: (id: string) => void }) {
+function MasterRow({
+  ex,
+  sets,
+  onDeleteMaster,
+  onDeleteSet,
+  onOpenAddSet,
+}: {
+  ex: WorkoutExerciseRow;
+  sets: WorkoutExerciseSetRow[];
+  onDeleteMaster: (id: string) => void;
+  onDeleteSet: (id: string) => void;
+  onOpenAddSet: (ex: WorkoutExerciseRow) => void;
+}) {
+  // swipe delete master
   const x = useMotionValue(0);
   const bgOpacity = useTransform(x, [-100, 0], [1, 0]);
 
   return (
-    <motion.div key={ex.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -100 }} className="relative">
+    <motion.div layout className="relative">
       <motion.div style={{ opacity: bgOpacity }} className="absolute inset-0 bg-rose-600 rounded-[1.5rem]" />
 
       <motion.div
@@ -50,25 +73,90 @@ function ExerciseRow({ ex, onDelete }: { ex: WorkoutExerciseRow; onDelete: (id: 
         dragConstraints={{ left: -100, right: 0 }}
         style={{ x }}
         onDragEnd={(_, info) => {
-          if (info.offset.x < -70) onDelete(ex.id);
+          if (info.offset.x < -70) onDeleteMaster(ex.id);
         }}
         className="relative"
       >
-        <GlassCard className="p-4 flex justify-between items-center border-white/5">
-          <div className="flex items-center gap-4">
-            <Dumbbell className="text-menthe" size={20} />
-            <div>
-              <p className="font-black text-white uppercase italic leading-none">{ex.exercise_name}</p>
-              <p className="text-[11px] font-bold text-white/40 mt-1 uppercase">
-                {ex.load_type === "PDC_PLUS" ? `PDC + ${(ex.load_g ?? 0) / 1000}` : `${(ex.load_g ?? 0) / 1000}`} kg •{" "}
-                <span className="text-menthe">{ex.reps ?? 0} reps</span>
-              </p>
+        <GlassCard className="p-4 border-white/5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-4 min-w-0">
+              <Dumbbell className="text-menthe shrink-0" size={20} />
+              <div className="min-w-0">
+                <p className="font-black text-white uppercase italic leading-none truncate">{ex.exercise_name}</p>
+                <p className="text-[11px] font-bold text-white/40 mt-1 uppercase">
+                  {ex.load_type === "PDC_PLUS"
+                    ? `PDC + ${(ex.load_g ?? 0) / 1000}`
+                    : ex.load_type === "PDC"
+                      ? `PDC`
+                      : `${(ex.load_g ?? 0) / 1000}`}{" "}
+                  {ex.load_type === "TEXT" ? "" : "kg"} • <span className="text-menthe">{ex.reps ?? 0} reps</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => onOpenAddSet(ex)}
+                className="w-12 h-12 rounded-full bg-white/5 border border-white/10 text-white/60 font-black uppercase text-[10px] hover:border-menthe/40"
+              >
+                +SET
+              </button>
+              <button onClick={() => onDeleteMaster(ex.id)} className="p-2 text-white/10 hover:text-rose-500 transition-colors">
+                <Trash2 size={18} />
+              </button>
             </div>
           </div>
-          <button onClick={() => onDelete(ex.id)} className="p-2 text-white/10 hover:text-rose-500 transition-colors">
-            <Trash2 size={18} />
-          </button>
+
+          {/* Sets list */}
+          {sets.length > 0 && (
+            <div className="mt-3 space-y-2">
+              {sets.map((s) => (
+                <SetRow key={s.id} setRow={s} onDelete={onDeleteSet} />
+              ))}
+            </div>
+          )}
         </GlassCard>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function SetRow({ setRow, onDelete }: { setRow: WorkoutExerciseSetRow; onDelete: (id: string) => void }) {
+  const x = useMotionValue(0);
+  const bgOpacity = useTransform(x, [-90, 0], [1, 0]);
+
+  return (
+    <motion.div layout className="relative">
+      <motion.div style={{ opacity: bgOpacity }} className="absolute inset-0 bg-rose-600 rounded-2xl" />
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: -90, right: 0 }}
+        style={{ x }}
+        onDragEnd={(_, info) => {
+          if (info.offset.x < -60) onDelete(setRow.id);
+        }}
+        className="relative"
+      >
+        <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-2xl px-4 py-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase italic tracking-widest text-white/50">
+              SET
+            </p>
+            <p className="text-[11px] font-black uppercase italic text-white/80">
+              {setRow.load_type === "PDC_PLUS"
+                ? `PDC + ${(setRow.load_g ?? 0) / 1000}`
+                : setRow.load_type === "PDC"
+                  ? `PDC`
+                  : `${(setRow.load_g ?? 0) / 1000}`}{" "}
+              {setRow.load_type === "TEXT" ? "" : "kg"} • {setRow.reps ?? 0} reps
+            </p>
+          </div>
+
+          <button onClick={() => onDelete(setRow.id)} className="p-2 text-white/10 hover:text-rose-500">
+            <Trash2 size={16} />
+          </button>
+        </div>
       </motion.div>
     </motion.div>
   );
@@ -81,25 +169,14 @@ export default function AppHomePage() {
   const dateISO = useMemo(() => getISODateFromParams(searchParams.get("date")), [searchParams]);
   const currentDate = useMemo(() => parseISO(dateISO), [dateISO]);
 
+  // Metrics (debounce + delete when null)
   const [metrics, setMetrics] = useState({ steps: "", kcal: "", weight: "" });
-  const [exercises, setExercises] = useState<WorkoutExerciseRow[]>([]);
-  const [catalog, setCatalog] = useState<CatalogExercise[]>([]);
-  const [dayEvents, setDayEvents] = useState<EventRow[]>([]);
-
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newEx, setNewEx] = useState({ reps: "", weight: "", load_type: "KG" as "KG" | "PDC_PLUS" });
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showSuggestions, setShowSuggestions] = useState(false);
-
-  // Debounce refs
   const debounceTimerRef = useRef<number | null>(null);
   const pendingRef = useRef(metrics);
   const inFlightRef = useRef<Promise<any> | null>(null);
   const dateRef = useRef(dateISO);
 
-  useEffect(() => {
-    dateRef.current = dateISO;
-  }, [dateISO]);
+  useEffect(() => { dateRef.current = dateISO; }, [dateISO]);
 
   function cancelDebounce() {
     if (debounceTimerRef.current) {
@@ -137,18 +214,55 @@ export default function AppHomePage() {
   function scheduleFlush(next: { steps: string; kcal: string; weight: string }) {
     pendingRef.current = next;
     cancelDebounce();
-
     const dateCaptured = dateISO;
     debounceTimerRef.current = window.setTimeout(() => {
-      // Safety: si on a changé de date depuis, on drop (évite écrasements)
       if (dateRef.current !== dateCaptured) return;
       flushMetricsForDate(dateCaptured).catch(() => {});
     }, METRICS_DEBOUNCE_MS);
   }
 
-  useEffect(() => {
-    return () => cancelDebounce();
-  }, []);
+  useEffect(() => () => cancelDebounce(), []);
+
+  const updateMetric = (key: "steps" | "kcal" | "weight", val: string) => {
+    const next = { ...pendingRef.current, [key]: val };
+    setMetrics(next);
+    scheduleFlush(next);
+  };
+
+  const changeDate = async (delta: number) => {
+    await flushMetricsForDate(dateISO).catch(() => {});
+    const d = addDays(currentDate, delta);
+    setSearchParams({ date: format(d, "yyyy-MM-dd") });
+  };
+
+  // Session workout data
+  const [workoutId, setWorkoutId] = useState<string | null>(null);
+  const [masters, setMasters] = useState<WorkoutExerciseRow[]>([]);
+  const [setsByMaster, setSetsByMaster] = useState<Record<string, WorkoutExerciseSetRow[]>>({});
+  const [catalog, setCatalog] = useState<CatalogExercise[]>([]);
+  const [dayEvents, setDayEvents] = useState<EventRow[]>([]);
+
+  // Add master UI
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newEx, setNewEx] = useState({ reps: "", weight: "", load_type: "KG" as "KG" | "PDC_PLUS" });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Add set drawer
+  const [setOpen, setSetOpen] = useState(false);
+  const [setTarget, setSetTarget] = useState<WorkoutExerciseRow | null>(null);
+  const [newSet, setNewSet] = useState({ reps: "", weight: "", load_type: "KG" as "KG" | "PDC_PLUS" });
+
+  function openAddSetDrawer(ex: WorkoutExerciseRow) {
+    setSetTarget(ex);
+    setNewSet({ reps: "", weight: "", load_type: ex.load_type === "PDC_PLUS" ? "PDC_PLUS" : "KG" });
+    setSetOpen(true);
+  }
+
+  function closeAddSetDrawer() {
+    setSetOpen(false);
+    setSetTarget(null);
+  }
 
   // URL canonique
   useEffect(() => {
@@ -159,24 +273,19 @@ export default function AppHomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Catalogue
+  // Load catalog once
   useEffect(() => {
     let alive = true;
-    listCatalogExercises()
-      .then((cat) => {
-        if (!alive) return;
-        setCatalog(cat);
-      })
-      .catch(() => {});
+    listCatalogExercises().then((c) => alive && setCatalog(c)).catch(() => {});
     return () => { alive = false; };
   }, []);
 
-  // Load data by date
+  // Load day data (metrics + workout + masters + sets + events)
   useEffect(() => {
     let alive = true;
-    cancelDebounce(); // IMPORTANT: stop pending flush from previous date
+    cancelDebounce();
 
-    async function loadData() {
+    async function load() {
       const [m, workout, evs] = await Promise.all([
         getDailyMetricsByDate(dateISO),
         getOrCreateWorkout(dateISO),
@@ -190,59 +299,96 @@ export default function AppHomePage() {
         kcal: m?.kcal != null ? String(m.kcal) : "",
         weight: m?.weight_g != null ? String(m.weight_g / 1000) : "",
       };
-
       setMetrics(nextMetrics);
       pendingRef.current = nextMetrics;
 
+      setDayEvents(evs ?? []);
+
+      setWorkoutId(workout.id);
+
       const ex = await getWorkoutExercises(workout.id);
       if (!alive) return;
-      setExercises(ex);
+      setMasters(ex);
 
-      setDayEvents(evs ?? []);
+      // load sets for each master
+      const entries = await Promise.all(
+        ex.map(async (master) => {
+          const sets = await getExerciseSets(master.id);
+          return [master.id, sets] as const;
+        })
+      );
+      if (!alive) return;
+      setSetsByMaster(Object.fromEntries(entries));
     }
 
-    loadData().catch(() => {});
+    load().catch(() => {});
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateISO]);
 
-  const updateMetric = (key: "steps" | "kcal" | "weight", val: string) => {
-    const next = { ...pendingRef.current, [key]: val };
-    setMetrics(next);
-    scheduleFlush(next);
-  };
+  const onAddMaster = async () => {
+    if (!searchTerm.trim() || !workoutId) return;
 
-  const changeDate = async (delta: number) => {
-    // flush current date state before changing URL
-    await flushMetricsForDate(dateISO).catch(() => {});
-    const d = addDays(currentDate, delta);
-    setSearchParams({ date: format(d, "yyyy-MM-dd") });
-  };
-
-  const onAdd = async () => {
-    if (!searchTerm.trim()) return;
-
-    const workout = await getOrCreateWorkout(dateISO);
     await addWorkoutExercise({
-      workout_id: workout.id,
+      workout_id: workoutId,
       exercise_name: searchTerm.trim(),
-      reps: parseInt(newEx.reps) || 0,
-      load_g: Math.round((parseFloat(newEx.weight) || 0) * 1000),
+      reps: toIntOrNull(newEx.reps) ?? 0,
+      load_g: toGramsOrNull(newEx.weight) ?? 0,
       load_type: newEx.load_type,
-      sort_order: exercises.length,
+      sort_order: masters.length,
     });
 
-    const ex = await getWorkoutExercises(workout.id);
-    setExercises(ex);
+    const ex = await getWorkoutExercises(workoutId);
+    setMasters(ex);
+
+    // ensure sets mapping has empty array for the new master(s)
+    const nextMap = { ...setsByMaster };
+    for (const m of ex) if (!nextMap[m.id]) nextMap[m.id] = await getExerciseSets(m.id);
+    setSetsByMaster(nextMap);
+
     setShowAddForm(false);
     setSearchTerm("");
     setNewEx({ reps: "", weight: "", load_type: "KG" });
     setShowSuggestions(false);
   };
 
-  const handleDelete = async (id: string) => {
+  const deleteMaster = async (id: string) => {
     await deleteWorkoutExercise(id);
-    setExercises((prev) => prev.filter((e) => e.id !== id));
+    setMasters((prev) => prev.filter((e) => e.id !== id));
+    setSetsByMaster((prev) => {
+      const copy = { ...prev };
+      delete copy[id];
+      return copy;
+    });
+  };
+
+  const onAddSet = async () => {
+    if (!setTarget) return;
+
+    const existing = setsByMaster[setTarget.id] ?? [];
+    await addExerciseSet({
+      workout_exercise_id: setTarget.id,
+      reps: toIntOrNull(newSet.reps),
+      load_type: newSet.load_type,
+      load_g: toGramsOrNull(newSet.weight),
+      sort_order: existing.length,
+    });
+
+    const sets = await getExerciseSets(setTarget.id);
+    setSetsByMaster((prev) => ({ ...prev, [setTarget.id]: sets }));
+    closeAddSetDrawer();
+  };
+
+  const deleteSet = async (setId: string) => {
+    await deleteExerciseSet(setId);
+    // remove locally (no refetch needed)
+    setSetsByMaster((prev) => {
+      const copy = { ...prev };
+      for (const k of Object.keys(copy)) {
+        copy[k] = copy[k].filter((s) => s.id !== setId);
+      }
+      return copy;
+    });
   };
 
   const primary = dayEvents[0] ?? null;
@@ -345,14 +491,21 @@ export default function AppHomePage() {
         />
       </div>
 
-      {/* reste inchangé */}
+      {/* WORKOUT */}
       <div className="space-y-6">
         <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter text-center">Ma Séance</h2>
 
         <div className="space-y-3">
           <AnimatePresence mode="popLayout">
-            {exercises.map((ex) => (
-              <ExerciseRow key={ex.id} ex={ex} onDelete={handleDelete} />
+            {masters.map((ex) => (
+              <MasterRow
+                key={ex.id}
+                ex={ex}
+                sets={setsByMaster[ex.id] ?? []}
+                onDeleteMaster={deleteMaster}
+                onDeleteSet={deleteSet}
+                onOpenAddSet={openAddSetDrawer}
+              />
             ))}
           </AnimatePresence>
 
@@ -374,7 +527,9 @@ export default function AppHomePage() {
                     <button
                       key={type}
                       type="button"
-                      className={`flex-1 rounded-lg font-black text-[9px] uppercase ${newEx.load_type === type ? "bg-menthe text-black" : "text-white/30"}`}
+                      className={`flex-1 rounded-lg font-black text-[9px] uppercase ${
+                        newEx.load_type === type ? "bg-menthe text-black" : "text-white/30"
+                      }`}
                       onClick={() => setNewEx({ ...newEx, load_type: type })}
                     >
                       {type === "PDC_PLUS" ? "PDC+" : "KG"}
@@ -430,7 +585,7 @@ export default function AppHomePage() {
                 >
                   Annuler
                 </button>
-                <button type="button" onClick={onAdd} className="flex-1 py-3 bg-menthe rounded-xl font-black uppercase text-xs text-black">
+                <button type="button" onClick={onAddMaster} className="flex-1 py-3 bg-menthe rounded-xl font-black uppercase text-xs text-black">
                   Valider
                 </button>
               </div>
@@ -446,6 +601,100 @@ export default function AppHomePage() {
           )}
         </div>
       </div>
+
+      {/* ADD SET DRAWER */}
+      <AnimatePresence>
+        {setOpen && (
+          <>
+            <motion.button
+              type="button"
+              aria-label="Fermer"
+              onClick={closeAddSetDrawer}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm"
+            />
+
+            <motion.div
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={0.08}
+              onDragEnd={(_, info) => {
+                const shouldClose = info.offset.y > 90 || info.velocity.y > 600;
+                if (shouldClose) closeAddSetDrawer();
+              }}
+              initial={{ y: 700 }}
+              animate={{ y: 0 }}
+              exit={{ y: 700 }}
+              transition={{ type: "spring", damping: 28, stiffness: 260 }}
+              className="fixed left-0 right-0 bottom-0 z-[70]"
+            >
+              <div className="mx-auto max-w-xl">
+                <div className="rounded-t-[2.5rem] border border-white/10 bg-zinc-950/90 backdrop-blur-2xl shadow-[0_-30px_80px_rgba(0,0,0,0.75)]">
+                  <div className="px-5 pt-4 pb-3 flex items-center justify-between relative">
+                    <div className="w-12 h-1.5 rounded-full bg-white/10 mx-auto absolute left-1/2 -translate-x-1/2 top-3" />
+                    <h2 className="text-sm font-black uppercase italic tracking-widest text-white/70">
+                      Ajouter Set
+                    </h2>
+                    <button type="button" onClick={closeAddSetDrawer} className="p-2 text-white/30 hover:text-white">
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  <div className="px-5 pb-6 max-h-[75vh] overflow-auto no-scrollbar space-y-4">
+                    <div className="glass-card p-6 rounded-[2rem] space-y-4 border border-white/10">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-white/40">
+                        {setTarget?.exercise_name ?? ""}
+                      </p>
+
+                      <div className="flex bg-white/5 rounded-xl p-1 h-11">
+                        {(["KG", "PDC_PLUS"] as const).map((type) => (
+                          <button
+                            key={type}
+                            type="button"
+                            className={`flex-1 rounded-lg font-black text-[9px] uppercase ${
+                              newSet.load_type === type ? "bg-menthe text-black" : "text-white/30"
+                            }`}
+                            onClick={() => setNewSet({ ...newSet, load_type: type })}
+                          >
+                            {type === "PDC_PLUS" ? "PDC+" : "KG"}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <input
+                          type="number"
+                          placeholder="kg"
+                          className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center font-black outline-none"
+                          value={newSet.weight}
+                          onChange={(e) => setNewSet({ ...newSet, weight: e.target.value })}
+                        />
+                        <input
+                          type="number"
+                          placeholder="reps"
+                          className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center font-black outline-none"
+                          value={newSet.reps}
+                          onChange={(e) => setNewSet({ ...newSet, reps: e.target.value })}
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={onAddSet}
+                        className="w-full bg-menthe text-black py-4 rounded-2xl font-black text-xs uppercase tracking-widest"
+                      >
+                        Valider
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
