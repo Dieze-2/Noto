@@ -60,7 +60,6 @@ function MasterRow({
   onDeleteSet: (id: string) => void;
   onOpenAddSet: (ex: WorkoutExerciseRow) => void;
 }) {
-  // swipe delete master
   const x = useMotionValue(0);
   const bgOpacity = useTransform(x, [-100, 0], [1, 0]);
 
@@ -108,7 +107,6 @@ function MasterRow({
             </div>
           </div>
 
-          {/* Sets list */}
           {sets.length > 0 && (
             <div className="mt-3 space-y-2">
               {sets.map((s) => (
@@ -140,16 +138,14 @@ function SetRow({ setRow, onDelete }: { setRow: WorkoutExerciseSetRow; onDelete:
       >
         <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-2xl px-4 py-3">
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase italic tracking-widest text-white/50">
-              SET
-            </p>
+            <p className="text-[10px] font-black uppercase italic tracking-widest text-white/50">SET</p>
             <p className="text-[11px] font-black uppercase italic text-white/80">
               {setRow.load_type === "PDC_PLUS"
                 ? `PDC + ${(setRow.load_g ?? 0) / 1000}`
                 : setRow.load_type === "PDC"
                   ? `PDC`
                   : `${(setRow.load_g ?? 0) / 1000}`}{" "}
-              {setRow.load_type === "TEXT" ? "" : "kg"} • {setRow.reps ?? 0} reps
+              {setRow.load_type === "TEXT" ? "" : "kg"} • {setRow.reps} reps
             </p>
           </div>
 
@@ -202,7 +198,7 @@ export default function AppHomePage() {
 
     const run = async () => {
       if (inFlightRef.current) {
-        try { await inFlightRef.current; } catch { /* ignore */ }
+        try { await inFlightRef.current; } catch {}
       }
       inFlightRef.current = saveDailyMetrics(payload);
       await inFlightRef.current;
@@ -235,20 +231,26 @@ export default function AppHomePage() {
     setSearchParams({ date: format(d, "yyyy-MM-dd") });
   };
 
-  // Session workout data
+  // Workout data
   const [workoutId, setWorkoutId] = useState<string | null>(null);
   const [masters, setMasters] = useState<WorkoutExerciseRow[]>([]);
   const [setsByMaster, setSetsByMaster] = useState<Record<string, WorkoutExerciseSetRow[]>>({});
   const [catalog, setCatalog] = useState<CatalogExercise[]>([]);
   const [dayEvents, setDayEvents] = useState<EventRow[]>([]);
 
-  // Add master UI
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newEx, setNewEx] = useState({ reps: "", weight: "", load_type: "KG" as "KG" | "PDC_PLUS" });
-  const [searchTerm, setSearchTerm] = useState("");
+  // Drawer add master
+  const [masterOpen, setMasterOpen] = useState(false);
+  const [masterForm, setMasterForm] = useState({
+    exercise_name: "",
+    load_type: "KG" as "KG" | "PDC_PLUS",
+    weight: "",
+    reps: "",
+  });
+
+  // Suggestions
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // Add set drawer
+  // Drawer add set
   const [setOpen, setSetOpen] = useState(false);
   const [setTarget, setSetTarget] = useState<WorkoutExerciseRow | null>(null);
   const [newSet, setNewSet] = useState({ reps: "", weight: "", load_type: "KG" as "KG" | "PDC_PLUS" });
@@ -264,7 +266,6 @@ export default function AppHomePage() {
     setSetTarget(null);
   }
 
-  // URL canonique
   useEffect(() => {
     const param = searchParams.get("date");
     if (!param || !isValid(parseISO(param))) {
@@ -273,14 +274,12 @@ export default function AppHomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Load catalog once
   useEffect(() => {
     let alive = true;
     listCatalogExercises().then((c) => alive && setCatalog(c)).catch(() => {});
     return () => { alive = false; };
   }, []);
 
-  // Load day data (metrics + workout + masters + sets + events)
   useEffect(() => {
     let alive = true;
     cancelDebounce();
@@ -310,7 +309,6 @@ export default function AppHomePage() {
       if (!alive) return;
       setMasters(ex);
 
-      // load sets for each master
       const entries = await Promise.all(
         ex.map(async (master) => {
           const sets = await getExerciseSets(master.id);
@@ -326,32 +324,6 @@ export default function AppHomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateISO]);
 
-  const onAddMaster = async () => {
-    if (!searchTerm.trim() || !workoutId) return;
-
-    await addWorkoutExercise({
-      workout_id: workoutId,
-      exercise_name: searchTerm.trim(),
-      reps: toIntOrNull(newEx.reps) ?? 0,
-      load_g: toGramsOrNull(newEx.weight) ?? 0,
-      load_type: newEx.load_type,
-      sort_order: masters.length,
-    });
-
-    const ex = await getWorkoutExercises(workoutId);
-    setMasters(ex);
-
-    // ensure sets mapping has empty array for the new master(s)
-    const nextMap = { ...setsByMaster };
-    for (const m of ex) if (!nextMap[m.id]) nextMap[m.id] = await getExerciseSets(m.id);
-    setSetsByMaster(nextMap);
-
-    setShowAddForm(false);
-    setSearchTerm("");
-    setNewEx({ reps: "", weight: "", load_type: "KG" });
-    setShowSuggestions(false);
-  };
-
   const deleteMaster = async (id: string) => {
     await deleteWorkoutExercise(id);
     setMasters((prev) => prev.filter((e) => e.id !== id));
@@ -364,11 +336,13 @@ export default function AppHomePage() {
 
   const onAddSet = async () => {
     if (!setTarget) return;
+    const reps = toIntOrNull(newSet.reps);
+    if (reps == null || reps < 0) return;
 
     const existing = setsByMaster[setTarget.id] ?? [];
     await addExerciseSet({
       workout_exercise_id: setTarget.id,
-      reps: toIntOrNull(newSet.reps),
+      reps,
       load_type: newSet.load_type,
       load_g: toGramsOrNull(newSet.weight),
       sort_order: existing.length,
@@ -381,18 +355,56 @@ export default function AppHomePage() {
 
   const deleteSet = async (setId: string) => {
     await deleteExerciseSet(setId);
-    // remove locally (no refetch needed)
     setSetsByMaster((prev) => {
-      const copy = { ...prev };
-      for (const k of Object.keys(copy)) {
-        copy[k] = copy[k].filter((s) => s.id !== setId);
-      }
+      const copy: Record<string, WorkoutExerciseSetRow[]> = {};
+      for (const k of Object.keys(prev)) copy[k] = prev[k].filter((s) => s.id !== setId);
       return copy;
     });
   };
 
+  const openMasterDrawer = () => {
+    setMasterForm({ exercise_name: "", load_type: "KG", weight: "", reps: "" });
+    setShowSuggestions(false);
+    setMasterOpen(true);
+  };
+
+  const closeMasterDrawer = () => {
+    setMasterOpen(false);
+  };
+
+  const onAddMaster = async () => {
+    if (!workoutId) return;
+
+    const name = masterForm.exercise_name.trim();
+    if (!name) return;
+
+    const reps = toIntOrNull(masterForm.reps);
+    if (reps == null || reps < 0) return;
+
+    await addWorkoutExercise({
+      workout_id: workoutId,
+      exercise_name: name,
+      reps,
+      load_g: toGramsOrNull(masterForm.weight),
+      load_type: masterForm.load_type,
+      sort_order: masters.length,
+    });
+
+    const ex = await getWorkoutExercises(workoutId);
+    setMasters(ex);
+
+    const nextMap = { ...setsByMaster };
+    for (const m of ex) if (!nextMap[m.id]) nextMap[m.id] = await getExerciseSets(m.id);
+    setSetsByMaster(nextMap);
+
+    closeMasterDrawer();
+  };
+
   const primary = dayEvents[0] ?? null;
   const primaryColor = primary?.color && isHex6(primary.color) ? primary.color : "#FFA94D";
+
+  const masterCanValidate = masterForm.exercise_name.trim().length > 0 && (toIntOrNull(masterForm.reps) ?? 0) > 0;
+  const setCanValidate = (toIntOrNull(newSet.reps) ?? 0) > 0;
 
   return (
     <div className="max-w-xl mx-auto px-4 pt-12 pb-32">
@@ -456,42 +468,11 @@ export default function AppHomePage() {
       </header>
 
       <div className="grid grid-cols-3 gap-3 mb-12">
-        <StatBubble
-          name="steps"
-          icon={Footprints}
-          label="Pas"
-          value={metrics.steps}
-          onChange={(v) => updateMetric("steps", v)}
-          onBlur={() => flushMetricsForDate(dateISO).catch(() => {})}
-          accent
-          inputMode="numeric"
-          placeholder=""
-        />
-        <StatBubble
-          name="kcal"
-          icon={Flame}
-          label="Kcal"
-          value={metrics.kcal}
-          onChange={(v) => updateMetric("kcal", v)}
-          onBlur={() => flushMetricsForDate(dateISO).catch(() => {})}
-          colorClass="text-yellow-200"
-          inputMode="numeric"
-          placeholder=""
-        />
-        <StatBubble
-          name="weight"
-          icon={Weight}
-          label="Kg"
-          value={metrics.weight}
-          onChange={(v) => updateMetric("weight", v)}
-          onBlur={() => flushMetricsForDate(dateISO).catch(() => {})}
-          colorClass="text-purple-500"
-          inputMode="decimal"
-          placeholder=""
-        />
+        <StatBubble name="steps" icon={Footprints} label="Pas" value={metrics.steps} onChange={(v) => updateMetric("steps", v)} onBlur={() => flushMetricsForDate(dateISO).catch(() => {})} accent inputMode="numeric" placeholder="" />
+        <StatBubble name="kcal" icon={Flame} label="Kcal" value={metrics.kcal} onChange={(v) => updateMetric("kcal", v)} onBlur={() => flushMetricsForDate(dateISO).catch(() => {})} colorClass="text-yellow-200" inputMode="numeric" placeholder="" />
+        <StatBubble name="weight" icon={Weight} label="Kg" value={metrics.weight} onChange={(v) => updateMetric("weight", v)} onBlur={() => flushMetricsForDate(dateISO).catch(() => {})} colorClass="text-purple-500" inputMode="decimal" placeholder="" />
       </div>
 
-      {/* WORKOUT */}
       <div className="space-y-6">
         <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter text-center">Ma Séance</h2>
 
@@ -509,100 +490,138 @@ export default function AppHomePage() {
             ))}
           </AnimatePresence>
 
-          {showAddForm ? (
-            <GlassCard className="p-6 border-menthe/30 space-y-4">
-              <input
-                placeholder="Exercice..."
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 font-bold uppercase italic outline-none focus:border-menthe"
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setShowSuggestions(true);
-                }}
-              />
-
-              <div className="grid grid-cols-3 gap-3">
-                <div className="flex bg-white/5 rounded-xl p-1 h-11">
-                  {(["KG", "PDC_PLUS"] as const).map((type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      className={`flex-1 rounded-lg font-black text-[9px] uppercase ${
-                        newEx.load_type === type ? "bg-menthe text-black" : "text-white/30"
-                      }`}
-                      onClick={() => setNewEx({ ...newEx, load_type: type })}
-                    >
-                      {type === "PDC_PLUS" ? "PDC+" : "KG"}
-                    </button>
-                  ))}
-                </div>
-
-                <input
-                  type="number"
-                  placeholder="kg"
-                  className="bg-white/5 border border-white/10 rounded-xl px-2 text-center font-black outline-none"
-                  value={newEx.weight}
-                  onChange={(e) => setNewEx({ ...newEx, weight: e.target.value })}
-                />
-                <input
-                  type="number"
-                  placeholder="reps"
-                  className="bg-white/5 border border-white/10 rounded-xl px-2 text-center font-black outline-none"
-                  value={newEx.reps}
-                  onChange={(e) => setNewEx({ ...newEx, reps: e.target.value })}
-                />
-              </div>
-
-              {showSuggestions && searchTerm.trim().length > 0 && catalog.length > 0 && (
-                <div className="max-h-48 overflow-auto no-scrollbar space-y-2">
-                  {catalog
-                    .filter((c) => c.name.toLowerCase().includes(searchTerm.toLowerCase()))
-                    .slice(0, 8)
-                    .map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => {
-                          setSearchTerm(c.name);
-                          setShowSuggestions(false);
-                        }}
-                        className="w-full text-left bg-white/5 border border-white/10 rounded-xl px-4 py-3 font-black uppercase italic text-xs text-white/70 hover:border-menthe/40"
-                      >
-                        {c.name}
-                      </button>
-                    ))}
-                </div>
-              )}
-
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAddForm(false);
-                    setShowSuggestions(false);
-                  }}
-                  className="flex-1 py-3 bg-white/5 rounded-xl font-black uppercase text-xs"
-                >
-                  Annuler
-                </button>
-                <button type="button" onClick={onAddMaster} className="flex-1 py-3 bg-menthe rounded-xl font-black uppercase text-xs text-black">
-                  Valider
-                </button>
-              </div>
-            </GlassCard>
-          ) : (
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="w-full py-6 border-2 border-dashed border-white/5 rounded-[2rem] flex flex-col items-center justify-center text-white/20"
-            >
-              <Plus size={24} />
-              <span className="text-[10px] font-black uppercase tracking-widest mt-2">Nouveau mouvement</span>
-            </button>
-          )}
+          <button
+            onClick={openMasterDrawer}
+            className="w-full py-6 border-2 border-dashed border-white/5 rounded-[2rem] flex flex-col items-center justify-center text-white/20"
+          >
+            <Plus size={24} />
+            <span className="text-[10px] font-black uppercase tracking-widest mt-2">Nouveau mouvement</span>
+          </button>
         </div>
       </div>
 
-      {/* ADD SET DRAWER */}
+      {/* DRAWER ADD MASTER */}
+      <AnimatePresence>
+        {masterOpen && (
+          <>
+            <motion.button
+              type="button"
+              aria-label="Fermer"
+              onClick={closeMasterDrawer}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm"
+            />
+            <motion.div
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={0.08}
+              onDragEnd={(_, info) => {
+                const shouldClose = info.offset.y > 90 || info.velocity.y > 600;
+                if (shouldClose) closeMasterDrawer();
+              }}
+              initial={{ y: 700 }}
+              animate={{ y: 0 }}
+              exit={{ y: 700 }}
+              transition={{ type: "spring", damping: 28, stiffness: 260 }}
+              className="fixed left-0 right-0 bottom-0 z-[70]"
+            >
+              <div className="mx-auto max-w-xl">
+                <div className="rounded-t-[2.5rem] border border-white/10 bg-zinc-950/90 backdrop-blur-2xl shadow-[0_-30px_80px_rgba(0,0,0,0.75)]">
+                  <div className="px-5 pt-4 pb-3 flex items-center justify-between relative">
+                    <div className="w-12 h-1.5 rounded-full bg-white/10 mx-auto absolute left-1/2 -translate-x-1/2 top-3" />
+                    <h2 className="text-sm font-black uppercase italic tracking-widest text-white/70">Ajouter Exercice</h2>
+                    <button type="button" onClick={closeMasterDrawer} className="p-2 text-white/30 hover:text-white">
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  <div className="px-5 pb-6 max-h-[75vh] overflow-auto no-scrollbar space-y-4">
+                    <div className="glass-card p-6 rounded-[2rem] space-y-4 border border-white/10">
+                      <input
+                        placeholder="Exercice..."
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 font-bold uppercase italic outline-none focus:border-menthe"
+                        value={masterForm.exercise_name}
+                        onChange={(e) => {
+                          setMasterForm({ ...masterForm, exercise_name: e.target.value });
+                          setShowSuggestions(true);
+                        }}
+                      />
+
+                      {showSuggestions && masterForm.exercise_name.trim().length > 0 && (
+                        <div className="max-h-48 overflow-auto no-scrollbar space-y-2">
+                          {catalog
+                            .filter((c) => c.name.toLowerCase().includes(masterForm.exercise_name.toLowerCase()))
+                            .slice(0, 8)
+                            .map((c) => (
+                              <button
+                                key={c.id}
+                                type="button"
+                                onClick={() => {
+                                  setMasterForm({ ...masterForm, exercise_name: c.name });
+                                  setShowSuggestions(false);
+                                }}
+                                className="w-full text-left bg-white/5 border border-white/10 rounded-xl px-4 py-3 font-black uppercase italic text-xs text-white/70 hover:border-menthe/40"
+                              >
+                                {c.name}
+                              </button>
+                            ))}
+                        </div>
+                      )}
+
+                      <div className="flex bg-white/5 rounded-xl p-1 h-11">
+                        {(["KG", "PDC_PLUS"] as const).map((type) => (
+                          <button
+                            key={type}
+                            type="button"
+                            className={`flex-1 rounded-lg font-black text-[9px] uppercase ${
+                              masterForm.load_type === type ? "bg-menthe text-black" : "text-white/30"
+                            }`}
+                            onClick={() => setMasterForm({ ...masterForm, load_type: type })}
+                          >
+                            {type === "PDC_PLUS" ? "PDC+" : "KG"}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <input
+                          type="number"
+                          placeholder="kg"
+                          className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center font-black outline-none"
+                          value={masterForm.weight}
+                          onChange={(e) => setMasterForm({ ...masterForm, weight: e.target.value })}
+                        />
+                        <input
+                          type="number"
+                          placeholder="reps*"
+                          className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center font-black outline-none"
+                          value={masterForm.reps}
+                          onChange={(e) => setMasterForm({ ...masterForm, reps: e.target.value })}
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={!masterCanValidate}
+                        onClick={onAddMaster}
+                        className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest ${
+                          masterCanValidate ? "bg-menthe text-black" : "bg-white/5 text-white/20 border border-white/10"
+                        }`}
+                      >
+                        Valider
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* DRAWER ADD SET */}
       <AnimatePresence>
         {setOpen && (
           <>
@@ -615,7 +634,6 @@ export default function AppHomePage() {
               exit={{ opacity: 0 }}
               className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm"
             />
-
             <motion.div
               drag="y"
               dragConstraints={{ top: 0, bottom: 0 }}
@@ -634,9 +652,7 @@ export default function AppHomePage() {
                 <div className="rounded-t-[2.5rem] border border-white/10 bg-zinc-950/90 backdrop-blur-2xl shadow-[0_-30px_80px_rgba(0,0,0,0.75)]">
                   <div className="px-5 pt-4 pb-3 flex items-center justify-between relative">
                     <div className="w-12 h-1.5 rounded-full bg-white/10 mx-auto absolute left-1/2 -translate-x-1/2 top-3" />
-                    <h2 className="text-sm font-black uppercase italic tracking-widest text-white/70">
-                      Ajouter Set
-                    </h2>
+                    <h2 className="text-sm font-black uppercase italic tracking-widest text-white/70">Ajouter Set</h2>
                     <button type="button" onClick={closeAddSetDrawer} className="p-2 text-white/30 hover:text-white">
                       <X size={18} />
                     </button>
@@ -673,7 +689,7 @@ export default function AppHomePage() {
                         />
                         <input
                           type="number"
-                          placeholder="reps"
+                          placeholder="reps*"
                           className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center font-black outline-none"
                           value={newSet.reps}
                           onChange={(e) => setNewSet({ ...newSet, reps: e.target.value })}
@@ -682,8 +698,11 @@ export default function AppHomePage() {
 
                       <button
                         type="button"
+                        disabled={!setCanValidate}
                         onClick={onAddSet}
-                        className="w-full bg-menthe text-black py-4 rounded-2xl font-black text-xs uppercase tracking-widest"
+                        className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest ${
+                          setCanValidate ? "bg-menthe text-black" : "bg-white/5 text-white/20 border border-white/10"
+                        }`}
                       >
                         Valider
                       </button>
