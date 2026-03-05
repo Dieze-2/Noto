@@ -9,6 +9,7 @@ interface StatBubbleProps {
   onChange: (next: string) => void;
   onFocus?: () => void;
   onBlur?: () => void;
+  onEnter?: () => void;
   unit?: string;
   accent?: boolean;
   colorClass?: string;
@@ -24,6 +25,7 @@ export default function StatBubble({
   onChange,
   onFocus,
   onBlur,
+  onEnter,
   unit,
   accent,
   colorClass,
@@ -44,6 +46,16 @@ export default function StatBubble({
             onChange={(e) => onChange(e.target.value)}
             onFocus={onFocus}
             onBlur={onBlur}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                (e.currentTarget as HTMLInputElement).blur();
+                onEnter?.();
+              }
+              if (e.key === "Escape") {
+                (e.currentTarget as HTMLInputElement).blur();
+                onBlur?.();
+              }
+            }}
             inputMode={inputMode}
             placeholder={placeholder}
             className="w-full bg-transparent text-center text-2xl font-black tabular-nums text-white outline-none uppercase italic placeholder:text-white/10"
