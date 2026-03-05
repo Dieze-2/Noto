@@ -217,23 +217,24 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        <div className="mt-6 h-56">
-          {hasWeightData ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={weightChartData}>
-                <CartesianGrid stroke="rgba(255,255,255,0.06)" />
-                <XAxis dataKey="date" stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
-                <YAxis stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
-                <Tooltip contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16 }} />
-                <Line type="monotone" dataKey="kg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-full w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">
-              PAS DE DONNÉES POIDS
-            </div>
-          )}
-        </div>
+        <div className="mt-6 overflow-hidden">
+  {hasWeightData ? (
+    <div className="w-full overflow-x-auto no-scrollbar">
+      <LineChart width={520} height={220} data={weightChartData}>
+        <CartesianGrid stroke="rgba(255,255,255,0.06)" />
+        <XAxis dataKey="date" stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
+        <YAxis stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
+        <Tooltip contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16 }} />
+        <Line type="monotone" dataKey="kg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
+      </LineChart>
+    </div>
+  ) : (
+    <div className="h-[220px] w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">
+      PAS DE DONNÉES POIDS
+    </div>
+  )}
+</div>
+
       </GlassCard>
 
       {/* EXERCICE SETTINGS */}
@@ -316,49 +317,63 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          <div className="mt-6 h-56">
-            {hasExerciseData ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={exerciseChartData}>
-                  <CartesianGrid stroke="rgba(255,255,255,0.06)" />
-                  <XAxis dataKey="date" stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
-                  <YAxis stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
-                  <Tooltip contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16 }} />
-                  <Line type="monotone" dataKey="valueKg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-full w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">
-                PAS ASSEZ DE DONNÉES
-              </div>
-            )}
-          </div>
+          <div className="mt-6 overflow-hidden">
+  {hasExerciseData ? (
+    <div className="w-full overflow-x-auto no-scrollbar">
+      <LineChart width={520} height={220} data={exerciseChartData}>
+        <CartesianGrid stroke="rgba(255,255,255,0.06)" />
+        <XAxis dataKey="date" stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
+        <YAxis stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
+        <Tooltip contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16 }} />
+        <Line type="monotone" dataKey="valueKg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
+      </LineChart>
+    </div>
+  ) : (
+    <div className="h-[220px] w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">
+      PAS ASSEZ DE DONNÉES
+    </div>
+  )}
+</div>
+
         </GlassCard>
       )}
 
-      <Modal open={modal === "exercise"} onClose={() => setModal(null)}>
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={exerciseChartData}>
-            <CartesianGrid stroke="rgba(255,255,255,0.06)" />
-            <XAxis dataKey="date" stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
-            <YAxis stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
-            <Tooltip contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16 }} />
-            <Line type="monotone" dataKey="valueKg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
-          </LineChart>
-        </ResponsiveContainer>
-      </Modal>
+     <Modal open={modal === "exercise"} onClose={() => setModal(null)}>
+  <div className="w-full overflow-x-auto no-scrollbar">
+    <LineChart width={900} height={420} data={exerciseChartData}>
+      <CartesianGrid stroke="rgba(255,255,255,0.06)" />
+      <XAxis dataKey="date" stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
+      <YAxis stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
+      <Tooltip
+        contentStyle={{
+          background: "rgba(0,0,0,0.9)",
+          border: "1px solid rgba(255,255,255,0.1)",
+          borderRadius: 16,
+        }}
+      />
+      <Line type="monotone" dataKey="valueKg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
+    </LineChart>
+  </div>
+</Modal>
 
-      <Modal open={modal === "weight"} onClose={() => setModal(null)}>
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={weightChartData}>
-            <CartesianGrid stroke="rgba(255,255,255,0.06)" />
-            <XAxis dataKey="date" stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
-            <YAxis stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
-            <Tooltip contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16 }} />
-            <Line type="monotone" dataKey="kg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
-          </LineChart>
-        </ResponsiveContainer>
-      </Modal>
+<Modal open={modal === "weight"} onClose={() => setModal(null)}>
+  <div className="w-full overflow-x-auto no-scrollbar">
+    <LineChart width={900} height={420} data={weightChartData}>
+      <CartesianGrid stroke="rgba(255,255,255,0.06)" />
+      <XAxis dataKey="date" stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
+      <YAxis stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
+      <Tooltip
+        contentStyle={{
+          background: "rgba(0,0,0,0.9)",
+          border: "1px solid rgba(255,255,255,0.1)",
+          borderRadius: 16,
+        }}
+      />
+      <Line type="monotone" dataKey="kg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
+    </LineChart>
+  </div>
+</Modal>
+
     </div>
   );
 }
