@@ -23,6 +23,20 @@ function isHex6(x: string) {
   return /^#[0-9A-Fa-f]{6}$/.test(x);
 }
 
+function toIntOrNull(s: string): number | null {
+  const t = s.trim();
+  if (!t) return null;
+  const n = parseInt(t, 10);
+  return Number.isFinite(n) ? n : null;
+}
+function toGramsOrNull(kgText: string): number | null {
+  const t = kgText.trim();
+  if (!t) return null;
+  const n = parseFloat(t.replace(",", "."));
+  if (!Number.isFinite(n)) return null;
+  return Math.round(n * 1000);
+}
+
 function ExerciseRow({ ex, onDelete }: { ex: WorkoutExerciseRow; onDelete: (id: string) => void }) {
   const x = useMotionValue(0);
   const bgOpacity = useTransform(x, [-100, 0], [1, 0]);
@@ -77,37 +91,41 @@ export default function AppHomePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // --- Debounce state ---
+  // Debounce refs
   const debounceTimerRef = useRef<number | null>(null);
   const pendingRef = useRef(metrics);
   const inFlightRef = useRef<Promise<any> | null>(null);
+  const dateRef = useRef(dateISO);
+
+  useEffect(() => {
+    dateRef.current = dateISO;
+  }, [dateISO]);
+
+  function cancelDebounce() {
+    if (debounceTimerRef.current) {
+      window.clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+  }
 
   function buildPayload(date: string, m: { steps: string; kcal: string; weight: string }) {
     return {
       date,
-      steps: parseInt(m.steps) || 0,
-      kcal: parseInt(m.kcal) || 0,
-      weight_g: Math.round((parseFloat(m.weight) || 0) * 1000),
+      steps: toIntOrNull(m.steps),
+      kcal: toIntOrNull(m.kcal),
+      weight_g: toGramsOrNull(m.weight),
       note: null as string | null,
     };
   }
 
   async function flushMetricsForDate(date: string) {
-    if (debounceTimerRef.current) {
-      window.clearTimeout(debounceTimerRef.current);
-      debounceTimerRef.current = null;
-    }
-
+    cancelDebounce();
     const snap = pendingRef.current;
     const payload = buildPayload(date, snap);
 
     const run = async () => {
       if (inFlightRef.current) {
-        try {
-          await inFlightRef.current;
-        } catch {
-          // ignore
-        }
+        try { await inFlightRef.current; } catch { /* ignore */ }
       }
       inFlightRef.current = upsertDailyMetrics(payload);
       await inFlightRef.current;
@@ -116,24 +134,23 @@ export default function AppHomePage() {
     await run();
   }
 
-  function scheduleFlushForCurrentDate(next: { steps: string; kcal: string; weight: string }) {
+  function scheduleFlush(next: { steps: string; kcal: string; weight: string }) {
     pendingRef.current = next;
+    cancelDebounce();
 
-    if (debounceTimerRef.current) window.clearTimeout(debounceTimerRef.current);
-    const dateCaptured = dateISO; // CRITICAL: capture date at schedule time
-
+    const dateCaptured = dateISO;
     debounceTimerRef.current = window.setTimeout(() => {
+      // Safety: si on a changé de date depuis, on drop (évite écrasements)
+      if (dateRef.current !== dateCaptured) return;
       flushMetricsForDate(dateCaptured).catch(() => {});
     }, METRICS_DEBOUNCE_MS);
   }
 
   useEffect(() => {
-    return () => {
-      if (debounceTimerRef.current) window.clearTimeout(debounceTimerRef.current);
-    };
+    return () => cancelDebounce();
   }, []);
 
-  // --- URL canonique ---
+  // URL canonique
   useEffect(() => {
     const param = searchParams.get("date");
     if (!param || !isValid(parseISO(param))) {
@@ -142,7 +159,7 @@ export default function AppHomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // --- Catalogue chargé une fois ---
+  // Catalogue
   useEffect(() => {
     let alive = true;
     listCatalogExercises()
@@ -151,14 +168,13 @@ export default function AppHomePage() {
         setCatalog(cat);
       })
       .catch(() => {});
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, []);
 
-  // --- Data load par date ---
+  // Load data by date
   useEffect(() => {
     let alive = true;
+    cancelDebounce(); // IMPORTANT: stop pending flush from previous date
 
     async function loadData() {
       const [m, workout, evs] = await Promise.all([
@@ -170,9 +186,9 @@ export default function AppHomePage() {
       if (!alive) return;
 
       const nextMetrics = {
-        steps: m?.steps?.toString() || "",
-        kcal: m?.kcal?.toString() || "",
-        weight: m?.weight_g ? (m.weight_g / 1000).toString() : "",
+        steps: m?.steps != null ? String(m.steps) : "",
+        kcal: m?.kcal != null ? String(m.kcal) : "",
+        weight: m?.weight_g != null ? String(m.weight_g / 1000) : "",
       };
 
       setMetrics(nextMetrics);
@@ -186,23 +202,21 @@ export default function AppHomePage() {
     }
 
     loadData().catch(() => {});
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateISO]);
 
   const updateMetric = (key: "steps" | "kcal" | "weight", val: string) => {
     const next = { ...pendingRef.current, [key]: val };
     setMetrics(next);
-    scheduleFlushForCurrentDate(next);
+    scheduleFlush(next);
   };
 
   const changeDate = async (delta: number) => {
-    // Flush TOUJOURS pour la date actuelle AVANT de changer l'URL
+    // flush current date state before changing URL
     await flushMetricsForDate(dateISO).catch(() => {});
     const d = addDays(currentDate, delta);
-    const nextISO = format(d, "yyyy-MM-dd");
-    setSearchParams({ date: nextISO });
+    setSearchParams({ date: format(d, "yyyy-MM-dd") });
   };
 
   const onAdd = async () => {
@@ -279,7 +293,6 @@ export default function AppHomePage() {
                       </div>
                     );
                   })}
-
                   {dayEvents.length > MAX_DOTS && (
                     <div className="text-[10px] font-black uppercase italic tracking-widest text-white/30">
                       +{dayEvents.length - MAX_DOTS}
@@ -307,6 +320,7 @@ export default function AppHomePage() {
           onEnter={() => flushMetricsForDate(dateISO).catch(() => {})}
           accent
           inputMode="numeric"
+          placeholder=""
         />
         <StatBubble
           name="kcal"
@@ -318,6 +332,7 @@ export default function AppHomePage() {
           onEnter={() => flushMetricsForDate(dateISO).catch(() => {})}
           colorClass="text-yellow-200"
           inputMode="numeric"
+          placeholder=""
         />
         <StatBubble
           name="weight"
@@ -329,9 +344,11 @@ export default function AppHomePage() {
           onEnter={() => flushMetricsForDate(dateISO).catch(() => {})}
           colorClass="text-purple-500"
           inputMode="decimal"
+          placeholder=""
         />
       </div>
 
+      {/* reste inchangé */}
       <div className="space-y-6">
         <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter text-center">Ma Séance</h2>
 
