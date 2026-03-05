@@ -116,8 +116,6 @@ export default function WeekPage() {
   const [selectedColor, setSelectedColor] = useState<string>(EVENT_COLORS[0]);
   const [range, setRange] = useState<DateRange | undefined>(undefined);
 
-  });
-
   const [allEvents, setAllEvents] = useState<EventRow[]>([]);
   const [editing, setEditing] = useState<EditState | null>(null);
 
