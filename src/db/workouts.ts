@@ -175,3 +175,51 @@ export async function updateWorkoutExercise(
   const { error } = await supabase.from("workout_exercises").update(patch).eq("id", id);
   if (error) throw error;
 }
+
+
+export type ExerciseMasterPoint = {
+  date: string; // YYYY-MM-DD
+  exercise_name: string;
+  load_type: "PDC" | "PDC_PLUS" | "KG" | "TEXT";
+  load_g: number | null;
+  reps: number; // not null in your DB now
+};
+
+/**
+ * Retourne les masters d'un exercice sur une plage.
+ * IMPORTANT: on ne sort que les masters (workout_exercises).
+ * On agrège côté client pour "un point par jour" (max).
+ */
+export async function getExerciseMasterHistory(
+  exerciseName: string,
+  fromISO: string,
+  toISO: string
+): Promise<ExerciseMasterPoint[]> {
+  const { data, error } = await supabase
+    .from("workout_exercises")
+    .select(
+      `
+      id,
+      exercise_name,
+      load_type,
+      load_g,
+      reps,
+      workouts!inner(date)
+    `
+    )
+    .ilike("exercise_name", exerciseName)
+    .gte("workouts.date", fromISO)
+    .lte("workouts.date", toISO)
+    .order("workouts.date", { ascending: true });
+
+  if (error) throw error;
+
+  const rows = (data ?? []) as any[];
+  return rows.map((r) => ({
+    date: r.workouts.date as string,
+    exercise_name: r.exercise_name as string,
+    load_type: r.load_type as ExerciseMasterPoint["load_type"],
+    load_g: r.load_g as number | null,
+    reps: r.reps as number,
+  }));
+}
