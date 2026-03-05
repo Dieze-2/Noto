@@ -109,3 +109,16 @@ export async function getDailyMetricsRange(fromISO: string, toISO: string): Prom
   if (error) throw error;
   return (data ?? []) as DailyMetricsRow[];
 }
+
+export async function getFirstWeightDate(): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("daily_metrics")
+    .select("date")
+    .not("weight_g", "is", null)
+    .order("date", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.date ?? null;
+}
