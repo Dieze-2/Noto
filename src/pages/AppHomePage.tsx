@@ -19,6 +19,8 @@ import {
   deleteExerciseSet,
   WorkoutExerciseRow,
   WorkoutExerciseSetRow,
+  updateWorkoutExercise,
+  updateExerciseSet,
 } from "../db/workouts";
 import { listCatalogExercises, CatalogExercise } from "../db/catalog";
 import { getEventsOverlappingRange, EventRow } from "../db/events";
@@ -47,18 +49,77 @@ function toGramsOrNull(kgText: string): number | null {
   return Math.round(n * 1000);
 }
 
+function SetRow({
+  setRow,
+  onDelete,
+  onEdit,
+}: {
+  setRow: WorkoutExerciseSetRow;
+  onDelete: (id: string) => void;
+  onEdit: (s: WorkoutExerciseSetRow) => void;
+}) {
+  const x = useMotionValue(0);
+  const bgOpacity = useTransform(x, [-90, 0], [1, 0]);
+
+  return (
+    <motion.div layout className="relative">
+      <motion.div style={{ opacity: bgOpacity }} className="absolute inset-0 bg-rose-600 rounded-2xl" />
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: -90, right: 0 }}
+        style={{ x }}
+        onDragEnd={(_, info) => {
+          if (info.offset.x < -60) onDelete(setRow.id);
+        }}
+        className="relative"
+      >
+        <div
+          className="flex items-center justify-between bg-white/5 border border-white/10 rounded-2xl px-4 py-3 cursor-pointer"
+          onClick={() => onEdit(setRow)}
+        >
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase italic tracking-widest text-white/50">SET</p>
+            <p className="text-[11px] font-black uppercase italic text-white/80">
+              {setRow.load_type === "PDC_PLUS"
+                ? `PDC + ${(setRow.load_g ?? 0) / 1000}`
+                : setRow.load_type === "PDC"
+                  ? `PDC`
+                  : `${(setRow.load_g ?? 0) / 1000}`}{" "}
+              {setRow.load_type === "TEXT" ? "" : "kg"} • {setRow.reps} reps
+            </p>
+          </div>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(setRow.id);
+            }}
+            className="p-2 text-white/10 hover:text-rose-500"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function MasterRow({
   ex,
   sets,
   onDeleteMaster,
   onDeleteSet,
   onOpenAddSet,
+  onEditMaster,
+  onEditSet,
 }: {
   ex: WorkoutExerciseRow;
   sets: WorkoutExerciseSetRow[];
   onDeleteMaster: (id: string) => void;
   onDeleteSet: (id: string) => void;
   onOpenAddSet: (ex: WorkoutExerciseRow) => void;
+  onEditMaster: (ex: WorkoutExerciseRow) => void;
+  onEditSet: (s: WorkoutExerciseSetRow) => void;
 }) {
   const x = useMotionValue(0);
   const bgOpacity = useTransform(x, [-100, 0], [1, 0]);
@@ -78,7 +139,7 @@ function MasterRow({
       >
         <GlassCard className="p-4 border-white/5">
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-4 min-w-0">
+            <div className="flex items-center gap-4 min-w-0 cursor-pointer" onClick={() => onEditMaster(ex)}>
               <Dumbbell className="text-menthe shrink-0" size={20} />
               <div className="min-w-0">
                 <p className="font-black text-white uppercase italic leading-none truncate">{ex.exercise_name}</p>
@@ -96,12 +157,21 @@ function MasterRow({
             <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
-                onClick={() => onOpenAddSet(ex)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenAddSet(ex);
+                }}
                 className="w-12 h-12 rounded-full bg-white/5 border border-white/10 text-white/60 font-black uppercase text-[10px] hover:border-menthe/40"
               >
                 +SET
               </button>
-              <button onClick={() => onDeleteMaster(ex.id)} className="p-2 text-white/10 hover:text-rose-500 transition-colors">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteMaster(ex.id);
+                }}
+                className="p-2 text-white/10 hover:text-rose-500 transition-colors"
+              >
                 <Trash2 size={18} />
               </button>
             </div>
@@ -110,49 +180,11 @@ function MasterRow({
           {sets.length > 0 && (
             <div className="mt-3 space-y-2">
               {sets.map((s) => (
-                <SetRow key={s.id} setRow={s} onDelete={onDeleteSet} />
+                <SetRow key={s.id} setRow={s} onDelete={onDeleteSet} onEdit={onEditSet} />
               ))}
             </div>
           )}
         </GlassCard>
-      </motion.div>
-    </motion.div>
-  );
-}
-
-function SetRow({ setRow, onDelete }: { setRow: WorkoutExerciseSetRow; onDelete: (id: string) => void }) {
-  const x = useMotionValue(0);
-  const bgOpacity = useTransform(x, [-90, 0], [1, 0]);
-
-  return (
-    <motion.div layout className="relative">
-      <motion.div style={{ opacity: bgOpacity }} className="absolute inset-0 bg-rose-600 rounded-2xl" />
-      <motion.div
-        drag="x"
-        dragConstraints={{ left: -90, right: 0 }}
-        style={{ x }}
-        onDragEnd={(_, info) => {
-          if (info.offset.x < -60) onDelete(setRow.id);
-        }}
-        className="relative"
-      >
-        <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-2xl px-4 py-3">
-          <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase italic tracking-widest text-white/50">SET</p>
-            <p className="text-[11px] font-black uppercase italic text-white/80">
-              {setRow.load_type === "PDC_PLUS"
-                ? `PDC + ${(setRow.load_g ?? 0) / 1000}`
-                : setRow.load_type === "PDC"
-                  ? `PDC`
-                  : `${(setRow.load_g ?? 0) / 1000}`}{" "}
-              {setRow.load_type === "TEXT" ? "" : "kg"} • {setRow.reps} reps
-            </p>
-          </div>
-
-          <button onClick={() => onDelete(setRow.id)} className="p-2 text-white/10 hover:text-rose-500">
-            <Trash2 size={16} />
-          </button>
-        </div>
       </motion.div>
     </motion.div>
   );
@@ -172,7 +204,9 @@ export default function AppHomePage() {
   const inFlightRef = useRef<Promise<any> | null>(null);
   const dateRef = useRef(dateISO);
 
-  useEffect(() => { dateRef.current = dateISO; }, [dateISO]);
+  useEffect(() => {
+    dateRef.current = dateISO;
+  }, [dateISO]);
 
   function cancelDebounce() {
     if (debounceTimerRef.current) {
@@ -198,7 +232,9 @@ export default function AppHomePage() {
 
     const run = async () => {
       if (inFlightRef.current) {
-        try { await inFlightRef.current; } catch {}
+        try {
+          await inFlightRef.current;
+        } catch {}
       }
       inFlightRef.current = saveDailyMetrics(payload);
       await inFlightRef.current;
@@ -246,8 +282,6 @@ export default function AppHomePage() {
     weight: "",
     reps: "",
   });
-
-  // Suggestions
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Drawer add set
@@ -255,15 +289,89 @@ export default function AppHomePage() {
   const [setTarget, setSetTarget] = useState<WorkoutExerciseRow | null>(null);
   const [newSet, setNewSet] = useState({ reps: "", weight: "", load_type: "KG" as "KG" | "PDC_PLUS" });
 
+  // Drawer edit master
+  const [editMasterOpen, setEditMasterOpen] = useState(false);
+  const [editMasterTarget, setEditMasterTarget] = useState<WorkoutExerciseRow | null>(null);
+  const [editMasterForm, setEditMasterForm] = useState({ reps: "", weight: "", load_type: "KG" as "KG" | "PDC_PLUS" });
+
+  // Drawer edit set
+  const [editSetOpen, setEditSetOpen] = useState(false);
+  const [editSetTarget, setEditSetTarget] = useState<WorkoutExerciseSetRow | null>(null);
+  const [editSetForm, setEditSetForm] = useState({ reps: "", weight: "", load_type: "KG" as "KG" | "PDC_PLUS" });
+
   function openAddSetDrawer(ex: WorkoutExerciseRow) {
     setSetTarget(ex);
     setNewSet({ reps: "", weight: "", load_type: ex.load_type === "PDC_PLUS" ? "PDC_PLUS" : "KG" });
     setSetOpen(true);
   }
-
   function closeAddSetDrawer() {
     setSetOpen(false);
     setSetTarget(null);
+  }
+
+  function openEditMaster(ex: WorkoutExerciseRow) {
+    setEditMasterTarget(ex);
+    setEditMasterForm({
+      reps: ex.reps != null ? String(ex.reps) : "0",
+      weight: ex.load_g != null ? String(ex.load_g / 1000) : "",
+      load_type: ex.load_type === "PDC_PLUS" ? "PDC_PLUS" : "KG",
+    });
+    setEditMasterOpen(true);
+  }
+  function closeEditMaster() {
+    setEditMasterOpen(false);
+    setEditMasterTarget(null);
+  }
+
+  function openEditSet(s: WorkoutExerciseSetRow) {
+    setEditSetTarget(s);
+    setEditSetForm({
+      reps: String(s.reps ?? 0),
+      weight: s.load_g != null ? String(s.load_g / 1000) : "",
+      load_type: s.load_type === "PDC_PLUS" ? "PDC_PLUS" : "KG",
+    });
+    setEditSetOpen(true);
+  }
+  function closeEditSet() {
+    setEditSetOpen(false);
+    setEditSetTarget(null);
+  }
+
+  async function saveEditMaster() {
+    if (!editMasterTarget) return;
+    const reps = toIntOrNull(editMasterForm.reps);
+    if (reps == null) return;
+
+    await updateWorkoutExercise(editMasterTarget.id, {
+      reps,
+      load_type: editMasterForm.load_type,
+      load_g: toGramsOrNull(editMasterForm.weight),
+    });
+
+    if (workoutId) {
+      const ex = await getWorkoutExercises(workoutId);
+      setMasters(ex);
+    }
+
+    closeEditMaster();
+  }
+
+  async function saveEditSet() {
+    if (!editSetTarget) return;
+    const reps = toIntOrNull(editSetForm.reps);
+    if (reps == null) return;
+
+    await updateExerciseSet(editSetTarget.id, {
+      reps,
+      load_type: editSetForm.load_type,
+      load_g: toGramsOrNull(editSetForm.weight),
+    });
+
+    const parentId = editSetTarget.workout_exercise_id;
+    const sets = await getExerciseSets(parentId);
+    setSetsByMaster((prev) => ({ ...prev, [parentId]: sets }));
+
+    closeEditSet();
   }
 
   useEffect(() => {
@@ -277,7 +385,9 @@ export default function AppHomePage() {
   useEffect(() => {
     let alive = true;
     listCatalogExercises().then((c) => alive && setCatalog(c)).catch(() => {});
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -320,7 +430,9 @@ export default function AppHomePage() {
     }
 
     load().catch(() => {});
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateISO]);
 
@@ -409,6 +521,11 @@ export default function AppHomePage() {
   const setReps = toIntOrNull(newSet.reps);
   const setCanValidate = setReps !== null;
 
+  const editMasterReps = toIntOrNull(editMasterForm.reps);
+  const editMasterCanSave = editMasterReps !== null;
+
+  const editSetReps = toIntOrNull(editSetForm.reps);
+  const editSetCanSave = editSetReps !== null;
 
   return (
     <div className="max-w-xl mx-auto px-4 pt-12 pb-32">
@@ -432,13 +549,9 @@ export default function AppHomePage() {
           </button>
 
           <div className="text-center">
-            <h1 className="text-4xl font-black text-menthe italic uppercase tracking-tighter">
-              {format(currentDate, "EEEE d", { locale: fr })}
-            </h1>
+            <h1 className="text-4xl font-black text-menthe italic uppercase tracking-tighter">{format(currentDate, "EEEE d", { locale: fr })}</h1>
 
-            <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">
-              {format(currentDate, "MMMM yyyy", { locale: fr })}
-            </p>
+            <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">{format(currentDate, "MMMM yyyy", { locale: fr })}</p>
 
             {dayEvents.length > 0 && (
               <button type="button" onClick={() => navigate("/week?note=1")} className="mt-2" aria-label="Ouvrir le planning">
@@ -455,11 +568,7 @@ export default function AppHomePage() {
                       </div>
                     );
                   })}
-                  {dayEvents.length > MAX_DOTS && (
-                    <div className="text-[10px] font-black uppercase italic tracking-widest text-white/30">
-                      +{dayEvents.length - MAX_DOTS}
-                    </div>
-                  )}
+                  {dayEvents.length > MAX_DOTS && <div className="text-[10px] font-black uppercase italic tracking-widest text-white/30">+{dayEvents.length - MAX_DOTS}</div>}
                 </div>
               </button>
             )}
@@ -490,14 +599,13 @@ export default function AppHomePage() {
                 onDeleteMaster={deleteMaster}
                 onDeleteSet={deleteSet}
                 onOpenAddSet={openAddSetDrawer}
+                onEditMaster={openEditMaster}
+                onEditSet={openEditSet}
               />
             ))}
           </AnimatePresence>
 
-          <button
-            onClick={openMasterDrawer}
-            className="w-full py-6 border-2 border-dashed border-white/5 rounded-[2rem] flex flex-col items-center justify-center text-white/20"
-          >
+          <button onClick={openMasterDrawer} className="w-full py-6 border-2 border-dashed border-white/5 rounded-[2rem] flex flex-col items-center justify-center text-white/20">
             <Plus size={24} />
             <span className="text-[10px] font-black uppercase tracking-widest mt-2">Nouveau mouvement</span>
           </button>
@@ -508,15 +616,7 @@ export default function AppHomePage() {
       <AnimatePresence>
         {masterOpen && (
           <>
-            <motion.button
-              type="button"
-              aria-label="Fermer"
-              onClick={closeMasterDrawer}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm"
-            />
+            <motion.button type="button" aria-label="Fermer" onClick={closeMasterDrawer} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm" />
             <motion.div
               drag="y"
               dragConstraints={{ top: 0, bottom: 0 }}
@@ -579,9 +679,7 @@ export default function AppHomePage() {
                           <button
                             key={type}
                             type="button"
-                            className={`flex-1 rounded-lg font-black text-[9px] uppercase ${
-                              masterForm.load_type === type ? "bg-menthe text-black" : "text-white/30"
-                            }`}
+                            className={`flex-1 rounded-lg font-black text-[9px] uppercase ${masterForm.load_type === type ? "bg-menthe text-black" : "text-white/30"}`}
                             onClick={() => setMasterForm({ ...masterForm, load_type: type })}
                           >
                             {type === "PDC_PLUS" ? "PDC+" : "KG"}
@@ -590,29 +688,15 @@ export default function AppHomePage() {
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
-                        <input
-                          type="number"
-                          placeholder="kg"
-                          className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center font-black outline-none"
-                          value={masterForm.weight}
-                          onChange={(e) => setMasterForm({ ...masterForm, weight: e.target.value })}
-                        />
-                        <input
-                          type="number"
-                          placeholder="reps*"
-                          className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center font-black outline-none"
-                          value={masterForm.reps}
-                          onChange={(e) => setMasterForm({ ...masterForm, reps: e.target.value })}
-                        />
+                        <input type="number" placeholder="kg" className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center font-black outline-none" value={masterForm.weight} onChange={(e) => setMasterForm({ ...masterForm, weight: e.target.value })} />
+                        <input type="number" placeholder="reps*" className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center font-black outline-none" value={masterForm.reps} onChange={(e) => setMasterForm({ ...masterForm, reps: e.target.value })} />
                       </div>
 
                       <button
                         type="button"
                         disabled={!masterCanValidate}
                         onClick={onAddMaster}
-                        className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest ${
-                          masterCanValidate ? "bg-menthe text-black" : "bg-white/5 text-white/20 border border-white/10"
-                        }`}
+                        className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest ${masterCanValidate ? "bg-menthe text-black" : "bg-white/5 text-white/20 border border-white/10"}`}
                       >
                         Valider
                       </button>
@@ -629,15 +713,7 @@ export default function AppHomePage() {
       <AnimatePresence>
         {setOpen && (
           <>
-            <motion.button
-              type="button"
-              aria-label="Fermer"
-              onClick={closeAddSetDrawer}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm"
-            />
+            <motion.button type="button" aria-label="Fermer" onClick={closeAddSetDrawer} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm" />
             <motion.div
               drag="y"
               dragConstraints={{ top: 0, bottom: 0 }}
@@ -664,18 +740,14 @@ export default function AppHomePage() {
 
                   <div className="px-5 pb-6 max-h-[75vh] overflow-auto no-scrollbar space-y-4">
                     <div className="glass-card p-6 rounded-[2rem] space-y-4 border border-white/10">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-white/40">
-                        {setTarget?.exercise_name ?? ""}
-                      </p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-white/40">{setTarget?.exercise_name ?? ""}</p>
 
                       <div className="flex bg-white/5 rounded-xl p-1 h-11">
                         {(["KG", "PDC_PLUS"] as const).map((type) => (
                           <button
                             key={type}
                             type="button"
-                            className={`flex-1 rounded-lg font-black text-[9px] uppercase ${
-                              newSet.load_type === type ? "bg-menthe text-black" : "text-white/30"
-                            }`}
+                            className={`flex-1 rounded-lg font-black text-[9px] uppercase ${newSet.load_type === type ? "bg-menthe text-black" : "text-white/30"}`}
                             onClick={() => setNewSet({ ...newSet, load_type: type })}
                           >
                             {type === "PDC_PLUS" ? "PDC+" : "KG"}
@@ -684,31 +756,153 @@ export default function AppHomePage() {
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
-                        <input
-                          type="number"
-                          placeholder="kg"
-                          className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center font-black outline-none"
-                          value={newSet.weight}
-                          onChange={(e) => setNewSet({ ...newSet, weight: e.target.value })}
-                        />
-                        <input
-                          type="number"
-                          placeholder="reps*"
-                          className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center font-black outline-none"
-                          value={newSet.reps}
-                          onChange={(e) => setNewSet({ ...newSet, reps: e.target.value })}
-                        />
+                        <input type="number" placeholder="kg" className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center font-black outline-none" value={newSet.weight} onChange={(e) => setNewSet({ ...newSet, weight: e.target.value })} />
+                        <input type="number" placeholder="reps*" className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center font-black outline-none" value={newSet.reps} onChange={(e) => setNewSet({ ...newSet, reps: e.target.value })} />
                       </div>
 
                       <button
                         type="button"
                         disabled={!setCanValidate}
                         onClick={onAddSet}
-                        className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest ${
-                          setCanValidate ? "bg-menthe text-black" : "bg-white/5 text-white/20 border border-white/10"
-                        }`}
+                        className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest ${setCanValidate ? "bg-menthe text-black" : "bg-white/5 text-white/20 border border-white/10"}`}
                       >
                         Valider
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* DRAWER EDIT MASTER */}
+      <AnimatePresence>
+        {editMasterOpen && (
+          <>
+            <motion.button type="button" aria-label="Fermer" onClick={closeEditMaster} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm" />
+            <motion.div
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={0.08}
+              onDragEnd={(_, info) => {
+                const shouldClose = info.offset.y > 90 || info.velocity.y > 600;
+                if (shouldClose) closeEditMaster();
+              }}
+              initial={{ y: 700 }}
+              animate={{ y: 0 }}
+              exit={{ y: 700 }}
+              transition={{ type: "spring", damping: 28, stiffness: 260 }}
+              className="fixed left-0 right-0 bottom-0 z-[70]"
+            >
+              <div className="mx-auto max-w-xl">
+                <div className="rounded-t-[2.5rem] border border-white/10 bg-zinc-950/90 backdrop-blur-2xl shadow-[0_-30px_80px_rgba(0,0,0,0.75)]">
+                  <div className="px-5 pt-4 pb-3 flex items-center justify-between relative">
+                    <div className="w-12 h-1.5 rounded-full bg-white/10 mx-auto absolute left-1/2 -translate-x-1/2 top-3" />
+                    <h2 className="text-sm font-black uppercase italic tracking-widest text-white/70">Edit Master</h2>
+                    <button type="button" onClick={closeEditMaster} className="p-2 text-white/30 hover:text-white">
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  <div className="px-5 pb-6 max-h-[75vh] overflow-auto no-scrollbar space-y-4">
+                    <div className="glass-card p-6 rounded-[2rem] space-y-4 border border-white/10">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-white/40">{editMasterTarget?.exercise_name ?? ""}</p>
+
+                      <div className="flex bg-white/5 rounded-xl p-1 h-11">
+                        {(["KG", "PDC_PLUS"] as const).map((type) => (
+                          <button
+                            key={type}
+                            type="button"
+                            className={`flex-1 rounded-lg font-black text-[9px] uppercase ${editMasterForm.load_type === type ? "bg-menthe text-black" : "text-white/30"}`}
+                            onClick={() => setEditMasterForm({ ...editMasterForm, load_type: type })}
+                          >
+                            {type === "PDC_PLUS" ? "PDC+" : "KG"}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <input type="number" placeholder="kg" className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center font-black outline-none" value={editMasterForm.weight} onChange={(e) => setEditMasterForm({ ...editMasterForm, weight: e.target.value })} />
+                        <input type="number" placeholder="reps" className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center font-black outline-none" value={editMasterForm.reps} onChange={(e) => setEditMasterForm({ ...editMasterForm, reps: e.target.value })} />
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={!editMasterCanSave}
+                        onClick={saveEditMaster}
+                        className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest ${editMasterCanSave ? "bg-menthe text-black" : "bg-white/5 text-white/20 border border-white/10"}`}
+                      >
+                        Sauver
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* DRAWER EDIT SET */}
+      <AnimatePresence>
+        {editSetOpen && (
+          <>
+            <motion.button type="button" aria-label="Fermer" onClick={closeEditSet} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm" />
+            <motion.div
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={0.08}
+              onDragEnd={(_, info) => {
+                const shouldClose = info.offset.y > 90 || info.velocity.y > 600;
+                if (shouldClose) closeEditSet();
+              }}
+              initial={{ y: 700 }}
+              animate={{ y: 0 }}
+              exit={{ y: 700 }}
+              transition={{ type: "spring", damping: 28, stiffness: 260 }}
+              className="fixed left-0 right-0 bottom-0 z-[70]"
+            >
+              <div className="mx-auto max-w-xl">
+                <div className="rounded-t-[2.5rem] border border-white/10 bg-zinc-950/90 backdrop-blur-2xl shadow-[0_-30px_80px_rgba(0,0,0,0.75)]">
+                  <div className="px-5 pt-4 pb-3 flex items-center justify-between relative">
+                    <div className="w-12 h-1.5 rounded-full bg-white/10 mx-auto absolute left-1/2 -translate-x-1/2 top-3" />
+                    <h2 className="text-sm font-black uppercase italic tracking-widest text-white/70">Edit Set</h2>
+                    <button type="button" onClick={closeEditSet} className="p-2 text-white/30 hover:text-white">
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  <div className="px-5 pb-6 max-h-[75vh] overflow-auto no-scrollbar space-y-4">
+                    <div className="glass-card p-6 rounded-[2rem] space-y-4 border border-white/10">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-white/40">SET</p>
+
+                      <div className="flex bg-white/5 rounded-xl p-1 h-11">
+                        {(["KG", "PDC_PLUS"] as const).map((type) => (
+                          <button
+                            key={type}
+                            type="button"
+                            className={`flex-1 rounded-lg font-black text-[9px] uppercase ${editSetForm.load_type === type ? "bg-menthe text-black" : "text-white/30"}`}
+                            onClick={() => setEditSetForm({ ...editSetForm, load_type: type })}
+                          >
+                            {type === "PDC_PLUS" ? "PDC+" : "KG"}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <input type="number" placeholder="kg" className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center font-black outline-none" value={editSetForm.weight} onChange={(e) => setEditSetForm({ ...editSetForm, weight: e.target.value })} />
+                        <input type="number" placeholder="reps" className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center font-black outline-none" value={editSetForm.reps} onChange={(e) => setEditSetForm({ ...editSetForm, reps: e.target.value })} />
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={!editSetCanSave}
+                        onClick={saveEditSet}
+                        className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest ${editSetCanSave ? "bg-menthe text-black" : "bg-white/5 text-white/20 border border-white/10"}`}
+                      >
+                        Sauver
                       </button>
                     </div>
                   </div>
