@@ -20,6 +20,9 @@ import { getDailyMetricsRange, DailyMetricsRow } from "../db/dailyMetrics";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
 import { getEventsOverlappingRange, EventRow, createEvent, deleteEvent, updateEvent } from "../db/events";
 
+import { DayPicker, DateRange } from "react-day-picker";
+import "react-day-picker/dist/style.css";
+
 const EVENT_COLORS = [
   "#00FFA3",
   "#FF6B6B",
@@ -40,6 +43,9 @@ function isHex6(x: string) {
 }
 function normalizeHex(x: string) {
   return x.toUpperCase();
+}
+function toISO(d: Date) {
+  return format(d, "yyyy-MM-dd");
 }
 
 type EditState = {
@@ -104,11 +110,16 @@ export default function WeekPage() {
 
   // Drawer NOTE
   const [noteOpen, setNoteOpen] = useState(false);
-  const [from, setFrom] = useState(() => format(new Date(), "yyyy-MM-dd")); // today by default (demandé)
-  const [to, setTo] = useState(() => format(new Date(), "yyyy-MM-dd")); // >= from
+
+  // Create form
   const [title, setTitle] = useState("");
-  const [allEvents, setAllEvents] = useState<EventRow[]>([]);
   const [selectedColor, setSelectedColor] = useState<string>(EVENT_COLORS[0]);
+  const [range, setRange] = useState<DateRange | undefined>(() => {
+    const today = new Date();
+    return { from: today, to: addDays(today, 1) };
+  });
+
+  const [allEvents, setAllEvents] = useState<EventRow[]>([]);
   const [editing, setEditing] = useState<EditState | null>(null);
 
   // Support open drawer from URL: /week?note=1
@@ -162,11 +173,6 @@ export default function WeekPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [noteOpen]);
 
-  // Ensure to >= from always (create form)
-  useEffect(() => {
-    if (from && to && to < from) setTo(from);
-  }, [from, to]);
-
   const stats = useMemo(() => {
     const getAvg = (data: DailyMetricsRow[], field: "steps" | "kcal" | "weight_g") => {
       const vals = data.map((d) => d[field] || 0).filter((v) => v > 0);
@@ -184,12 +190,8 @@ export default function WeekPage() {
   }, [currentWeekData, prevWeekData]);
 
   function openNoteDrawer() {
-    // demanded defaults:
-    // - "Du" opens on today => value=today
-    // - "Au" points after "Du" => set to from if invalid
-    const today = format(new Date(), "yyyy-MM-dd");
-    setFrom(today);
-    setTo((prev) => (prev && prev >= today ? prev : today));
+    const today = new Date();
+    setRange({ from: today, to: addDays(today, 1) });
 
     setNoteOpen(true);
     const sp = new URLSearchParams(searchParams);
@@ -205,16 +207,6 @@ export default function WeekPage() {
     setSearchParams(sp, { replace: true });
   }
 
-  const onChangeFrom = (v: string) => {
-    setFrom(v);
-    if (to && v && v > to) setTo(v);
-  };
-
-  const onChangeTo = (v: string) => {
-    setTo(v);
-    if (from && v && v < from) setFrom(v);
-  };
-
   async function handleSwipeDeleteEvent(id: string) {
     setAllEvents((prev) => prev.filter((e) => e.id !== id));
     setEvents((prev) => prev.filter((e) => e.id !== id));
@@ -226,6 +218,10 @@ export default function WeekPage() {
       await refreshAll();
     }
   }
+
+  const canCreate = Boolean(title.trim()) && Boolean(range?.from) && Boolean(range?.to);
+  const fromISO = range?.from ? toISO(range.from) : "";
+  const toISOValue = range?.to ? toISO(range.to) : "";
 
   return (
     <div className="max-w-xl mx-auto px-4 pt-12 pb-32">
@@ -287,7 +283,6 @@ export default function WeekPage() {
         {days.map((day) => {
           const dStr = format(day, "yyyy-MM-dd");
           const m = currentWeekData.find((x) => x.date === dStr);
-
           const dayEvents = events.filter((e) => dStr >= e.start_date && dStr <= e.end_date);
           const isT = isToday(day);
 
@@ -420,6 +415,7 @@ export default function WeekPage() {
                   </div>
 
                   <div className="px-5 pb-6 max-h-[75vh] overflow-auto no-scrollbar space-y-6">
+                    {/* CREATE */}
                     <GlassCard className="p-6 rounded-[2.5rem] space-y-4 border-b-4 border-menthe">
                       <input
                         placeholder="Nom de l'événement..."
@@ -447,53 +443,76 @@ export default function WeekPage() {
                         </div>
                       </div>
 
-                      <div className="bg-white/5 rounded-2xl overflow-hidden divide-x divide-white/5 flex items-center">
-                        <div className="flex-1 p-4">
-                          <label className="text-[8px] font-black text-white/30 uppercase block mb-1">Du</label>
-                          <input
-                            type="date"
-                            value={from}
-                            max={to || undefined}
-                            onChange={(e) => onChangeFrom(e.target.value)}
-                            className="bg-transparent w-full text-xs text-white outline-none"
-                          />
-                        </div>
-                        <div className="flex-1 p-4 text-right">
-                          <label className="text-[8px] font-black text-white/30 uppercase block mb-1">Au</label>
-                          <input
-                            type="date"
-                            value={to}
-                            min={from || undefined}
-                            onChange={(e) => onChangeTo(e.target.value)}
-                            className="bg-transparent w-full text-xs text-white outline-none text-right"
-                          />
+                      <div className="bg-white/5 border border-white/10 rounded-3xl p-4">
+                        <DayPicker
+                          mode="range"
+                          selected={range}
+                          onSelect={(next) => setRange(next)}
+                          locale={fr}
+                          weekStartsOn={1}
+                          fixedWeeks
+                          showOutsideDays
+                          className="text-white"
+                          classNames={{
+                            months: "flex flex-col",
+                            month: "space-y-3",
+                            caption: "flex items-center justify-between px-1",
+                            caption_label: "text-[10px] font-black uppercase tracking-[0.3em] text-white/60",
+                            nav: "flex items-center gap-2",
+                            nav_button:
+                              "w-9 h-9 rounded-full bg-white/5 border border-white/10 text-white/60 hover:text-white hover:border-white/30",
+                            table: "w-full border-collapse",
+                            head_row: "grid grid-cols-7",
+                            head_cell: "text-[9px] font-black uppercase text-white/20 text-center py-2",
+                            row: "grid grid-cols-7",
+                            cell: "text-center p-1",
+                            day: "w-10 h-10 rounded-2xl font-black uppercase italic text-[11px] text-white/70 hover:bg-white/10",
+                            day_today: "ring-2 ring-menthe/60",
+                            day_selected: "bg-menthe text-black",
+                            day_range_start: "bg-menthe text-black",
+                            day_range_end: "bg-menthe text-black",
+                            day_range_middle: "bg-menthe/20 text-white",
+                            day_outside: "text-white/10",
+                            day_disabled: "text-white/10",
+                          }}
+                        />
+
+                        <div className="mt-3 flex justify-between text-[10px] font-black uppercase tracking-widest text-white/40">
+                          <span>DU: {fromISO || "--"}</span>
+                          <span>AU: {toISOValue || "--"}</span>
                         </div>
                       </div>
 
                       <button
                         type="button"
+                        disabled={!canCreate}
                         onClick={async () => {
                           if (!title.trim()) return;
                           if (!EVENT_COLORS.map(normalizeHex).includes(normalizeHex(selectedColor))) return;
-                          if (!from || !to) return;
-                          if (to < from) return; // safety
+                          if (!range?.from || !range?.to) return;
 
                           await createEvent({
                             title: title.trim(),
-                            start_date: from,
-                            end_date: to,
+                            start_date: toISO(range.from),
+                            end_date: toISO(range.to),
                             color: normalizeHex(selectedColor),
                           });
 
                           setTitle("");
+                          const today = new Date();
+                          setRange({ from: today, to: addDays(today, 1) });
+
                           await refreshAll();
                         }}
-                        className="w-full bg-menthe text-black py-4 rounded-2xl font-black text-xs uppercase tracking-widest"
+                        className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest ${
+                          canCreate ? "bg-menthe text-black" : "bg-white/5 text-white/20 border border-white/10"
+                        }`}
                       >
                         Ajouter au calendrier
                       </button>
                     </GlassCard>
 
+                    {/* LIST */}
                     <div className="space-y-3">
                       <AnimatePresence mode="popLayout">
                         {allEvents.map((ev) => {
@@ -612,6 +631,7 @@ export default function WeekPage() {
                                       </div>
                                     </div>
 
+                                    {/* EDIT DATES: still 2 native inputs for simplicity (range edit can come after) */}
                                     <div className="bg-white/5 rounded-2xl overflow-hidden divide-x divide-white/5 flex items-center">
                                       <div className="flex-1 p-4">
                                         <label className="text-[8px] font-black text-white/30 uppercase block mb-1">Du</label>
