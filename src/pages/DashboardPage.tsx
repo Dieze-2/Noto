@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import GlassCard from "../components/GlassCard";
 import { getDailyMetricsRange, getFirstWeightDate } from "../db/dailyMetrics";
 import { getExerciseMasterHistory, listTrackedExercises, getFirstExerciseDate } from "../db/workouts";
 import type { ExerciseMasterPoint } from "../db/workouts";
 import { format, subMonths, parseISO } from "date-fns";
-import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
 type PdcMode = "LEST" | "TOTAL";
 type Range = "3M" | "6M" | "TOUT";
@@ -21,6 +21,7 @@ function rangeToFromTo(r: Range, firstDate: string | null) {
   if (r === "6M") return { from: isoMonthsAgo(6), to };
   return { from: isoMonthsAgo(3), to };
 }
+
 function labelDDMM(iso: string) {
   try {
     return format(parseISO(iso), "dd.MM");
@@ -28,6 +29,7 @@ function labelDDMM(iso: string) {
     return iso.slice(5);
   }
 }
+
 function buildWeightLookup(rows: { date: string; weight_g: number | null }[]) {
   const sorted = [...rows].sort((a, b) => a.date.localeCompare(b.date));
   let last: number | null = null;
@@ -38,15 +40,22 @@ function buildWeightLookup(rows: { date: string; weight_g: number | null }[]) {
   }
   return map;
 }
+
+// Régression linéaire simple y = ax + b
 function linearTrend(values: { x: number; y: number }[]) {
   const n = values.length;
   if (n < 2) return null;
+
   let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
   for (const p of values) {
-    sumX += p.x; sumY += p.y; sumXY += p.x * p.y; sumXX += p.x * p.x;
+    sumX += p.x;
+    sumY += p.y;
+    sumXY += p.x * p.y;
+    sumXX += p.x * p.x;
   }
   const denom = n * sumXX - sumX * sumX;
   if (denom === 0) return null;
+
   const a = (n * sumXY - sumX * sumY) / denom;
   const b = (sumY - a * sumX) / n;
   return { a, b };
@@ -69,38 +78,40 @@ export default function DashboardPage() {
   const [firstExerciseDate, setFirstExerciseDate] = useState<string | null>(null);
 
   const [modal, setModal] = useState<null | "exercise" | "weight">(null);
+
   const [showAxes, setShowAxes] = useState(true);
 
-  // chart width observer (no scroll in normal view)
-  const wrapRef = useRef<HTMLDivElement | null>(null);
-  const [chartW, setChartW] = useState(520);
-
+  // exercises list (from DB)
   useEffect(() => {
-    if (!wrapRef.current) return;
-    const el = wrapRef.current;
-    const ro = new ResizeObserver(() => {
-      const w = Math.max(320, Math.floor(el.clientWidth));
-      setChartW(w);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
+    listTrackedExercises()
+      .then((names) => setTrackedExercises(names))
+      .catch(() => setTrackedExercises([]));
   }, []);
 
-  useEffect(() => {
-    listTrackedExercises().then(setTrackedExercises).catch(() => setTrackedExercises([]));
-  }, []);
-
+  // first weight date (for TOUT)
   useEffect(() => {
     getFirstWeightDate().then(setFirstWeightDate).catch(() => setFirstWeightDate(null));
   }, []);
 
+  // first exercise date (for TOUT) — recalculé à chaque changement d'exercice
   useEffect(() => {
-    if (!selectedExercise) { setFirstExerciseDate(null); return; }
-    getFirstExerciseDate(selectedExercise.trim()).then(setFirstExerciseDate).catch(() => setFirstExerciseDate(null));
+    if (!selectedExercise) {
+      setFirstExerciseDate(null);
+      return;
+    }
+    const name = selectedExercise.trim();
+    getFirstExerciseDate(name).then(setFirstExerciseDate).catch(() => setFirstExerciseDate(null));
   }, [selectedExercise]);
 
-  const weightFromTo = useMemo(() => rangeToFromTo(weightRange, firstWeightDate), [weightRange, firstWeightDate]);
-  const exerciseFromTo = useMemo(() => rangeToFromTo(exerciseRange, firstExerciseDate), [exerciseRange, firstExerciseDate]);
+  const weightFromTo = useMemo(
+    () => rangeToFromTo(weightRange, firstWeightDate),
+    [weightRange, firstWeightDate]
+  );
+
+  const exerciseFromTo = useMemo(
+    () => rangeToFromTo(exerciseRange, firstExerciseDate),
+    [exerciseRange, firstExerciseDate]
+  );
 
   useEffect(() => {
     getDailyMetricsRange(weightFromTo.from, weightFromTo.to)
@@ -109,24 +120,31 @@ export default function DashboardPage() {
   }, [weightFromTo.from, weightFromTo.to]);
 
   useEffect(() => {
-    if (!selectedExercise) { setExerciseRows([]); return; }
-    getExerciseMasterHistory(selectedExercise.trim(), exerciseFromTo.from, exerciseFromTo.to)
+    if (!selectedExercise) {
+      setExerciseRows([]);
+      return;
+    }
+    const name = selectedExercise.trim();
+    getExerciseMasterHistory(name, exerciseFromTo.from, exerciseFromTo.to)
       .then(setExerciseRows)
       .catch(() => setExerciseRows([]));
   }, [selectedExercise, exerciseFromTo.from, exerciseFromTo.to]);
 
   const weightLookup = useMemo(() => buildWeightLookup(weightRows), [weightRows]);
 
+  // POIDS chart data
   const weightChartData = useMemo(() => {
-    const rows = weightRows.filter((r) => r.weight_g != null);
-    return rows.map((r, idx) => ({
-      idx,
-      iso: r.date,
-      date: labelDDMM(r.date),
-      kg: (r.weight_g ?? 0) / 1000,
-    }));
+    return weightRows
+      .filter((r) => r.weight_g != null)
+      .map((r, idx) => ({
+        idx,
+        iso: r.date,
+        date: labelDDMM(r.date),
+        kg: (r.weight_g ?? 0) / 1000,
+      }));
   }, [weightRows]);
 
+  // EXERCISE chart data (1 point/day max)
   const exerciseChartData = useMemo(() => {
     const byDay = new Map<string, ExerciseMasterPoint[]>();
     for (const r of exerciseRows) {
@@ -134,44 +152,60 @@ export default function DashboardPage() {
       arr.push(r);
       byDay.set(r.date, arr);
     }
+
+    const points: { idx: number; iso: string; date: string; valueKg: number }[] = [];
     const days = Array.from(byDay.keys()).sort((a, b) => a.localeCompare(b));
-    const pts: { idx: number; iso: string; date: string; valueKg: number }[] = [];
 
     days.forEach((iso, idx) => {
       const arr = byDay.get(iso)!;
-      const vals = arr.map((r) => {
-        const loadKg = (r.load_g ?? 0) / 1000;
-        if (r.load_type === "KG") return loadKg;
 
-        if (r.load_type === "PDC_PLUS") {
-          if (pdcMode === "LEST") return loadKg;
-          const w = weightLookup.get(iso) ?? null;
-          return w == null ? Number.NaN : (w / 1000) + loadKg;
-        }
+      const vals = arr
+        .map((r) => {
+          const loadKg = (r.load_g ?? 0) / 1000;
 
-        if (r.load_type === "PDC") {
-          if (pdcMode === "LEST") return 0;
-          const w = weightLookup.get(iso) ?? null;
-          return w == null ? Number.NaN : (w / 1000);
-        }
-        return Number.NaN;
-      }).filter((v) => Number.isFinite(v));
+          if (r.load_type === "KG") return loadKg;
+
+          if (r.load_type === "PDC_PLUS") {
+            if (pdcMode === "LEST") return loadKg;
+            const w = weightLookup.get(iso) ?? null;
+            if (w == null) return Number.NaN;
+            return w / 1000 + loadKg;
+          }
+
+          if (r.load_type === "PDC") {
+            if (pdcMode === "LEST") return 0;
+            const w = weightLookup.get(iso) ?? null;
+            return w == null ? Number.NaN : w / 1000;
+          }
+
+          return Number.NaN;
+        })
+        .filter((v) => Number.isFinite(v));
 
       if (!vals.length) return;
-      pts.push({ idx, iso, date: labelDDMM(iso), valueKg: Math.max(...vals) });
+
+      points.push({
+        idx,
+        iso,
+        date: labelDDMM(iso),
+        valueKg: Math.max(...vals),
+      });
     });
 
-    return pts;
+    return points;
   }, [exerciseRows, pdcMode, weightLookup]);
 
+  // TRENDS
   const weightTrendData = useMemo(() => {
-    const model = linearTrend(weightChartData.map((p) => ({ x: p.idx, y: p.kg })));
+    const pts = weightChartData.map((p) => ({ x: p.idx, y: p.kg }));
+    const model = linearTrend(pts);
     if (!model) return [];
     return weightChartData.map((p) => ({ ...p, trend: model.a * p.idx + model.b }));
   }, [weightChartData]);
 
   const exerciseTrendData = useMemo(() => {
-    const model = linearTrend(exerciseChartData.map((p) => ({ x: p.idx, y: p.valueKg })));
+    const pts = exerciseChartData.map((p) => ({ x: p.idx, y: p.valueKg }));
+    const model = linearTrend(pts);
     if (!model) return [];
     return exerciseChartData.map((p) => ({ ...p, trend: model.a * p.idx + model.b }));
   }, [exerciseChartData]);
@@ -201,12 +235,13 @@ export default function DashboardPage() {
   }
 
   return (
-    <div ref={wrapRef} className="max-w-xl mx-auto px-4 pt-12 pb-32 space-y-8">
+    <div className="max-w-xl mx-auto px-4 pt-12 pb-32 space-y-8">
       <header className="text-center">
         <h1 className="text-5xl font-black text-menthe italic uppercase tracking-tighter">Dashboard</h1>
         <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mt-2">Charts</p>
       </header>
 
+      {/* Toggle axes */}
       <GlassCard className="p-4 rounded-[2rem] border border-white/10">
         <button
           type="button"
@@ -244,26 +279,28 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        <div className="mt-6">
+        <div className="mt-6 h-56">
           {hasWeightData ? (
-            <LineChart width={chartW} height={220} data={weightTrendData.length ? weightTrendData : weightChartData}>
-              <CartesianGrid stroke="rgba(255,255,255,0.06)" />
-              {showAxes && <XAxis dataKey="date" stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />}
-              <YAxis
-                stroke="rgba(255,255,255,0.25)"
-                tick={{ fontSize: 10, fontWeight: 800 }}
-                reversed={true}  // POIDS ONLY
-                domain={["auto", "auto"]}
-                hide={!showAxes}
-              />
-              <Tooltip contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16 }} />
-              <Line type="monotone" dataKey="kg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
-              {weightTrendData.length > 1 && (
-                <Line type="monotone" dataKey="trend" stroke="rgba(255,255,255,0.35)" strokeWidth={2} dot={false} strokeDasharray="6 6" />
-              )}
-            </LineChart>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={weightTrendData.length ? weightTrendData : weightChartData}>
+                <CartesianGrid stroke="rgba(255,255,255,0.06)" />
+                {showAxes && <XAxis dataKey="date" stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />}
+                <YAxis
+                  stroke="rgba(255,255,255,0.25)"
+                  tick={{ fontSize: 10, fontWeight: 800 }}
+                  reversed={true}                // IMPORTANT: poids uniquement
+                  domain={["auto", "auto"]}
+                  hide={!showAxes}
+                />
+                <Tooltip contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16 }} />
+                <Line type="monotone" dataKey="kg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
+                {weightTrendData.length > 1 && (
+                  <Line type="monotone" dataKey="trend" stroke="rgba(255,255,255,0.35)" strokeWidth={2} dot={false} strokeDasharray="6 6" />
+                )}
+              </LineChart>
+            </ResponsiveContainer>
           ) : (
-            <div className="h-[220px] w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">
+            <div className="h-full w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">
               PAS DE DONNÉES POIDS
             </div>
           )}
@@ -350,20 +387,28 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          <div className="mt-6">
+          <div className="mt-6 h-56">
             {hasExerciseData ? (
-              <LineChart width={chartW} height={220} data={exerciseTrendData.length ? exerciseTrendData : exerciseChartData}>
-                <CartesianGrid stroke="rgba(255,255,255,0.06)" />
-                {showAxes && <XAxis dataKey="date" stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />}
-                <YAxis stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} reversed={false} domain={["auto", "auto"]} hide={!showAxes} />
-                <Tooltip contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16 }} />
-                <Line type="monotone" dataKey="valueKg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
-                {exerciseTrendData.length > 1 && (
-                  <Line type="monotone" dataKey="trend" stroke="rgba(255,255,255,0.35)" strokeWidth={2} dot={false} strokeDasharray="6 6" />
-                )}
-              </LineChart>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={exerciseTrendData.length ? exerciseTrendData : exerciseChartData}>
+                  <CartesianGrid stroke="rgba(255,255,255,0.06)" />
+                  {showAxes && <XAxis dataKey="date" stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />}
+                  <YAxis
+                    stroke="rgba(255,255,255,0.25)"
+                    tick={{ fontSize: 10, fontWeight: 800 }}
+                    reversed={false}
+                    domain={["auto", "auto"]}
+                    hide={!showAxes}
+                  />
+                  <Tooltip contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16 }} />
+                  <Line type="monotone" dataKey="valueKg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
+                  {exerciseTrendData.length > 1 && (
+                    <Line type="monotone" dataKey="trend" stroke="rgba(255,255,255,0.35)" strokeWidth={2} dot={false} strokeDasharray="6 6" />
+                  )}
+                </LineChart>
+              </ResponsiveContainer>
             ) : (
-              <div className="h-[220px] w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">
+              <div className="h-full w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">
                 PAS ASSEZ DE DONNÉES
               </div>
             )}
