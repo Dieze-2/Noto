@@ -25,20 +25,17 @@ export default defineConfig({
     }),
   ],
 
-  // IMPORTANT: force Vite to prebundle these deps correctly
   optimizeDeps: {
     include: ["recharts", "react-is"],
   },
 
   resolve: {
-    // IMPORTANT: avoid duplicate copies / weird resolution in CI
     dedupe: ["react", "react-dom", "react-is"],
   },
 
   build: {
     outDir: "dist",
     commonjsOptions: {
-      // Some recharts deps can be mixed; this makes rollup more tolerant
       transformMixedEsModules: true,
     },
   },
