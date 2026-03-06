@@ -349,7 +349,7 @@ export default function DashboardPage() {
                   contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16 }}
                 />
                 <Line
-                  type="monotone"
+                  type="linear"
                   dataKey="kg"
                   stroke="#00FFA3"
                   strokeWidth={3}
@@ -537,7 +537,7 @@ export default function DashboardPage() {
             <CartesianGrid stroke="rgba(255,255,255,0.06)" />
             <XAxis
               type="number"
-              scale="time"
+              scale="linear"
               dataKey="x"
               domain={["dataMin", "dataMax"]}
               allowDataOverflow={false}
@@ -551,12 +551,13 @@ export default function DashboardPage() {
               contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16 }}
             />
             <Line
-              type="monotone"
+              type="linear"
               dataKey="kg"
               stroke="#00FFA3"
               strokeWidth={3}
               dot={{ r: 3, fill: "#00FFA3" }}
               activeDot={{ r: 7, fill: "#ffffff", stroke: "#00FFA3", strokeWidth: 3 }}
+              isAnimationActive={false}
             />
           </LineChart>
         </div>
