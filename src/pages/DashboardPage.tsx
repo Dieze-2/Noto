@@ -41,7 +41,7 @@ function isMobile() {
   return window.matchMedia?.("(max-width: 768px)")?.matches ?? false;
 }
 
-// YYYY-MM-DD -> DD.MM (ex: 2026-03-06 -> 06.03)
+// YYYY-MM-DD -> DD.MM
 function isoToDDMM(iso: string) {
   const mm = iso.slice(5, 7);
   const dd = iso.slice(8, 10);
@@ -67,10 +67,6 @@ export default function DashboardPage() {
   const [firstExerciseDate, setFirstExerciseDate] = useState<string | null>(null);
 
   const [modal, setModal] = useState<null | "exercise" | "weight">(null);
-
-  // ticks toggles (par chart)
-  const [showWeightTicks, setShowWeightTicks] = useState(true);
-  const [showExerciseTicks, setShowExerciseTicks] = useState(true);
 
   // exercises list (from DB)
   useEffect(() => {
@@ -108,16 +104,10 @@ export default function DashboardPage() {
   );
 
   /**
-   * IMPORTANT:
-   * Pour TOTAL (PDC+/PDC) on a besoin d'un poids "dernier connu ≤ date".
-   * Donc on doit charger les poids sur une plage qui couvre la fenêtre exercice,
-   * sinon TOTAL peut sembler "bloqué à 3M" (pas assez de poids plus anciens).
-   *
-   * On ne touche pas au range du chart Poids : seulement au fetch des poids utilisés
-   * pour le lookup (TOTAL fallback).
+   * TOTAL: on étend le fetch des poids pour pouvoir faire le fallback "dernier poids connu ≤ date"
+   * sur toute la fenêtre d'exercice.
    */
   const weightFetchFromTo = useMemo(() => {
-    // base = ce que le chart poids affiche
     let from = weightFromTo.from;
     let to = weightFromTo.to;
 
@@ -125,11 +115,9 @@ export default function DashboardPage() {
       pdcMode === "TOTAL" && selectedExercise.trim().length > 0;
 
     if (needsWeightsForTotal) {
-      // étendre pour couvrir la fenêtre exercice affichée
       from = from < exerciseFromTo.from ? from : exerciseFromTo.from;
       to = to > exerciseFromTo.to ? to : exerciseFromTo.to;
 
-      // si on a la toute première date de poids, on peut sécuriser pour TOUT
       if (firstWeightDate) {
         from = from < firstWeightDate ? from : firstWeightDate;
       }
@@ -168,8 +156,6 @@ export default function DashboardPage() {
   const weightLookup = useMemo(() => buildWeightLookup(weightRows), [weightRows]);
 
   const weightChartData = useMemo(() => {
-    // NOTE: on garde l'affichage uniquement sur la plage weightRange (chart poids),
-    // même si weightRows peut contenir plus (pour TOTAL).
     const from = weightFromTo.from;
     const to = weightFromTo.to;
 
@@ -218,7 +204,11 @@ export default function DashboardPage() {
         .filter((v) => Number.isFinite(v));
 
       if (!vals.length) continue;
-      points.push({ iso: date, date: isoToDDMM(date), valueKg: Math.max(...vals) });
+      points.push({
+        iso: date,
+        date: isoToDDMM(date),
+        valueKg: Math.max(...vals),
+      });
     }
 
     return points.sort((a, b) => a.iso.localeCompare(b.iso));
@@ -272,8 +262,6 @@ export default function DashboardPage() {
     );
   }
 
-  const axisTickCommon = { fontSize: 10, fontWeight: 800 } as const;
-
   return (
     <div className="max-w-xl mx-auto px-4 pt-12 pb-32 space-y-8">
       <header className="text-center">
@@ -297,27 +285,13 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowWeightTicks((v) => !v)}
-              className={`bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:text-white ${
-                showWeightTicks ? "text-white/50" : "text-menthe"
-              }`}
-              aria-pressed={showWeightTicks}
-              title={showWeightTicks ? "Masquer les valeurs" : "Afficher les valeurs"}
-            >
-              Valeurs
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setModal("weight")}
-              className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white"
-            >
-              Zoom
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setModal("weight")}
+            className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white"
+          >
+            Zoom
+          </button>
         </div>
 
         <div className="mt-4 flex bg-white/5 rounded-2xl p-1">
@@ -343,19 +317,13 @@ export default function DashboardPage() {
                 <XAxis
                   dataKey="date"
                   stroke="rgba(255,255,255,0.25)"
-                  interval="preserveStartEnd"
-                  tick={showWeightTicks ? axisTickCommon : false}
-                  tickLine={false}
+                  tick={{ fontSize: 10, fontWeight: 800 }}
                 />
                 <YAxis
-                  type="number"
-                  dataKey="kg"
                   stroke="rgba(255,255,255,0.25)"
-                  tick={showWeightTicks ? axisTickCommon : false}
-                  tickLine={false}
+                  tick={{ fontSize: 10, fontWeight: 800 }}
                   reversed={false}
                   domain={["auto", "auto"]}
-                  allowDataOverflow={false}
                 />
                 <Tooltip
                   contentStyle={{
@@ -462,28 +430,13 @@ export default function DashboardPage() {
                 {pdcMode === "LEST" ? "PDC+ = LEST (KG)" : "PDC+ = TOTAL (PDC + LEST)"}
               </p>
             </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setShowExerciseTicks((v) => !v)}
-                className={`bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:text-white ${
-                  showExerciseTicks ? "text-white/50" : "text-menthe"
-                }`}
-                aria-pressed={showExerciseTicks}
-                title={showExerciseTicks ? "Masquer les valeurs" : "Afficher les valeurs"}
-              >
-                Valeurs
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setModal("exercise")}
-                className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white"
-              >
-                Zoom
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setModal("exercise")}
+              className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white"
+            >
+              Zoom
+            </button>
           </div>
 
           <div className="mt-6 overflow-hidden">
@@ -494,16 +447,11 @@ export default function DashboardPage() {
                   <XAxis
                     dataKey="date"
                     stroke="rgba(255,255,255,0.25)"
-                    interval="preserveStartEnd"
-                    tick={showExerciseTicks ? axisTickCommon : false}
-                    tickLine={false}
+                    tick={{ fontSize: 10, fontWeight: 800 }}
                   />
                   <YAxis
-                    type="number"
-                    dataKey="valueKg"
                     stroke="rgba(255,255,255,0.25)"
-                    tick={showExerciseTicks ? axisTickCommon : false}
-                    tickLine={false}
+                    tick={{ fontSize: 10, fontWeight: 800 }}
                   />
                   <Tooltip
                     contentStyle={{
@@ -531,19 +479,13 @@ export default function DashboardPage() {
             <XAxis
               dataKey="date"
               stroke="rgba(255,255,255,0.25)"
-              interval="preserveStartEnd"
-              tick={showExerciseTicks ? axisTickCommon : false}
-              tickLine={false}
+              tick={{ fontSize: 10, fontWeight: 800 }}
             />
             <YAxis
-              type="number"
-              dataKey="valueKg"
               stroke="rgba(255,255,255,0.25)"
-              tick={showExerciseTicks ? axisTickCommon : false}
-              tickLine={false}
+              tick={{ fontSize: 10, fontWeight: 800 }}
               reversed={false}
               domain={["auto", "auto"]}
-              allowDataOverflow={false}
             />
             <Tooltip
               contentStyle={{
@@ -564,19 +506,13 @@ export default function DashboardPage() {
             <XAxis
               dataKey="date"
               stroke="rgba(255,255,255,0.25)"
-              interval="preserveStartEnd"
-              tick={showWeightTicks ? axisTickCommon : false}
-              tickLine={false}
+              tick={{ fontSize: 10, fontWeight: 800 }}
             />
             <YAxis
-              type="number"
-              dataKey="kg"
               stroke="rgba(255,255,255,0.25)"
-              tick={showWeightTicks ? axisTickCommon : false}
-              tickLine={false}
+              tick={{ fontSize: 10, fontWeight: 800 }}
               reversed={false}
               domain={["auto", "auto"]}
-              allowDataOverflow={false}
             />
             <Tooltip
               contentStyle={{
