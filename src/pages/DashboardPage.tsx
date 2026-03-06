@@ -1,4 +1,3 @@
-// src/pages/DashboardPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import GlassCard from "../components/GlassCard";
 import { getDailyMetricsRange, getFirstWeightDate } from "../db/dailyMetrics";
@@ -9,7 +8,15 @@ import {
 } from "../db/workouts";
 import type { ExerciseMasterPoint } from "../db/workouts";
 import { format, subMonths } from "date-fns";
-import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  Label,
+} from "recharts";
 
 type PdcMode = "LEST" | "TOTAL";
 type Range = "3M" | "6M" | "TOUT";
@@ -63,16 +70,10 @@ function computeMinMax(values: number[]) {
 function DebugTooltipContent({ active, label, payload }: any) {
   if (!active || !payload?.length) return null;
 
-  // Recharts: label = x (number), payload[0].value = y, payload[0].payload = original point
   const p0 = payload[0];
   const x = typeof label === "number" ? label : Number(label);
   const yValue = typeof p0?.value === "number" ? p0.value : Number(p0?.value);
-
   const original = p0?.payload ?? {};
-  const originalIso = original.iso;
-  const originalX = original.x;
-  const originalKg = original.kg;
-  const originalValueKg = original.valueKg;
 
   return (
     <div className="rounded-2xl bg-black/90 border border-white/10 px-4 py-3">
@@ -84,19 +85,20 @@ function DebugTooltipContent({ active, label, payload }: any) {
           label(x): {Number.isFinite(x) ? `${x} (${tsToDDMM(x)})` : String(label)}
         </p>
         <p className="text-[12px] font-black text-menthe">
-          payload[0].value(y): {Number.isFinite(yValue) ? yValue.toFixed(3) : String(p0?.value)}
+          payload[0].value(y):{" "}
+          {Number.isFinite(yValue) ? yValue.toFixed(3) : String(p0?.value)}
         </p>
 
         <p className="text-[10px] font-black uppercase tracking-widest text-white/50 mt-2">
-          payload[0].payload (original point)
+          payload[0].payload (original)
         </p>
         <pre className="text-[10px] text-white/70 whitespace-pre-wrap break-words">
 {JSON.stringify(
   {
-    iso: originalIso,
-    x: originalX,
-    kg: originalKg,
-    valueKg: originalValueKg,
+    iso: original.iso,
+    x: original.x,
+    kg: original.kg,
+    valueKg: original.valueKg,
     dataKey: p0?.dataKey,
     name: p0?.name,
   },
@@ -116,6 +118,8 @@ function ChartBlockNumericX({
   widthBase = 520,
   height = 220,
   debug = false,
+  showAxisLabels = false,
+  yAxisLabel = "KG",
 }: {
   chartKey: string;
   data: any[];
@@ -123,6 +127,8 @@ function ChartBlockNumericX({
   widthBase?: number;
   height?: number;
   debug?: boolean;
+  showAxisLabels?: boolean;
+  yAxisLabel?: string;
 }) {
   if (!data.length) {
     return (
@@ -136,30 +142,44 @@ function ChartBlockNumericX({
 
   return (
     <div className="w-full overflow-x-auto no-scrollbar">
-      <LineChart key={chartKey} width={chartW} height={height} data={data}>
+      <LineChart key={chartKey} width={chartW} height={height} data={data} margin={{ left: 16, right: 16, top: 8, bottom: 8 }}>
         <CartesianGrid stroke="rgba(255,255,255,0.06)" />
         <XAxis
           type="number"
           scale="linear"
           dataKey="x"
           domain={["dataMin", "dataMax"]}
-          stroke="rgba(255,255,255,0.25)"
-          tick={{ fontSize: 10, fontWeight: 800 }}
+          stroke="rgba(255,255,255,0.35)"
+          tick={{ fontSize: 10, fontWeight: 900, fill: "rgba(255,255,255,0.55)" }}
           tickFormatter={(v) => (typeof v === "number" ? tsToDDMM(v) : String(v))}
+          tickLine={showAxisLabels}
+          axisLine={showAxisLabels}
         />
         <YAxis
-          stroke="rgba(255,255,255,0.25)"
-          tick={{ fontSize: 10, fontWeight: 800 }}
+          stroke="rgba(255,255,255,0.35)"
+          tick={{ fontSize: 10, fontWeight: 900, fill: "rgba(255,255,255,0.55)" }}
           reversed={false}
           domain={["auto", "auto"]}
-        />
+          tickLine={showAxisLabels}
+          axisLine={showAxisLabels}
+          width={56}
+        >
+          {showAxisLabels && (
+            <Label
+              value={yAxisLabel}
+              angle={-90}
+              position="insideLeft"
+              style={{ fill: "rgba(255,255,255,0.6)", fontSize: 10, fontWeight: 900, letterSpacing: "0.25em" }}
+              offset={10}
+            />
+          )}
+        </YAxis>
+
         <Tooltip
-          // IMPORTANT: si debug, on force un contenu custom qui affiche les valeurs réelles
+          cursor={false}
           content={debug ? <DebugTooltipContent /> : undefined}
           labelFormatter={
-            debug
-              ? undefined
-              : (v) => (typeof v === "number" ? tsToDDMM(v) : String(v))
+            debug ? undefined : (v) => (typeof v === "number" ? tsToDDMM(v) : String(v))
           }
           contentStyle={
             debug
@@ -171,14 +191,17 @@ function ChartBlockNumericX({
                 }
           }
         />
+
         <Line
           type="linear"
           dataKey={yKey}
           stroke="#00FFA3"
           strokeWidth={3}
+          strokeOpacity={1}
           dot={{ r: 3, fill: "#00FFA3" }}
           activeDot={{ r: 7, fill: "#ffffff", stroke: "#00FFA3", strokeWidth: 3 }}
           isAnimationActive={false}
+          animationDuration={0}
         />
       </LineChart>
     </div>
@@ -250,9 +273,7 @@ export default function DashboardPage() {
   const [debugCharts, setDebugCharts] = useState(false);
 
   useEffect(() => {
-    listTrackedExercises()
-      .then((names) => setTrackedExercises(names))
-      .catch(() => setTrackedExercises([]));
+    listTrackedExercises().then(setTrackedExercises).catch(() => setTrackedExercises([]));
   }, []);
 
   useEffect(() => {
@@ -264,8 +285,7 @@ export default function DashboardPage() {
       setFirstExerciseDate(null);
       return;
     }
-    const name = selectedExercise.trim();
-    getFirstExerciseDate(name).then(setFirstExerciseDate).catch(() => setFirstExerciseDate(null));
+    getFirstExerciseDate(selectedExercise.trim()).then(setFirstExerciseDate).catch(() => setFirstExerciseDate(null));
   }, [selectedExercise]);
 
   const weightFromTo = useMemo(() => rangeToFromTo(weightRange, firstWeightDate), [weightRange, firstWeightDate]);
@@ -285,17 +305,8 @@ export default function DashboardPage() {
         from = from < firstWeightDate ? from : firstWeightDate;
       }
     }
-
     return { from, to };
-  }, [
-    weightFromTo.from,
-    weightFromTo.to,
-    exerciseFromTo.from,
-    exerciseFromTo.to,
-    pdcMode,
-    selectedExercise,
-    firstWeightDate,
-  ]);
+  }, [weightFromTo.from, weightFromTo.to, exerciseFromTo.from, exerciseFromTo.to, pdcMode, selectedExercise, firstWeightDate]);
 
   useEffect(() => {
     getDailyMetricsRange(weightFetchFromTo.from, weightFetchFromTo.to)
@@ -308,8 +319,7 @@ export default function DashboardPage() {
       setExerciseRows([]);
       return;
     }
-    const name = selectedExercise.trim();
-    getExerciseMasterHistory(name, exerciseFromTo.from, exerciseFromTo.to)
+    getExerciseMasterHistory(selectedExercise.trim(), exerciseFromTo.from, exerciseFromTo.to)
       .then(setExerciseRows)
       .catch(() => setExerciseRows([]));
   }, [selectedExercise, exerciseFromTo.from, exerciseFromTo.to]);
@@ -317,11 +327,8 @@ export default function DashboardPage() {
   const weightLookup = useMemo(() => buildWeightLookup(weightRows), [weightRows]);
 
   const weightChartData = useMemo(() => {
-    const from = weightFromTo.from;
-    const to = weightFromTo.to;
-
     const rows = weightRows
-      .filter((r) => r.date >= from && r.date <= to)
+      .filter((r) => r.date >= weightFromTo.from && r.date <= weightFromTo.to)
       .filter((r) => r.weight_g != null)
       .slice()
       .sort((a, b) => a.date.localeCompare(b.date))
@@ -330,7 +337,6 @@ export default function DashboardPage() {
         x: isoToTs(r.date),
         kg: (r.weight_g ?? 0) / 1000,
       }));
-
     return dedupeByIsoKeepLast(rows);
   }, [weightRows, weightFromTo.from, weightFromTo.to]);
 
@@ -370,11 +376,7 @@ export default function DashboardPage() {
 
       if (!vals.length) continue;
 
-      points.push({
-        iso: date,
-        x: isoToTs(date),
-        valueKg: Math.max(...vals),
-      });
+      points.push({ iso: date, x: isoToTs(date), valueKg: Math.max(...vals) });
     }
 
     return dedupeByIsoKeepLast(points.sort((a, b) => a.iso.localeCompare(b.iso)));
@@ -397,17 +399,7 @@ export default function DashboardPage() {
     return `e:${selectedExercise.trim()}:${exerciseRange}:${pdcMode}:${exerciseFromTo.from}:${exerciseFromTo.to}:${exerciseChartData.length}:${first}:${last}`;
   }, [selectedExercise, exerciseRange, pdcMode, exerciseFromTo.from, exerciseFromTo.to, exerciseChartData]);
 
-  function Modal({
-    open,
-    onClose,
-    title,
-    children,
-  }: {
-    open: boolean;
-    onClose: () => void;
-    title: string;
-    children: React.ReactNode;
-  }) {
+  function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
     if (!open) return null;
     return (
       <div className="fixed inset-0 z-[90]">
@@ -417,9 +409,7 @@ export default function DashboardPage() {
             <div className="glass-card border border-white/10 rounded-[2.5rem] overflow-hidden">
               <div className="p-4 flex items-center justify-between">
                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">{title}</p>
-                <button onClick={onClose} className="text-white/40 font-black text-[10px] uppercase tracking-widest">
-                  Fermer
-                </button>
+                <button onClick={onClose} className="text-white/40 font-black text-[10px] uppercase tracking-widest">Fermer</button>
               </div>
               <div className="p-4 bg-black">
                 <div className="w-full h-[70vh]">{children}</div>
@@ -449,14 +439,10 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={() => setDebugCharts((v) => !v)}
-              className={`bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                debugCharts ? "text-menthe" : "text-white/50"
-              } hover:text-white`}
-              title="Debug"
+              className={`bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest ${debugCharts ? "text-menthe" : "text-white/50"} hover:text-white`}
             >
               Debug
             </button>
-
             <button type="button" onClick={() => setModal("weight")} className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white">
               Zoom
             </button>
@@ -485,9 +471,6 @@ export default function DashboardPage() {
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/50">DEBUG POIDS</p>
             <p className="text-[10px] font-black uppercase tracking-widest text-white/70 mt-2">
               points={weightChartData.length} min={weightStats.min ?? "—"} max={weightStats.max ?? "—"}
-            </p>
-            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 mt-2">
-              Survole un point et compare: payload[0].value vs payload[0].payload.kg
             </p>
           </div>
         )}
@@ -531,7 +514,6 @@ export default function DashboardPage() {
               leftLabel="LEST"
               rightLabel="TOTAL"
             />
-
             <button
               type="button"
               onClick={() => setInfoOpen((v) => !v)}
@@ -553,9 +535,7 @@ export default function DashboardPage() {
                   ? "LEST = UNIQUEMENT LA CHARGE PORTÉE OU FIXÉE SUR UNE BARRE"
                   : "TOTAL = POIDS DU CORPS + CHARGE LESTÉE"}
               </p>
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">
-                TAP POUR FERMER
-              </p>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">TAP POUR FERMER</p>
             </button>
           )}
         </div>
@@ -592,11 +572,29 @@ export default function DashboardPage() {
       )}
 
       <Modal open={modal === "exercise"} onClose={() => setModal(null)} title="ZOOM">
-        <ChartBlockNumericX chartKey={`${exerciseChartKey}:zoom`} data={exerciseChartData} yKey="valueKg" widthBase={900} height={420} debug={debugCharts} />
+        <ChartBlockNumericX
+          chartKey={`${exerciseChartKey}:zoom`}
+          data={exerciseChartData}
+          yKey="valueKg"
+          widthBase={900}
+          height={420}
+          debug={debugCharts}
+          showAxisLabels
+          yAxisLabel="KG"
+        />
       </Modal>
 
       <Modal open={modal === "weight"} onClose={() => setModal(null)} title="ZOOM">
-        <ChartBlockNumericX chartKey={`${weightChartKey}:zoom`} data={weightChartData} yKey="kg" widthBase={900} height={420} debug={debugCharts} />
+        <ChartBlockNumericX
+          chartKey={`${weightChartKey}:zoom`}
+          data={weightChartData}
+          yKey="kg"
+          widthBase={900}
+          height={420}
+          debug={debugCharts}
+          showAxisLabels
+          yAxisLabel="KG"
+        />
       </Modal>
     </div>
   );
