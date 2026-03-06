@@ -48,6 +48,27 @@ function isoToDDMM(iso: string) {
   return `${dd}.${mm}`;
 }
 
+function computePaddedDomain(values: number[]): [number, number] | ["auto", "auto"] {
+  const finite = values.filter((v) => Number.isFinite(v));
+  if (finite.length === 0) return ["auto", "auto"];
+
+  let min = Math.min(...finite);
+  let max = Math.max(...finite);
+
+  // Domaine dégénéré (toutes valeurs identiques) -> on pad un peu
+  if (min === max) {
+    const pad = Math.max(0.5, Math.abs(min) * 0.01);
+    return [min - pad, max + pad];
+  }
+
+  const range = max - min;
+  const pad = range * 0.08; // léger padding visuel
+  min = min - pad;
+  max = max + pad;
+
+  return [min, max];
+}
+
 export default function DashboardPage() {
   const [trackedExercises, setTrackedExercises] = useState<string[]>([]);
   const [selectedExercise, setSelectedExercise] = useState<string>("");
@@ -68,18 +89,21 @@ export default function DashboardPage() {
 
   const [modal, setModal] = useState<null | "exercise" | "weight">(null);
 
+  // exercises list (from DB)
   useEffect(() => {
     listTrackedExercises()
       .then((names) => setTrackedExercises(names))
       .catch(() => setTrackedExercises([]));
   }, []);
 
+  // first weight date (for TOUT)
   useEffect(() => {
     getFirstWeightDate()
       .then(setFirstWeightDate)
       .catch(() => setFirstWeightDate(null));
   }, []);
 
+  // first exercise date (for TOUT)
   useEffect(() => {
     if (!selectedExercise) {
       setFirstExerciseDate(null);
@@ -100,7 +124,9 @@ export default function DashboardPage() {
     [exerciseRange, firstExerciseDate]
   );
 
-  // TOTAL: étendre le fetch poids pour fallback "dernier poids connu ≤ date" sur la fenêtre exercice
+  /**
+   * TOTAL: étendre le fetch poids pour fallback "dernier poids connu ≤ date" sur la fenêtre exercice.
+   */
   const weightFetchFromTo = useMemo(() => {
     let from = weightFromTo.from;
     let to = weightFromTo.to;
@@ -162,6 +188,10 @@ export default function DashboardPage() {
         kg: (r.weight_g ?? 0) / 1000,
       }));
   }, [weightRows, weightFromTo.from, weightFromTo.to]);
+
+  const weightYDomain = useMemo(() => {
+    return computePaddedDomain(weightChartData.map((d) => d.kg));
+  }, [weightChartData]);
 
   const exerciseChartData = useMemo(() => {
     const byDay = new Map<string, ExerciseMasterPoint[]>();
@@ -274,9 +304,6 @@ export default function DashboardPage() {
             <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">
               Poids
             </h2>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">
-              Range
-            </p>
           </div>
 
           <button
@@ -317,8 +344,7 @@ export default function DashboardPage() {
                   stroke="rgba(255,255,255,0.25)"
                   tick={{ fontSize: 10, fontWeight: 800 }}
                   reversed={false}
-                  domain={["auto", "auto"]}
-                  allowDecimals
+                  domain={weightYDomain}
                 />
                 <Tooltip
                   contentStyle={{
@@ -428,9 +454,7 @@ export default function DashboardPage() {
                 {selectedExercise.trim()}
               </h2>
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">
-                {pdcMode === "LEST"
-                  ? "PDC+ = LEST (KG)"
-                  : "PDC+ = TOTAL (PDC + LEST)"}
+                {pdcMode === "LEST" ? "PDC+ = LEST (KG)" : "PDC+ = TOTAL (PDC + LEST)"}
               </p>
             </div>
             <button
@@ -495,7 +519,6 @@ export default function DashboardPage() {
               tick={{ fontSize: 10, fontWeight: 800 }}
               reversed={false}
               domain={["auto", "auto"]}
-              allowDecimals
             />
             <Tooltip
               contentStyle={{
@@ -528,8 +551,7 @@ export default function DashboardPage() {
               stroke="rgba(255,255,255,0.25)"
               tick={{ fontSize: 10, fontWeight: 800 }}
               reversed={false}
-              domain={["auto", "auto"]}
-              allowDecimals
+              domain={weightYDomain}
             />
             <Tooltip
               contentStyle={{
