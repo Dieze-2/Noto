@@ -68,21 +68,18 @@ export default function DashboardPage() {
 
   const [modal, setModal] = useState<null | "exercise" | "weight">(null);
 
-  // exercises list (from DB)
   useEffect(() => {
     listTrackedExercises()
       .then((names) => setTrackedExercises(names))
       .catch(() => setTrackedExercises([]));
   }, []);
 
-  // first weight date (for TOUT)
   useEffect(() => {
     getFirstWeightDate()
       .then(setFirstWeightDate)
       .catch(() => setFirstWeightDate(null));
   }, []);
 
-  // first exercise date (for TOUT)
   useEffect(() => {
     if (!selectedExercise) {
       setFirstExerciseDate(null);
@@ -103,10 +100,7 @@ export default function DashboardPage() {
     [exerciseRange, firstExerciseDate]
   );
 
-  /**
-   * TOTAL: on étend le fetch des poids pour pouvoir faire le fallback "dernier poids connu ≤ date"
-   * sur toute la fenêtre d'exercice.
-   */
+  // TOTAL: étendre le fetch poids pour fallback "dernier poids connu ≤ date" sur la fenêtre exercice
   const weightFetchFromTo = useMemo(() => {
     let from = weightFromTo.from;
     let to = weightFromTo.to;
@@ -266,8 +260,11 @@ export default function DashboardPage() {
     <div className="max-w-xl mx-auto px-4 pt-12 pb-32 space-y-8">
       <header className="text-center">
         <h1 className="text-5xl font-black text-menthe italic uppercase tracking-tighter">
-          Tableau de bord
+          Dashboard
         </h1>
+        <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mt-2">
+          Charts
+        </p>
       </header>
 
       {/* POIDS */}
@@ -321,6 +318,7 @@ export default function DashboardPage() {
                   tick={{ fontSize: 10, fontWeight: 800 }}
                   reversed={false}
                   domain={["auto", "auto"]}
+                  allowDecimals
                 />
                 <Tooltip
                   contentStyle={{
@@ -329,7 +327,13 @@ export default function DashboardPage() {
                     borderRadius: 16,
                   }}
                 />
-                <Line type="monotone" dataKey="kg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
+                <Line
+                  type="monotone"
+                  dataKey="kg"
+                  stroke="#00FFA3"
+                  strokeWidth={3}
+                  dot={{ r: 3 }}
+                />
               </LineChart>
             </div>
           ) : (
@@ -424,7 +428,9 @@ export default function DashboardPage() {
                 {selectedExercise.trim()}
               </h2>
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">
-                {pdcMode === "LEST" ? "PDC+ = LEST (KG)" : "PDC+ = TOTAL (PDC + LEST)"}
+                {pdcMode === "LEST"
+                  ? "PDC+ = LEST (KG)"
+                  : "PDC+ = TOTAL (PDC + LEST)"}
               </p>
             </div>
             <button
@@ -457,7 +463,13 @@ export default function DashboardPage() {
                       borderRadius: 16,
                     }}
                   />
-                  <Line type="monotone" dataKey="valueKg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
+                  <Line
+                    type="monotone"
+                    dataKey="valueKg"
+                    stroke="#00FFA3"
+                    strokeWidth={3}
+                    dot={{ r: 3 }}
+                  />
                 </LineChart>
               </div>
             ) : (
@@ -483,6 +495,7 @@ export default function DashboardPage() {
               tick={{ fontSize: 10, fontWeight: 800 }}
               reversed={false}
               domain={["auto", "auto"]}
+              allowDecimals
             />
             <Tooltip
               contentStyle={{
@@ -491,7 +504,13 @@ export default function DashboardPage() {
                 borderRadius: 16,
               }}
             />
-            <Line type="monotone" dataKey="valueKg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
+            <Line
+              type="monotone"
+              dataKey="valueKg"
+              stroke="#00FFA3"
+              strokeWidth={3}
+              dot={{ r: 3 }}
+            />
           </LineChart>
         </div>
       </Modal>
@@ -510,6 +529,7 @@ export default function DashboardPage() {
               tick={{ fontSize: 10, fontWeight: 800 }}
               reversed={false}
               domain={["auto", "auto"]}
+              allowDecimals
             />
             <Tooltip
               contentStyle={{
@@ -518,7 +538,13 @@ export default function DashboardPage() {
                 borderRadius: 16,
               }}
             />
-            <Line type="monotone" dataKey="kg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
+            <Line
+              type="monotone"
+              dataKey="kg"
+              stroke="#00FFA3"
+              strokeWidth={3}
+              dot={{ r: 3 }}
+            />
           </LineChart>
         </div>
       </Modal>
