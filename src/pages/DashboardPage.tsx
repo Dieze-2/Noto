@@ -69,6 +69,34 @@ function computePaddedDomain(values: number[]): [number, number] | ["auto", "aut
   return [min - pad, max + pad];
 }
 
+function WeightDebugDot(props: any) {
+  const { cx, cy, payload } = props;
+  if (!payload || typeof payload.kg !== "number") return null;
+
+  const x = Number(cx);
+  const y = Number(cy);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+
+  const label = payload.kg.toFixed(1);
+
+  return (
+    <g>
+      <circle cx={x} cy={y} r={4} fill="#00FFA3" />
+      <text
+        x={x}
+        y={y - 10}
+        textAnchor="middle"
+        fill="white"
+        fontSize={10}
+        fontWeight={900}
+      >
+        {label}
+      </text>
+    </g>
+  );
+}
+
+
 export default function DashboardPage() {
   const [trackedExercises, setTrackedExercises] = useState<string[]>([]);
   const [selectedExercise, setSelectedExercise] = useState<string>("");
@@ -281,8 +309,8 @@ export default function DashboardPage() {
   return (
     <div className="max-w-xl mx-auto px-4 pt-12 pb-32 space-y-8">
       <header className="text-center">
-        <h1 className="text-5xl font-black text-menthe italic uppercase tracking-tighter">Dashboard</h1>
-        <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mt-2">Charts</p>
+        <h1 className="text-5xl font-black text-menthe italic uppercase tracking-tighter">Tableau de bord</h1>
+       
       </header>
 
       {/* POIDS */}
@@ -353,7 +381,7 @@ export default function DashboardPage() {
                   dataKey="kg"
                   stroke="#00FFA3"
                   strokeWidth={3}
-                  dot={{ r: 3, fill: "#00FFA3" }}
+                  dot={showWeightDebug ? <WeightDebugDot /> : { r: 3, fill: "#00FFA3" }}
                   activeDot={{ r: 6, fill: "#ffffff", stroke: "#00FFA3", strokeWidth: 3 }}
                   isAnimationActive={false}
                 />
@@ -555,7 +583,7 @@ export default function DashboardPage() {
               dataKey="kg"
               stroke="#00FFA3"
               strokeWidth={3}
-              dot={{ r: 3, fill: "#00FFA3" }}
+              dot={showWeightDebug ? <WeightDebugDot /> : { r: 3, fill: "#00FFA3" }}
               activeDot={{ r: 7, fill: "#ffffff", stroke: "#00FFA3", strokeWidth: 3 }}
               isAnimationActive={false}
             />
