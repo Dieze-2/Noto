@@ -46,7 +46,6 @@ function isoToDDMM(iso: string) {
 
 // timestamp(ms) -> DD.MM
 function tsToDDMM(ts: number) {
-  // on utilise Date, suffisant ici
   const d = new Date(ts);
   const dd = String(d.getDate()).padStart(2, "0");
   const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -90,7 +89,7 @@ export default function DashboardPage() {
 
   const [modal, setModal] = useState<null | "exercise" | "weight">(null);
 
-  // Debug UI (poids)
+  // affichage debug dans l’UI (poids)
   const [showWeightDebug, setShowWeightDebug] = useState(false);
 
   useEffect(() => {
@@ -174,7 +173,6 @@ export default function DashboardPage() {
 
   const weightLookup = useMemo(() => buildWeightLookup(weightRows), [weightRows]);
 
-  // Poids: X numérique (timestamp) pour une échelle temporelle fiable
   const weightChartData = useMemo(() => {
     const from = weightFromTo.from;
     const to = weightFromTo.to;
@@ -191,22 +189,39 @@ export default function DashboardPage() {
       }));
   }, [weightRows, weightFromTo.from, weightFromTo.to]);
 
-  const weightYDomain = useMemo(() => computePaddedDomain(weightChartData.map((d) => d.kg)), [weightChartData]);
+  const weightYDomain = useMemo(
+    () => computePaddedDomain(weightChartData.map((d) => d.kg)),
+    [weightChartData]
+  );
 
   // Debug console + UI
-  useEffect(() => {
+  const weightDebugText = useMemo(() => {
     const kgs = weightChartData.map((d) => d.kg).filter((v) => Number.isFinite(v));
     const min = kgs.length ? Math.min(...kgs) : null;
     const max = kgs.length ? Math.max(...kgs) : null;
 
+    return {
+      range: weightRange,
+      from: weightFromTo.from,
+      to: weightFromTo.to,
+      points: weightChartData.length,
+      min,
+      max,
+      yDomain: weightYDomain,
+      head: weightChartData.slice(0, 3),
+      tail: weightChartData.slice(-3),
+    };
+  }, [weightChartData, weightFromTo.from, weightFromTo.to, weightRange, weightYDomain]);
+
+  useEffect(() => {
     console.groupCollapsed(
-      `[DASH][POIDS] range=${weightRange} from=${weightFromTo.from} to=${weightFromTo.to} points=${weightChartData.length}`
+      `[DASH][POIDS] range=${weightDebugText.range} from=${weightDebugText.from} to=${weightDebugText.to} points=${weightDebugText.points}`
     );
-    console.log("minKg:", min, "maxKg:", max, "yDomain:", weightYDomain);
-    console.log("head:", weightChartData.slice(0, 3));
-    console.log("tail:", weightChartData.slice(-3));
+    console.log("minKg:", weightDebugText.min, "maxKg:", weightDebugText.max, "yDomain:", weightDebugText.yDomain);
+    console.log("head:", weightDebugText.head);
+    console.log("tail:", weightDebugText.tail);
     console.groupEnd();
-  }, [weightRange, weightFromTo.from, weightFromTo.to, weightChartData, weightYDomain]);
+  }, [weightDebugText]);
 
   const exerciseChartData = useMemo(() => {
     const byDay = new Map<string, ExerciseMasterPoint[]>();
@@ -263,7 +278,6 @@ export default function DashboardPage() {
     children: React.ReactNode;
   }) {
     if (!open) return null;
-
     return (
       <div className="fixed inset-0 z-[90]">
         <button
@@ -295,24 +309,6 @@ export default function DashboardPage() {
       </div>
     );
   }
-
-  const weightDebugText = useMemo(() => {
-    const kgs = weightChartData.map((d) => d.kg).filter((v) => Number.isFinite(v));
-    const min = kgs.length ? Math.min(...kgs) : null;
-    const max = kgs.length ? Math.max(...kgs) : null;
-
-    return {
-      range: weightRange,
-      from: weightFromTo.from,
-      to: weightFromTo.to,
-      points: weightChartData.length,
-      min,
-      max,
-      yDomain: weightYDomain,
-      head: weightChartData.slice(0, 3),
-      tail: weightChartData.slice(-3),
-    };
-  }, [weightChartData, weightFromTo.from, weightFromTo.to, weightRange, weightYDomain]);
 
   return (
     <div className="max-w-xl mx-auto px-4 pt-12 pb-32 space-y-8">
@@ -378,8 +374,10 @@ export default function DashboardPage() {
                 <CartesianGrid stroke="rgba(255,255,255,0.06)" />
                 <XAxis
                   type="number"
+                  scale="time"
                   dataKey="x"
                   domain={["dataMin", "dataMax"]}
+                  allowDataOverflow={false}
                   stroke="rgba(255,255,255,0.25)"
                   tick={{ fontSize: 10, fontWeight: 800 }}
                   tickFormatter={(v) => (typeof v === "number" ? tsToDDMM(v) : String(v))}
@@ -598,8 +596,10 @@ export default function DashboardPage() {
             <CartesianGrid stroke="rgba(255,255,255,0.06)" />
             <XAxis
               type="number"
+              scale="time"
               dataKey="x"
               domain={["dataMin", "dataMax"]}
+              allowDataOverflow={false}
               stroke="rgba(255,255,255,0.25)"
               tick={{ fontSize: 10, fontWeight: 800 }}
               tickFormatter={(v) => (typeof v === "number" ? tsToDDMM(v) : String(v))}
