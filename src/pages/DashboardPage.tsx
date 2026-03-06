@@ -44,12 +44,12 @@ function buildWeightLookup(rows: { date: string; weight_g: number | null }[]) {
   return map;
 }
 
-/**
- * ChartBlock maison :
- * - largeur dynamique (K=32) + overflow-x
- * - Line linear + animations off
- * - key pour remount (stabilité lors du switch de range/dataset)
- */
+function dedupeByIsoKeepLast<T extends { iso: string }>(rows: T[]): T[] {
+  const map = new Map<string, T>();
+  for (const r of rows) map.set(r.iso, r); // keep last occurrence
+  return Array.from(map.values()).sort((a, b) => a.iso.localeCompare(b.iso));
+}
+
 function ChartBlock({
   chartKey,
   data,
@@ -77,7 +77,7 @@ function ChartBlock({
     );
   }
 
-  const chartW = Math.max(widthBase, data.length * 32); // K=32 demandé
+  const chartW = Math.max(widthBase, data.length * 32);
 
   return (
     <div className="w-full overflow-x-auto no-scrollbar">
@@ -109,7 +109,13 @@ function ChartBlock({
           stroke="#00FFA3"
           strokeWidth={3}
           dot={{ r: 3, fill: "#00FFA3" }}
-          activeDot={{ r: 7, fill: "#ffffff", stroke: "#00FFA3", strokeWidth: 3 }}
+          // activeDot très visible pour éliminer ambiguïté tooltip/point
+          activeDot={{
+            r: 10,
+            fill: "#ffffff",
+            stroke: "#00FFA3",
+            strokeWidth: 4,
+          }}
           isAnimationActive={false}
         />
       </LineChart>
@@ -117,11 +123,6 @@ function ChartBlock({
   );
 }
 
-/**
- * Switch maison (visuel), robuste :
- * - bouton accessible (aria-pressed)
- * - pas de dépendance
- */
 function ToggleSwitch({
   checked,
   onChange,
@@ -135,11 +136,7 @@ function ToggleSwitch({
 }) {
   return (
     <div className="flex items-center gap-3">
-      <span
-        className={`text-[10px] font-black uppercase tracking-widest ${
-          !checked ? "text-menthe" : "text-white/30"
-        }`}
-      >
+      <span className={`text-[10px] font-black uppercase tracking-widest ${!checked ? "text-menthe" : "text-white/30"}`}>
         {leftLabel}
       </span>
 
@@ -163,11 +160,7 @@ function ToggleSwitch({
         />
       </button>
 
-      <span
-        className={`text-[10px] font-black uppercase tracking-widest ${
-          checked ? "text-menthe" : "text-white/30"
-        }`}
-      >
+      <span className={`text-[10px] font-black uppercase tracking-widest ${checked ? "text-menthe" : "text-white/30"}`}>
         {rightLabel}
       </span>
     </div>
@@ -179,7 +172,7 @@ export default function DashboardPage() {
   const [selectedExercise, setSelectedExercise] = useState<string>("");
 
   const [pdcMode, setPdcMode] = useState<PdcMode>("LEST");
-  const [info, setInfo] = useState<null | PdcMode>(null);
+  const [infoOpen, setInfoOpen] = useState(false);
 
   const [weightRange, setWeightRange] = useState<Range>("3M");
   const [exerciseRange, setExerciseRange] = useState<Range>("TOUT");
@@ -192,19 +185,16 @@ export default function DashboardPage() {
 
   const [modal, setModal] = useState<null | "exercise" | "weight">(null);
 
-  // exercises list (from DB)
   useEffect(() => {
     listTrackedExercises()
       .then((names) => setTrackedExercises(names))
       .catch(() => setTrackedExercises([]));
   }, []);
 
-  // first weight date (for TOUT)
   useEffect(() => {
     getFirstWeightDate().then(setFirstWeightDate).catch(() => setFirstWeightDate(null));
   }, []);
 
-  // first exercise date (for TOUT)
   useEffect(() => {
     if (!selectedExercise) {
       setFirstExerciseDate(null);
@@ -214,18 +204,9 @@ export default function DashboardPage() {
     getFirstExerciseDate(name).then(setFirstExerciseDate).catch(() => setFirstExerciseDate(null));
   }, [selectedExercise]);
 
-  const weightFromTo = useMemo(
-    () => rangeToFromTo(weightRange, firstWeightDate),
-    [weightRange, firstWeightDate]
-  );
-  const exerciseFromTo = useMemo(
-    () => rangeToFromTo(exerciseRange, firstExerciseDate),
-    [exerciseRange, firstExerciseDate]
-  );
+  const weightFromTo = useMemo(() => rangeToFromTo(weightRange, firstWeightDate), [weightRange, firstWeightDate]);
+  const exerciseFromTo = useMemo(() => rangeToFromTo(exerciseRange, firstExerciseDate), [exerciseRange, firstExerciseDate]);
 
-  /**
-   * TOTAL: étendre le fetch poids pour fallback sur la fenêtre exercice
-   */
   const weightFetchFromTo = useMemo(() => {
     let from = weightFromTo.from;
     let to = weightFromTo.to;
@@ -271,12 +252,11 @@ export default function DashboardPage() {
 
   const weightLookup = useMemo(() => buildWeightLookup(weightRows), [weightRows]);
 
-  // Poids (iso catégorie)
   const weightChartData = useMemo(() => {
     const from = weightFromTo.from;
     const to = weightFromTo.to;
 
-    return weightRows
+    const rows = weightRows
       .filter((r) => r.date >= from && r.date <= to)
       .filter((r) => r.weight_g != null)
       .slice()
@@ -285,9 +265,11 @@ export default function DashboardPage() {
         iso: r.date,
         kg: (r.weight_g ?? 0) / 1000,
       }));
+
+    // anti-doublons (si jamais plusieurs lignes même date)
+    return dedupeByIsoKeepLast(rows);
   }, [weightRows, weightFromTo.from, weightFromTo.to]);
 
-  // Exercice (1 point / jour : max)
   const exerciseChartData = useMemo(() => {
     const byDay = new Map<string, ExerciseMasterPoint[]>();
     for (const r of exerciseRows) {
@@ -308,7 +290,7 @@ export default function DashboardPage() {
           if (r.load_type === "PDC_PLUS") {
             if (pdcMode === "LEST") return loadKg;
             const w = weightLookup.get(date) ?? null;
-            if (w == null) return Number.NaN; // pas de fallback => pas de point
+            if (w == null) return Number.NaN;
             return w / 1000 + loadKg;
           }
 
@@ -331,7 +313,6 @@ export default function DashboardPage() {
 
   const hasExercise = selectedExercise.trim().length > 0;
 
-  // keys de remount pour stabilité
   const weightChartKey = useMemo(() => {
     const first = weightChartData[0]?.iso ?? "none";
     const last = weightChartData[weightChartData.length - 1]?.iso ?? "none";
@@ -358,12 +339,7 @@ export default function DashboardPage() {
     if (!open) return null;
     return (
       <div className="fixed inset-0 z-[90]">
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-          aria-label="Fermer"
-        />
+        <button type="button" onClick={onClose} className="absolute inset-0 bg-black/80 backdrop-blur-sm" aria-label="Fermer" />
         <div className="absolute inset-0 flex items-center justify-center p-4">
           <div className="w-full max-w-5xl">
             <div className="glass-card border border-white/10 rounded-[2.5rem] overflow-hidden">
@@ -386,12 +362,8 @@ export default function DashboardPage() {
   return (
     <div className="max-w-xl mx-auto px-4 pt-12 pb-32 space-y-8">
       <header className="text-center">
-        <h1 className="text-5xl font-black text-menthe italic uppercase tracking-tighter">
-          Dashboard
-        </h1>
-        <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mt-2">
-          Charts
-        </p>
+        <h1 className="text-5xl font-black text-menthe italic uppercase tracking-tighter">Dashboard</h1>
+        <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mt-2">Charts</p>
       </header>
 
       {/* POIDS */}
@@ -400,12 +372,7 @@ export default function DashboardPage() {
           <div>
             <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">Poids</h2>
           </div>
-
-          <button
-            type="button"
-            onClick={() => setModal("weight")}
-            className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white"
-          >
+          <button type="button" onClick={() => setModal("weight")} className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white">
             Zoom
           </button>
         </div>
@@ -416,9 +383,7 @@ export default function DashboardPage() {
               key={r}
               type="button"
               onClick={() => setWeightRange(r)}
-              className={`flex-1 py-3 rounded-xl font-black uppercase italic text-[10px] tracking-widest ${
-                weightRange === r ? "bg-menthe text-black" : "text-white/30"
-              }`}
+              className={`flex-1 py-3 rounded-xl font-black uppercase italic text-[10px] tracking-widest ${weightRange === r ? "bg-menthe text-black" : "text-white/30"}`}
             >
               {r}
             </button>
@@ -441,7 +406,6 @@ export default function DashboardPage() {
       <GlassCard className="p-6 rounded-[2.5rem] border border-white/10 space-y-4">
         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Exercice</p>
 
-        {/* Select natif (robuste), stylé */}
         <select
           value={selectedExercise}
           onChange={(e) => setSelectedExercise(e.target.value)}
@@ -461,47 +425,43 @@ export default function DashboardPage() {
               key={r}
               type="button"
               onClick={() => setExerciseRange(r)}
-              className={`flex-1 py-3 rounded-xl font-black uppercase italic text-[10px] tracking-widest ${
-                exerciseRange === r ? "bg-menthe text-black" : "text-white/30"
-              }`}
+              className={`flex-1 py-3 rounded-xl font-black uppercase italic text-[10px] tracking-widest ${exerciseRange === r ? "bg-menthe text-black" : "text-white/30"}`}
             >
               {r}
             </button>
           ))}
         </div>
 
-        {/* Toggle LEST/TOTAL (maison) + panneaux i existants */}
-        <div className="bg-white/5 rounded-2xl p-4 relative space-y-3">
-          <ToggleSwitch
-            checked={pdcMode === "TOTAL"}
-            onChange={(checked) => setPdcMode(checked ? "TOTAL" : "LEST")}
-            leftLabel="LEST"
-            rightLabel="TOTAL"
-          />
+        <div className="bg-white/5 rounded-2xl p-4 relative space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <ToggleSwitch
+              checked={pdcMode === "TOTAL"}
+              onChange={(checked) => setPdcMode(checked ? "TOTAL" : "LEST")}
+              leftLabel="LEST"
+              rightLabel="TOTAL"
+            />
 
-          <div className="flex gap-2">
-            {(["LEST", "TOTAL"] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setInfo(info === m ? null : m)}
-                className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white"
-              >
-                Info {m}
-              </button>
-            ))}
-          </div>
-
-          {info && (
+            {/* UN seul bouton i */}
             <button
               type="button"
-              onClick={() => setInfo(null)}
-              className="absolute left-0 right-0 top-[6.2rem] mx-auto w-full bg-black/80 border border-white/10 rounded-2xl px-4 py-3 text-left"
+              onClick={() => setInfoOpen((v) => !v)}
+              className="w-10 h-10 rounded-full bg-white/5 border border-white/10 text-[10px] font-black text-white/50"
+              aria-label="Info"
+            >
+              i
+            </button>
+          </div>
+
+          {infoOpen && (
+            <button
+              type="button"
+              onClick={() => setInfoOpen(false)}
+              className="w-full bg-black/80 border border-white/10 rounded-2xl px-4 py-3 text-left"
             >
               <p className="text-[10px] font-black uppercase italic tracking-widest text-white/70">
-                {info === "LEST"
-                  ? "UNIQUEMENT LA CHARGE PORTÉE OU FIXÉE SUR UNE BARRE"
-                  : "POIDS DU CORPS + CHARGE LESTÉE"}
+                {pdcMode === "LEST"
+                  ? "LEST = UNIQUEMENT LA CHARGE PORTÉE OU FIXÉE SUR UNE BARRE"
+                  : "TOTAL = POIDS DU CORPS + CHARGE LESTÉE"}
               </p>
               <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">
                 TAP POUR FERMER
@@ -516,18 +476,12 @@ export default function DashboardPage() {
         <GlassCard className="p-6 rounded-[2.5rem] border border-white/10">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">
-                {selectedExercise.trim()}
-              </h2>
+              <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">{selectedExercise.trim()}</h2>
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">
                 {pdcMode === "LEST" ? "PDC+ = LEST (KG)" : "PDC+ = TOTAL (PDC + LEST)"}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setModal("exercise")}
-              className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white"
-            >
+            <button type="button" onClick={() => setModal("exercise")} className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white">
               Zoom
             </button>
           </div>
