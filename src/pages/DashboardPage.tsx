@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import GlassCard from "../components/GlassCard";
 import { getDailyMetricsRange, getFirstWeightDate } from "../db/dailyMetrics";
-import { getExerciseMasterHistory, listTrackedExercises, getFirstExerciseDate } from "../db/workouts";
+import {
+  getExerciseMasterHistory,
+  listTrackedExercises,
+  getFirstExerciseDate,
+} from "../db/workouts";
 import type { ExerciseMasterPoint } from "../db/workouts";
 import { format, subMonths } from "date-fns";
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
 type PdcMode = "LEST" | "TOTAL";
 type Range = "3M" | "6M" | "TOUT";
@@ -55,6 +59,10 @@ export default function DashboardPage() {
 
   const [modal, setModal] = useState<null | "exercise" | "weight">(null);
 
+  // ticks toggles (par chart)
+  const [showWeightTicks, setShowWeightTicks] = useState(true);
+  const [showExerciseTicks, setShowExerciseTicks] = useState(true);
+
   // exercises list (from DB)
   useEffect(() => {
     listTrackedExercises()
@@ -73,19 +81,63 @@ export default function DashboardPage() {
       setFirstExerciseDate(null);
       return;
     }
-    // IMPORTANT: sanitize just in case (trim)
     const name = selectedExercise.trim();
     getFirstExerciseDate(name).then(setFirstExerciseDate).catch(() => setFirstExerciseDate(null));
   }, [selectedExercise]);
 
-  const weightFromTo = useMemo(() => rangeToFromTo(weightRange, firstWeightDate), [weightRange, firstWeightDate]);
-  const exerciseFromTo = useMemo(() => rangeToFromTo(exerciseRange, firstExerciseDate), [exerciseRange, firstExerciseDate]);
+  const weightFromTo = useMemo(
+    () => rangeToFromTo(weightRange, firstWeightDate),
+    [weightRange, firstWeightDate]
+  );
+  const exerciseFromTo = useMemo(
+    () => rangeToFromTo(exerciseRange, firstExerciseDate),
+    [exerciseRange, firstExerciseDate]
+  );
+
+  /**
+   * IMPORTANT:
+   * Pour TOTAL (PDC+/PDC) on a besoin d'un poids "dernier connu ≤ date".
+   * Donc on doit charger les poids sur une plage qui couvre la fenêtre exercice,
+   * sinon TOTAL peut sembler "bloqué à 3M" (pas assez de poids plus anciens).
+   *
+   * On ne touche pas au range du chart Poids : seulement au fetch des poids utilisés
+   * pour le lookup (TOTAL fallback).
+   */
+  const weightFetchFromTo = useMemo(() => {
+    // base = ce que le chart poids affiche
+    let from = weightFromTo.from;
+    let to = weightFromTo.to;
+
+    const needsWeightsForTotal =
+      pdcMode === "TOTAL" && selectedExercise.trim().length > 0;
+
+    if (needsWeightsForTotal) {
+      // étendre pour couvrir la fenêtre exercice affichée
+      from = from < exerciseFromTo.from ? from : exerciseFromTo.from;
+      to = to > exerciseFromTo.to ? to : exerciseFromTo.to;
+
+      // si on a la toute première date de poids, on peut sécuriser pour TOUT
+      if (firstWeightDate) {
+        from = from < firstWeightDate ? from : firstWeightDate;
+      }
+    }
+
+    return { from, to };
+  }, [
+    weightFromTo.from,
+    weightFromTo.to,
+    exerciseFromTo.from,
+    exerciseFromTo.to,
+    pdcMode,
+    selectedExercise,
+    firstWeightDate,
+  ]);
 
   useEffect(() => {
-    getDailyMetricsRange(weightFromTo.from, weightFromTo.to)
+    getDailyMetricsRange(weightFetchFromTo.from, weightFetchFromTo.to)
       .then((rows) => setWeightRows(rows.map((r) => ({ date: r.date, weight_g: r.weight_g }))))
       .catch(() => setWeightRows([]));
-  }, [weightFromTo.from, weightFromTo.to]);
+  }, [weightFetchFromTo.from, weightFetchFromTo.to]);
 
   useEffect(() => {
     if (!selectedExercise) {
@@ -101,14 +153,20 @@ export default function DashboardPage() {
   const weightLookup = useMemo(() => buildWeightLookup(weightRows), [weightRows]);
 
   const weightChartData = useMemo(() => {
+    // NOTE: on garde l'affichage uniquement sur la plage weightRange (chart poids),
+    // même si weightRows peut contenir plus (pour TOTAL).
+    const from = weightFromTo.from;
+    const to = weightFromTo.to;
+
     return weightRows
+      .filter((r) => r.date >= from && r.date <= to)
       .filter((r) => r.weight_g != null)
       .map((r) => ({
         date: r.date.slice(5),
         iso: r.date,
         kg: (r.weight_g ?? 0) / 1000,
       }));
-  }, [weightRows]);
+  }, [weightRows, weightFromTo.from, weightFromTo.to]);
 
   const exerciseChartData = useMemo(() => {
     const byDay = new Map<string, ExerciseMasterPoint[]>();
@@ -155,23 +213,44 @@ export default function DashboardPage() {
   const hasExercise = selectedExercise.trim().length > 0;
   const hasExerciseData = exerciseChartData.length >= 1;
 
-  function Modal({ open, onClose, children }: { open: boolean; onClose: () => void; children: React.ReactNode }) {
+  function Modal({
+    open,
+    onClose,
+    children,
+  }: {
+    open: boolean;
+    onClose: () => void;
+    children: React.ReactNode;
+  }) {
     if (!open) return null;
-    const mobile = isMobile();
+    // on garde la logique mobile si utile ailleurs (taille),
+    // mais on supprime le libellé "mode paysage (simulé)" demandé.
+    void isMobile();
+
     return (
       <div className="fixed inset-0 z-[90]">
-        <button type="button" onClick={onClose} className="absolute inset-0 bg-black/80 backdrop-blur-sm" aria-label="Fermer" />
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+          aria-label="Fermer"
+        />
         <div className="absolute inset-0 flex items-center justify-center p-4">
           <div className="w-full max-w-5xl">
             <div className="glass-card border border-white/10 rounded-[2.5rem] overflow-hidden">
               <div className="p-4 flex items-center justify-between">
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">{mobile ? "MODE PAYSAGE (SIMULÉ)" : "ZOOM"}</p>
-                <button onClick={onClose} className="text-white/40 font-black text-[10px] uppercase tracking-widest">Fermer</button>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">
+                  ZOOM
+                </p>
+                <button
+                  onClick={onClose}
+                  className="text-white/40 font-black text-[10px] uppercase tracking-widest"
+                >
+                  Fermer
+                </button>
               </div>
               <div className="p-4 bg-black">
-                <div className="w-full h-[70vh]">
-                  {children}
-                </div>
+                <div className="w-full h-[70vh]">{children}</div>
               </div>
             </div>
           </div>
@@ -180,23 +259,52 @@ export default function DashboardPage() {
     );
   }
 
+  const axisTickCommon = { fontSize: 10, fontWeight: 800 } as const;
+
   return (
     <div className="max-w-xl mx-auto px-4 pt-12 pb-32 space-y-8">
       <header className="text-center">
-        <h1 className="text-5xl font-black text-menthe italic uppercase tracking-tighter">Dashboard</h1>
-        <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mt-2">Charts</p>
+        <h1 className="text-5xl font-black text-menthe italic uppercase tracking-tighter">
+          Dashboard
+        </h1>
+        <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mt-2">
+          Charts
+        </p>
       </header>
 
-     {/* POIDS */}
+      {/* POIDS */}
       <GlassCard className="p-6 rounded-[2.5rem] border border-white/10">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">Poids</h2>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">Range</p>
+            <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">
+              Poids
+            </h2>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">
+              Range
+            </p>
           </div>
-          <button type="button" onClick={() => setModal("weight")} className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white">
-            Zoom
-          </button>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowWeightTicks((v) => !v)}
+              className={`bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:text-white ${
+                showWeightTicks ? "text-white/50" : "text-menthe"
+              }`}
+              aria-pressed={showWeightTicks}
+              title={showWeightTicks ? "Masquer les valeurs" : "Afficher les valeurs"}
+            >
+              Valeurs
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setModal("weight")}
+              className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white"
+            >
+              Zoom
+            </button>
+          </div>
         </div>
 
         <div className="mt-4 flex bg-white/5 rounded-2xl p-1">
@@ -205,7 +313,9 @@ export default function DashboardPage() {
               key={r}
               type="button"
               onClick={() => setWeightRange(r)}
-              className={`flex-1 py-3 rounded-xl font-black uppercase italic text-[10px] tracking-widest ${weightRange === r ? "bg-menthe text-black" : "text-white/30"}`}
+              className={`flex-1 py-3 rounded-xl font-black uppercase italic text-[10px] tracking-widest ${
+                weightRange === r ? "bg-menthe text-black" : "text-white/30"
+              }`}
             >
               {r}
             </button>
@@ -213,28 +323,46 @@ export default function DashboardPage() {
         </div>
 
         <div className="mt-6 overflow-hidden">
-  {hasWeightData ? (
-    <div className="w-full overflow-x-auto no-scrollbar">
-      <LineChart width={520} height={220} data={weightChartData}>
-        <CartesianGrid stroke="rgba(255,255,255,0.06)" />
-        <XAxis dataKey="date" stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
-        <YAxis stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }}  reverse={false} domain={["auto", "auto"]}/>
-        <Tooltip contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16 }} />
-        <Line type="monotone" dataKey="kg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
-      </LineChart>
-    </div>
-  ) : (
-    <div className="h-[220px] w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">
-      PAS DE DONNÉES POIDS
-    </div>
-  )}
-</div>
-
+          {hasWeightData ? (
+            <div className="w-full overflow-x-auto no-scrollbar">
+              <LineChart width={520} height={220} data={weightChartData}>
+                <CartesianGrid stroke="rgba(255,255,255,0.06)" />
+                <XAxis
+                  dataKey="date"
+                  stroke="rgba(255,255,255,0.25)"
+                  tick={showWeightTicks ? axisTickCommon : false}
+                  tickLine={showWeightTicks}
+                />
+                <YAxis
+                  stroke="rgba(255,255,255,0.25)"
+                  tick={showWeightTicks ? axisTickCommon : false}
+                  tickLine={showWeightTicks}
+                  reversed={false}
+                  domain={["auto", "auto"]}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "rgba(0,0,0,0.9)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    borderRadius: 16,
+                  }}
+                />
+                <Line type="monotone" dataKey="kg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
+              </LineChart>
+            </div>
+          ) : (
+            <div className="h-[220px] w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">
+              PAS DE DONNÉES POIDS
+            </div>
+          )}
+        </div>
       </GlassCard>
 
       {/* EXERCICE SETTINGS */}
       <GlassCard className="p-6 rounded-[2.5rem] border border-white/10 space-y-4">
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Exercice</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">
+          Exercice
+        </p>
 
         <select
           value={selectedExercise}
@@ -255,7 +383,9 @@ export default function DashboardPage() {
               key={r}
               type="button"
               onClick={() => setExerciseRange(r)}
-              className={`flex-1 py-3 rounded-xl font-black uppercase italic text-[10px] tracking-widest ${exerciseRange === r ? "bg-menthe text-black" : "text-white/30"}`}
+              className={`flex-1 py-3 rounded-xl font-black uppercase italic text-[10px] tracking-widest ${
+                exerciseRange === r ? "bg-menthe text-black" : "text-white/30"
+              }`}
             >
               {r}
             </button>
@@ -268,7 +398,9 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => setPdcMode(m)}
-                className={`flex-1 py-3 rounded-xl font-black uppercase italic text-[10px] tracking-widest ${pdcMode === m ? "bg-menthe text-black" : "text-white/30"}`}
+                className={`flex-1 py-3 rounded-xl font-black uppercase italic text-[10px] tracking-widest ${
+                  pdcMode === m ? "bg-menthe text-black" : "text-white/30"
+                }`}
               >
                 {m}
               </button>
@@ -289,9 +421,13 @@ export default function DashboardPage() {
               className="absolute left-0 right-0 top-[3.2rem] mx-auto w-full bg-black/80 border border-white/10 rounded-2xl px-4 py-3 text-left"
             >
               <p className="text-[10px] font-black uppercase italic tracking-widest text-white/70">
-                {info === "LEST" ? "UNIQUEMENT LA CHARGE PORTÉE OU FIXÉE SUR UNE BARRE" : "POIDS DU CORPS + CHARGE LESTÉE"}
+                {info === "LEST"
+                  ? "UNIQUEMENT LA CHARGE PORTÉE OU FIXÉE SUR UNE BARRE"
+                  : "POIDS DU CORPS + CHARGE LESTÉE"}
               </p>
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">TAP POUR FERMER</p>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">
+                TAP POUR FERMER
+              </p>
             </button>
           )}
         </div>
@@ -302,62 +438,129 @@ export default function DashboardPage() {
         <GlassCard className="p-6 rounded-[2.5rem] border border-white/10">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">{selectedExercise.trim()}</h2>
+              <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">
+                {selectedExercise.trim()}
+              </h2>
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">
                 {pdcMode === "LEST" ? "PDC+ = LEST (KG)" : "PDC+ = TOTAL (PDC + LEST)"}
               </p>
             </div>
-            <button type="button" onClick={() => setModal("exercise")} className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white">
-              Zoom
-            </button>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowExerciseTicks((v) => !v)}
+                className={`bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:text-white ${
+                  showExerciseTicks ? "text-white/50" : "text-menthe"
+                }`}
+                aria-pressed={showExerciseTicks}
+                title={showExerciseTicks ? "Masquer les valeurs" : "Afficher les valeurs"}
+              >
+                Valeurs
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setModal("exercise")}
+                className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white"
+              >
+                Zoom
+              </button>
+            </div>
           </div>
 
           <div className="mt-6 overflow-hidden">
-  {hasExerciseData ? (
-    <div className="w-full overflow-x-auto no-scrollbar">
-      <LineChart width={520} height={220} data={exerciseChartData}>
-        <CartesianGrid stroke="rgba(255,255,255,0.06)" />
-        <XAxis dataKey="date" stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
-        <YAxis stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
-        <Tooltip contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16 }} />
-        <Line type="monotone" dataKey="valueKg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
-      </LineChart>
-    </div>
-  ) : (
-    <div className="h-[220px] w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">
-      PAS ASSEZ DE DONNÉES
-    </div>
-  )}
-</div>
-
+            {hasExerciseData ? (
+              <div className="w-full overflow-x-auto no-scrollbar">
+                <LineChart width={520} height={220} data={exerciseChartData}>
+                  <CartesianGrid stroke="rgba(255,255,255,0.06)" />
+                  <XAxis
+                    dataKey="date"
+                    stroke="rgba(255,255,255,0.25)"
+                    tick={showExerciseTicks ? axisTickCommon : false}
+                    tickLine={showExerciseTicks}
+                  />
+                  <YAxis
+                    stroke="rgba(255,255,255,0.25)"
+                    tick={showExerciseTicks ? axisTickCommon : false}
+                    tickLine={showExerciseTicks}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: "rgba(0,0,0,0.9)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: 16,
+                    }}
+                  />
+                  <Line type="monotone" dataKey="valueKg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
+                </LineChart>
+              </div>
+            ) : (
+              <div className="h-[220px] w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">
+                PAS ASSEZ DE DONNÉES
+              </div>
+            )}
+          </div>
         </GlassCard>
       )}
 
       <Modal open={modal === "exercise"} onClose={() => setModal(null)}>
-  <div className="w-full overflow-x-auto no-scrollbar">
-    <LineChart width={900} height={420} data={exerciseChartData}>
-      <CartesianGrid stroke="rgba(255,255,255,0.06)" />
-      <XAxis dataKey="date" stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
-      <YAxis stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} reverse={false} domain={["auto", "auto"]} />
-      <Tooltip contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16 }} />
-      <Line type="monotone" dataKey="valueKg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
-    </LineChart>
-  </div>
-</Modal>
-
+        <div className="w-full overflow-x-auto no-scrollbar">
+          <LineChart width={900} height={420} data={exerciseChartData}>
+            <CartesianGrid stroke="rgba(255,255,255,0.06)" />
+            <XAxis
+              dataKey="date"
+              stroke="rgba(255,255,255,0.25)"
+              tick={showExerciseTicks ? axisTickCommon : false}
+              tickLine={showExerciseTicks}
+            />
+            <YAxis
+              stroke="rgba(255,255,255,0.25)"
+              tick={showExerciseTicks ? axisTickCommon : false}
+              tickLine={showExerciseTicks}
+              reversed={false}
+              domain={["auto", "auto"]}
+            />
+            <Tooltip
+              contentStyle={{
+                background: "rgba(0,0,0,0.9)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: 16,
+              }}
+            />
+            <Line type="monotone" dataKey="valueKg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
+          </LineChart>
+        </div>
+      </Modal>
 
       <Modal open={modal === "weight"} onClose={() => setModal(null)}>
-  <div className="w-full overflow-x-auto no-scrollbar">
-    <LineChart width={900} height={420} data={weightChartData}>
-      <CartesianGrid stroke="rgba(255,255,255,0.06)" />
-      <XAxis dataKey="date" stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
-      <YAxis stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} />
-      <Tooltip contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16 }} />
-      <Line type="monotone" dataKey="kg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
-    </LineChart>
-  </div>
-</Modal>
-
+        <div className="w-full overflow-x-auto no-scrollbar">
+          <LineChart width={900} height={420} data={weightChartData}>
+            <CartesianGrid stroke="rgba(255,255,255,0.06)" />
+            <XAxis
+              dataKey="date"
+              stroke="rgba(255,255,255,0.25)"
+              tick={showWeightTicks ? axisTickCommon : false}
+              tickLine={showWeightTicks}
+            />
+            <YAxis
+              stroke="rgba(255,255,255,0.25)"
+              tick={showWeightTicks ? axisTickCommon : false}
+              tickLine={showWeightTicks}
+              reversed={false}
+              domain={["auto", "auto"]}
+            />
+            <Tooltip
+              contentStyle={{
+                background: "rgba(0,0,0,0.9)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: 16,
+              }}
+            />
+            <Line type="monotone" dataKey="kg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
+          </LineChart>
+        </div>
+      </Modal>
     </div>
   );
 }
