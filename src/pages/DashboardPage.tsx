@@ -70,14 +70,16 @@ function computePaddedDomain(values: number[]): [number, number] | ["auto", "aut
 }
 
 function WeightDebugDot(props: any) {
-  const { cx, cy, payload } = props;
-  if (!payload || typeof payload.kg !== "number") return null;
+  const { cx, cy, value } = props;
 
   const x = Number(cx);
   const y = Number(cy);
   if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
 
-  const label = payload.kg.toFixed(1);
+  const v = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(v)) return null;
+
+  const label = v.toFixed(1);
 
   return (
     <g>
@@ -95,6 +97,7 @@ function WeightDebugDot(props: any) {
     </g>
   );
 }
+
 
 
 export default function DashboardPage() {
