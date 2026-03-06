@@ -33,6 +33,11 @@ function isoToDDMM(iso: string) {
   return `${dd}.${mm}`;
 }
 
+function isoToTs(iso: string) {
+  // stable en local: minuit local, suffisant pour un axe de jours
+  return new Date(`${iso}T00:00:00`).getTime();
+}
+
 function buildWeightLookup(rows: { date: string; weight_g: number | null }[]) {
   const sorted = [...rows].sort((a, b) => a.date.localeCompare(b.date));
   let last: number | null = null;
@@ -46,28 +51,22 @@ function buildWeightLookup(rows: { date: string; weight_g: number | null }[]) {
 
 function dedupeByIsoKeepLast<T extends { iso: string }>(rows: T[]): T[] {
   const map = new Map<string, T>();
-  for (const r of rows) map.set(r.iso, r); // keep last occurrence
+  for (const r of rows) map.set(r.iso, r);
   return Array.from(map.values()).sort((a, b) => a.iso.localeCompare(b.iso));
 }
 
-function ChartBlock({
+function ChartBlockNumericX({
   chartKey,
   data,
-  xKey,
   yKey,
   widthBase = 520,
   height = 220,
-  tickFormatterX,
-  tooltipLabelFormatter,
 }: {
   chartKey: string;
   data: any[];
-  xKey: string;
   yKey: string;
   widthBase?: number;
   height?: number;
-  tickFormatterX?: (v: any) => string;
-  tooltipLabelFormatter?: (v: any) => string;
 }) {
   if (!data.length) {
     return (
@@ -84,10 +83,20 @@ function ChartBlock({
       <LineChart key={chartKey} width={chartW} height={height} data={data}>
         <CartesianGrid stroke="rgba(255,255,255,0.06)" />
         <XAxis
-          dataKey={xKey}
+          type="number"
+          scale="linear"
+          dataKey="x"
+          domain={["dataMin", "dataMax"]}
           stroke="rgba(255,255,255,0.25)"
           tick={{ fontSize: 10, fontWeight: 800 }}
-          tickFormatter={tickFormatterX}
+          tickFormatter={(v) => {
+            if (typeof v !== "number") return String(v);
+            // on récupère le iso depuis payload via tooltip; tick => on reformate via Date
+            const d = new Date(v);
+            const dd = String(d.getDate()).padStart(2, "0");
+            const mm = String(d.getMonth() + 1).padStart(2, "0");
+            return `${dd}.${mm}`;
+          }}
         />
         <YAxis
           stroke="rgba(255,255,255,0.25)"
@@ -96,7 +105,13 @@ function ChartBlock({
           domain={["auto", "auto"]}
         />
         <Tooltip
-          labelFormatter={tooltipLabelFormatter}
+          labelFormatter={(v) => {
+            if (typeof v !== "number") return String(v);
+            const d = new Date(v);
+            const dd = String(d.getDate()).padStart(2, "0");
+            const mm = String(d.getMonth() + 1).padStart(2, "0");
+            return `${dd}.${mm}`;
+          }}
           contentStyle={{
             background: "rgba(0,0,0,0.9)",
             border: "1px solid rgba(255,255,255,0.1)",
@@ -109,13 +124,7 @@ function ChartBlock({
           stroke="#00FFA3"
           strokeWidth={3}
           dot={{ r: 3, fill: "#00FFA3" }}
-          // activeDot très visible pour éliminer ambiguïté tooltip/point
-          activeDot={{
-            r: 10,
-            fill: "#ffffff",
-            stroke: "#00FFA3",
-            strokeWidth: 4,
-          }}
+          activeDot={{ r: 7, fill: "#ffffff", stroke: "#00FFA3", strokeWidth: 3 }}
           isAnimationActive={false}
         />
       </LineChart>
@@ -252,6 +261,7 @@ export default function DashboardPage() {
 
   const weightLookup = useMemo(() => buildWeightLookup(weightRows), [weightRows]);
 
+  // Poids: x numérique (timestamp) + iso (pour debug/dédoublonnage)
   const weightChartData = useMemo(() => {
     const from = weightFromTo.from;
     const to = weightFromTo.to;
@@ -263,13 +273,14 @@ export default function DashboardPage() {
       .sort((a, b) => a.date.localeCompare(b.date))
       .map((r) => ({
         iso: r.date,
+        x: isoToTs(r.date),
         kg: (r.weight_g ?? 0) / 1000,
       }));
 
-    // anti-doublons (si jamais plusieurs lignes même date)
     return dedupeByIsoKeepLast(rows);
   }, [weightRows, weightFromTo.from, weightFromTo.to]);
 
+  // Exercice: 1 point/jour (max), + x timestamp
   const exerciseChartData = useMemo(() => {
     const byDay = new Map<string, ExerciseMasterPoint[]>();
     for (const r of exerciseRows) {
@@ -278,7 +289,7 @@ export default function DashboardPage() {
       byDay.set(r.date, arr);
     }
 
-    const points: { iso: string; valueKg: number }[] = [];
+    const points: { iso: string; x: number; valueKg: number }[] = [];
 
     for (const [date, arr] of byDay.entries()) {
       const vals = arr
@@ -305,10 +316,16 @@ export default function DashboardPage() {
         .filter((v) => Number.isFinite(v));
 
       if (!vals.length) continue;
-      points.push({ iso: date, valueKg: Math.max(...vals) });
+
+      points.push({
+        iso: date,
+        x: isoToTs(date),
+        valueKg: Math.max(...vals),
+      });
     }
 
-    return points.sort((a, b) => a.iso.localeCompare(b.iso));
+    const sorted = points.sort((a, b) => a.iso.localeCompare(b.iso));
+    return dedupeByIsoKeepLast(sorted);
   }, [exerciseRows, pdcMode, weightLookup]);
 
   const hasExercise = selectedExercise.trim().length > 0;
@@ -391,14 +408,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="mt-6 overflow-hidden">
-          <ChartBlock
-            chartKey={weightChartKey}
-            data={weightChartData}
-            xKey="iso"
-            yKey="kg"
-            tickFormatterX={(v) => (typeof v === "string" ? isoToDDMM(v) : String(v))}
-            tooltipLabelFormatter={(v) => (typeof v === "string" ? isoToDDMM(v) : String(v))}
-          />
+          <ChartBlockNumericX chartKey={weightChartKey} data={weightChartData} yKey="kg" />
         </div>
       </GlassCard>
 
@@ -441,7 +451,6 @@ export default function DashboardPage() {
               rightLabel="TOTAL"
             />
 
-            {/* UN seul bouton i */}
             <button
               type="button"
               onClick={() => setInfoOpen((v) => !v)}
@@ -487,42 +496,17 @@ export default function DashboardPage() {
           </div>
 
           <div className="mt-6 overflow-hidden">
-            <ChartBlock
-              chartKey={exerciseChartKey}
-              data={exerciseChartData}
-              xKey="iso"
-              yKey="valueKg"
-              tickFormatterX={(v) => (typeof v === "string" ? isoToDDMM(v) : String(v))}
-              tooltipLabelFormatter={(v) => (typeof v === "string" ? isoToDDMM(v) : String(v))}
-            />
+            <ChartBlockNumericX chartKey={exerciseChartKey} data={exerciseChartData} yKey="valueKg" />
           </div>
         </GlassCard>
       )}
 
       <Modal open={modal === "exercise"} onClose={() => setModal(null)} title="ZOOM">
-        <ChartBlock
-          chartKey={`${exerciseChartKey}:zoom`}
-          data={exerciseChartData}
-          xKey="iso"
-          yKey="valueKg"
-          widthBase={900}
-          height={420}
-          tickFormatterX={(v) => (typeof v === "string" ? isoToDDMM(v) : String(v))}
-          tooltipLabelFormatter={(v) => (typeof v === "string" ? isoToDDMM(v) : String(v))}
-        />
+        <ChartBlockNumericX chartKey={`${exerciseChartKey}:zoom`} data={exerciseChartData} yKey="valueKg" widthBase={900} height={420} />
       </Modal>
 
       <Modal open={modal === "weight"} onClose={() => setModal(null)} title="ZOOM">
-        <ChartBlock
-          chartKey={`${weightChartKey}:zoom`}
-          data={weightChartData}
-          xKey="iso"
-          yKey="kg"
-          widthBase={900}
-          height={420}
-          tickFormatterX={(v) => (typeof v === "string" ? isoToDDMM(v) : String(v))}
-          tooltipLabelFormatter={(v) => (typeof v === "string" ? isoToDDMM(v) : String(v))}
-        />
+        <ChartBlockNumericX chartKey={`${weightChartKey}:zoom`} data={weightChartData} yKey="kg" widthBase={900} height={420} />
       </Modal>
     </div>
   );
