@@ -48,23 +48,6 @@ function isoToDDMM(iso: string) {
   return `${dd}.${mm}`;
 }
 
-function computePaddedDomain(values: number[]): [number, number] | ["auto", "auto"] {
-  const finite = values.filter((v) => Number.isFinite(v));
-  if (finite.length === 0) return ["auto", "auto"];
-
-  let min = Math.min(...finite);
-  let max = Math.max(...finite);
-
-  if (min === max) {
-    const pad = Math.max(0.5, Math.abs(min) * 0.01);
-    return [min - pad, max + pad];
-  }
-
-  const range = max - min;
-  const pad = range * 0.08;
-  return [min - pad, max + pad];
-}
-
 export default function DashboardPage() {
   const [trackedExercises, setTrackedExercises] = useState<string[]>([]);
   const [selectedExercise, setSelectedExercise] = useState<string>("");
@@ -120,7 +103,9 @@ export default function DashboardPage() {
     [exerciseRange, firstExerciseDate]
   );
 
-  // TOTAL: étendre le fetch poids pour fallback sur la fenêtre exercice
+  /**
+   * TOTAL: étendre le fetch poids pour fallback "dernier poids connu ≤ date" sur la fenêtre exercice.
+   */
   const weightFetchFromTo = useMemo(() => {
     let from = weightFromTo.from;
     let to = weightFromTo.to;
@@ -167,8 +152,10 @@ export default function DashboardPage() {
       .catch(() => setExerciseRows([]));
   }, [selectedExercise, exerciseFromTo.from, exerciseFromTo.to]);
 
+  // build lookup from all loaded weights (sorted inside)
   const weightLookup = useMemo(() => buildWeightLookup(weightRows), [weightRows]);
 
+  // sort weights for chart to ensure polyline is chronological
   const weightChartData = useMemo(() => {
     const from = weightFromTo.from;
     const to = weightFromTo.to;
@@ -176,23 +163,23 @@ export default function DashboardPage() {
     return weightRows
       .filter((r) => r.date >= from && r.date <= to)
       .filter((r) => r.weight_g != null)
+      .slice()
+      .sort((a, b) => a.date.localeCompare(b.date))
       .map((r) => ({
-        date: isoToDDMM(r.date),
-        iso: r.date,
+        iso: r.date, // keep as X key to avoid collisions
         kg: (r.weight_g ?? 0) / 1000,
       }));
   }, [weightRows, weightFromTo.from, weightFromTo.to]);
 
-  const weightYDomain = useMemo(() => {
-    return computePaddedDomain(weightChartData.map((d) => d.kg));
+  const weightYDomain = useMemo((): [number, number] | ["auto", "auto"] => {
+    const values = weightChartData.map((d) => d.kg).filter((v) => Number.isFinite(v));
+    if (!values.length) return ["auto", "auto"];
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    if (min === max) return [min - 0.5, max + 0.5];
+    const pad = (max - min) * 0.08;
+    return [min - pad, max + pad];
   }, [weightChartData]);
-
-  // key to force recharts remount when range/data changes (prevents state carryover)
-  const weightChartKey = useMemo(() => {
-    const firstIso = weightChartData[0]?.iso ?? "none";
-    const lastIso = weightChartData[weightChartData.length - 1]?.iso ?? "none";
-    return `w:${weightRange}:${weightFromTo.from}:${weightFromTo.to}:${weightChartData.length}:${firstIso}:${lastIso}`;
-  }, [weightRange, weightFromTo.from, weightFromTo.to, weightChartData]);
 
   const exerciseChartData = useMemo(() => {
     const byDay = new Map<string, ExerciseMasterPoint[]>();
@@ -304,7 +291,6 @@ export default function DashboardPage() {
               Poids
             </h2>
           </div>
-
           <button
             type="button"
             onClick={() => setModal("weight")}
@@ -332,12 +318,13 @@ export default function DashboardPage() {
         <div className="mt-6 overflow-hidden">
           {hasWeightData ? (
             <div className="w-full overflow-x-auto no-scrollbar">
-              <LineChart key={weightChartKey} width={520} height={220} data={weightChartData}>
+              <LineChart width={520} height={220} data={weightChartData}>
                 <CartesianGrid stroke="rgba(255,255,255,0.06)" />
                 <XAxis
-                  dataKey="date"
+                  dataKey="iso"
                   stroke="rgba(255,255,255,0.25)"
                   tick={{ fontSize: 10, fontWeight: 800 }}
+                  tickFormatter={(iso) => (typeof iso === "string" ? isoToDDMM(iso) : String(iso))}
                 />
                 <YAxis
                   stroke="rgba(255,255,255,0.25)"
@@ -346,6 +333,7 @@ export default function DashboardPage() {
                   domain={weightYDomain}
                 />
                 <Tooltip
+                  labelFormatter={(iso) => (typeof iso === "string" ? isoToDDMM(iso) : String(iso))}
                   contentStyle={{
                     background: "rgba(0,0,0,0.9)",
                     border: "1px solid rgba(255,255,255,0.1)",
@@ -521,12 +509,13 @@ export default function DashboardPage() {
 
       <Modal open={modal === "weight"} onClose={() => setModal(null)}>
         <div className="w-full overflow-x-auto no-scrollbar">
-          <LineChart key={`${weightChartKey}:zoom`} width={900} height={420} data={weightChartData}>
+          <LineChart width={900} height={420} data={weightChartData}>
             <CartesianGrid stroke="rgba(255,255,255,0.06)" />
             <XAxis
-              dataKey="date"
+              dataKey="iso"
               stroke="rgba(255,255,255,0.25)"
               tick={{ fontSize: 10, fontWeight: 800 }}
+              tickFormatter={(iso) => (typeof iso === "string" ? isoToDDMM(iso) : String(iso))}
             />
             <YAxis
               stroke="rgba(255,255,255,0.25)"
@@ -535,6 +524,7 @@ export default function DashboardPage() {
               domain={weightYDomain}
             />
             <Tooltip
+              labelFormatter={(iso) => (typeof iso === "string" ? isoToDDMM(iso) : String(iso))}
               contentStyle={{
                 background: "rgba(0,0,0,0.9)",
                 border: "1px solid rgba(255,255,255,0.1)",
