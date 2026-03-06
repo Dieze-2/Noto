@@ -55,18 +55,14 @@ function computePaddedDomain(values: number[]): [number, number] | ["auto", "aut
   let min = Math.min(...finite);
   let max = Math.max(...finite);
 
-  // Domaine dégénéré (toutes valeurs identiques) -> on pad un peu
   if (min === max) {
     const pad = Math.max(0.5, Math.abs(min) * 0.01);
     return [min - pad, max + pad];
   }
 
   const range = max - min;
-  const pad = range * 0.08; // léger padding visuel
-  min = min - pad;
-  max = max + pad;
-
-  return [min, max];
+  const pad = range * 0.08;
+  return [min - pad, max + pad];
 }
 
 export default function DashboardPage() {
@@ -124,9 +120,7 @@ export default function DashboardPage() {
     [exerciseRange, firstExerciseDate]
   );
 
-  /**
-   * TOTAL: étendre le fetch poids pour fallback "dernier poids connu ≤ date" sur la fenêtre exercice.
-   */
+  // TOTAL: étendre le fetch poids pour fallback sur la fenêtre exercice
   const weightFetchFromTo = useMemo(() => {
     let from = weightFromTo.from;
     let to = weightFromTo.to;
@@ -192,6 +186,13 @@ export default function DashboardPage() {
   const weightYDomain = useMemo(() => {
     return computePaddedDomain(weightChartData.map((d) => d.kg));
   }, [weightChartData]);
+
+  // key to force recharts remount when range/data changes (prevents state carryover)
+  const weightChartKey = useMemo(() => {
+    const firstIso = weightChartData[0]?.iso ?? "none";
+    const lastIso = weightChartData[weightChartData.length - 1]?.iso ?? "none";
+    return `w:${weightRange}:${weightFromTo.from}:${weightFromTo.to}:${weightChartData.length}:${firstIso}:${lastIso}`;
+  }, [weightRange, weightFromTo.from, weightFromTo.to, weightChartData]);
 
   const exerciseChartData = useMemo(() => {
     const byDay = new Map<string, ExerciseMasterPoint[]>();
@@ -331,7 +332,7 @@ export default function DashboardPage() {
         <div className="mt-6 overflow-hidden">
           {hasWeightData ? (
             <div className="w-full overflow-x-auto no-scrollbar">
-              <LineChart width={520} height={220} data={weightChartData}>
+              <LineChart key={weightChartKey} width={520} height={220} data={weightChartData}>
                 <CartesianGrid stroke="rgba(255,255,255,0.06)" />
                 <XAxis
                   dataKey="date"
@@ -351,13 +352,7 @@ export default function DashboardPage() {
                     borderRadius: 16,
                   }}
                 />
-                <Line
-                  type="monotone"
-                  dataKey="kg"
-                  stroke="#00FFA3"
-                  strokeWidth={3}
-                  dot={{ r: 3 }}
-                />
+                <Line type="monotone" dataKey="kg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
               </LineChart>
             </div>
           ) : (
@@ -485,13 +480,7 @@ export default function DashboardPage() {
                       borderRadius: 16,
                     }}
                   />
-                  <Line
-                    type="monotone"
-                    dataKey="valueKg"
-                    stroke="#00FFA3"
-                    strokeWidth={3}
-                    dot={{ r: 3 }}
-                  />
+                  <Line type="monotone" dataKey="valueKg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
                 </LineChart>
               </div>
             ) : (
@@ -525,20 +514,14 @@ export default function DashboardPage() {
                 borderRadius: 16,
               }}
             />
-            <Line
-              type="monotone"
-              dataKey="valueKg"
-              stroke="#00FFA3"
-              strokeWidth={3}
-              dot={{ r: 3 }}
-            />
+            <Line type="monotone" dataKey="valueKg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
           </LineChart>
         </div>
       </Modal>
 
       <Modal open={modal === "weight"} onClose={() => setModal(null)}>
         <div className="w-full overflow-x-auto no-scrollbar">
-          <LineChart width={900} height={420} data={weightChartData}>
+          <LineChart key={`${weightChartKey}:zoom`} width={900} height={420} data={weightChartData}>
             <CartesianGrid stroke="rgba(255,255,255,0.06)" />
             <XAxis
               dataKey="date"
@@ -558,13 +541,7 @@ export default function DashboardPage() {
                 borderRadius: 16,
               }}
             />
-            <Line
-              type="monotone"
-              dataKey="kg"
-              stroke="#00FFA3"
-              strokeWidth={3}
-              dot={{ r: 3 }}
-            />
+            <Line type="monotone" dataKey="kg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
           </LineChart>
         </div>
       </Modal>
