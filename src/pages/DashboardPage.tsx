@@ -44,6 +44,15 @@ function isoToDDMM(iso: string) {
   return `${dd}.${mm}`;
 }
 
+// timestamp(ms) -> DD.MM
+function tsToDDMM(ts: number) {
+  // on utilise Date, suffisant ici
+  const d = new Date(ts);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${dd}.${mm}`;
+}
+
 function computePaddedDomain(values: number[]): [number, number] | ["auto", "auto"] {
   const finite = values.filter((v) => Number.isFinite(v));
   if (finite.length === 0) return ["auto", "auto"];
@@ -61,13 +70,6 @@ function computePaddedDomain(values: number[]): [number, number] | ["auto", "aut
   return [min - pad, max + pad];
 }
 
-function isSortedAscIso(list: string[]) {
-  for (let i = 1; i < list.length; i++) {
-    if (list[i - 1] > list[i]) return false;
-  }
-  return true;
-}
-
 export default function DashboardPage() {
   const [trackedExercises, setTrackedExercises] = useState<string[]>([]);
   const [selectedExercise, setSelectedExercise] = useState<string>("");
@@ -79,47 +81,57 @@ export default function DashboardPage() {
   const [exerciseRange, setExerciseRange] = useState<Range>("TOUT");
 
   const [exerciseRows, setExerciseRows] = useState<ExerciseMasterPoint[]>([]);
-  const [weightRows, setWeightRows] = useState<{ date: string; weight_g: number | null }[]>([]);
+  const [weightRows, setWeightRows] = useState<
+    { date: string; weight_g: number | null }[]
+  >([]);
 
   const [firstWeightDate, setFirstWeightDate] = useState<string | null>(null);
   const [firstExerciseDate, setFirstExerciseDate] = useState<string | null>(null);
 
   const [modal, setModal] = useState<null | "exercise" | "weight">(null);
 
-  // affichage debug dans l’UI (poids)
+  // Debug UI (poids)
   const [showWeightDebug, setShowWeightDebug] = useState(false);
 
-  // exercises list (from DB)
   useEffect(() => {
     listTrackedExercises()
       .then((names) => setTrackedExercises(names))
       .catch(() => setTrackedExercises([]));
   }, []);
 
-  // first weight date (for TOUT)
   useEffect(() => {
-    getFirstWeightDate().then(setFirstWeightDate).catch(() => setFirstWeightDate(null));
+    getFirstWeightDate()
+      .then(setFirstWeightDate)
+      .catch(() => setFirstWeightDate(null));
   }, []);
 
-  // first exercise date (for TOUT)
   useEffect(() => {
     if (!selectedExercise) {
       setFirstExerciseDate(null);
       return;
     }
     const name = selectedExercise.trim();
-    getFirstExerciseDate(name).then(setFirstExerciseDate).catch(() => setFirstExerciseDate(null));
+    getFirstExerciseDate(name)
+      .then(setFirstExerciseDate)
+      .catch(() => setFirstExerciseDate(null));
   }, [selectedExercise]);
 
-  const weightFromTo = useMemo(() => rangeToFromTo(weightRange, firstWeightDate), [weightRange, firstWeightDate]);
-  const exerciseFromTo = useMemo(() => rangeToFromTo(exerciseRange, firstExerciseDate), [exerciseRange, firstExerciseDate]);
+  const weightFromTo = useMemo(
+    () => rangeToFromTo(weightRange, firstWeightDate),
+    [weightRange, firstWeightDate]
+  );
+  const exerciseFromTo = useMemo(
+    () => rangeToFromTo(exerciseRange, firstExerciseDate),
+    [exerciseRange, firstExerciseDate]
+  );
 
   // TOTAL: étendre le fetch poids pour fallback sur la fenêtre exercice
   const weightFetchFromTo = useMemo(() => {
     let from = weightFromTo.from;
     let to = weightFromTo.to;
 
-    const needsWeightsForTotal = pdcMode === "TOTAL" && selectedExercise.trim().length > 0;
+    const needsWeightsForTotal =
+      pdcMode === "TOTAL" && selectedExercise.trim().length > 0;
 
     if (needsWeightsForTotal) {
       from = from < exerciseFromTo.from ? from : exerciseFromTo.from;
@@ -143,7 +155,9 @@ export default function DashboardPage() {
 
   useEffect(() => {
     getDailyMetricsRange(weightFetchFromTo.from, weightFetchFromTo.to)
-      .then((rows) => setWeightRows(rows.map((r) => ({ date: r.date, weight_g: r.weight_g }))))
+      .then((rows) =>
+        setWeightRows(rows.map((r) => ({ date: r.date, weight_g: r.weight_g })))
+      )
       .catch(() => setWeightRows([]));
   }, [weightFetchFromTo.from, weightFetchFromTo.to]);
 
@@ -160,6 +174,7 @@ export default function DashboardPage() {
 
   const weightLookup = useMemo(() => buildWeightLookup(weightRows), [weightRows]);
 
+  // Poids: X numérique (timestamp) pour une échelle temporelle fiable
   const weightChartData = useMemo(() => {
     const from = weightFromTo.from;
     const to = weightFromTo.to;
@@ -171,43 +186,27 @@ export default function DashboardPage() {
       .sort((a, b) => a.date.localeCompare(b.date))
       .map((r) => ({
         iso: r.date,
+        x: new Date(`${r.date}T00:00:00`).getTime(),
         kg: (r.weight_g ?? 0) / 1000,
       }));
   }, [weightRows, weightFromTo.from, weightFromTo.to]);
 
   const weightYDomain = useMemo(() => computePaddedDomain(weightChartData.map((d) => d.kg)), [weightChartData]);
 
-  const weightDebug = useMemo(() => {
-    const isos = weightChartData.map((d) => d.iso);
-    const sorted = isSortedAscIso(isos);
+  // Debug console + UI
+  useEffect(() => {
     const kgs = weightChartData.map((d) => d.kg).filter((v) => Number.isFinite(v));
     const min = kgs.length ? Math.min(...kgs) : null;
     const max = kgs.length ? Math.max(...kgs) : null;
-    return {
-      range: weightRange,
-      from: weightFromTo.from,
-      to: weightFromTo.to,
-      points: weightChartData.length,
-      sorted,
-      minKg: min,
-      maxKg: max,
-      head: weightChartData.slice(0, 3),
-      tail: weightChartData.slice(-3),
-      domain: weightYDomain,
-    };
-  }, [weightChartData, weightFromTo.from, weightFromTo.to, weightRange, weightYDomain]);
 
-  // Logs dans la console du navigateur (DevTools)
-  useEffect(() => {
     console.groupCollapsed(
-      `[DASH][POIDS] range=${weightDebug.range} from=${weightDebug.from} to=${weightDebug.to} points=${weightDebug.points}`
+      `[DASH][POIDS] range=${weightRange} from=${weightFromTo.from} to=${weightFromTo.to} points=${weightChartData.length}`
     );
-    console.log("sortedByIsoAsc:", weightDebug.sorted);
-    console.log("yDomain:", weightDebug.domain, "minKg:", weightDebug.minKg, "maxKg:", weightDebug.maxKg);
-    console.log("head:", weightDebug.head);
-    console.log("tail:", weightDebug.tail);
+    console.log("minKg:", min, "maxKg:", max, "yDomain:", weightYDomain);
+    console.log("head:", weightChartData.slice(0, 3));
+    console.log("tail:", weightChartData.slice(-3));
     console.groupEnd();
-  }, [weightDebug]);
+  }, [weightRange, weightFromTo.from, weightFromTo.to, weightChartData, weightYDomain]);
 
   const exerciseChartData = useMemo(() => {
     const byDay = new Map<string, ExerciseMasterPoint[]>();
@@ -254,18 +253,36 @@ export default function DashboardPage() {
   const hasExercise = selectedExercise.trim().length > 0;
   const hasExerciseData = exerciseChartData.length >= 1;
 
-  function Modal({ open, onClose, children }: { open: boolean; onClose: () => void; children: React.ReactNode }) {
+  function Modal({
+    open,
+    onClose,
+    children,
+  }: {
+    open: boolean;
+    onClose: () => void;
+    children: React.ReactNode;
+  }) {
     if (!open) return null;
-    void isMobile();
+
     return (
       <div className="fixed inset-0 z-[90]">
-        <button type="button" onClick={onClose} className="absolute inset-0 bg-black/80 backdrop-blur-sm" aria-label="Fermer" />
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+          aria-label="Fermer"
+        />
         <div className="absolute inset-0 flex items-center justify-center p-4">
           <div className="w-full max-w-5xl">
             <div className="glass-card border border-white/10 rounded-[2.5rem] overflow-hidden">
               <div className="p-4 flex items-center justify-between">
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">ZOOM</p>
-                <button onClick={onClose} className="text-white/40 font-black text-[10px] uppercase tracking-widest">
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">
+                  ZOOM
+                </p>
+                <button
+                  onClick={onClose}
+                  className="text-white/40 font-black text-[10px] uppercase tracking-widest"
+                >
                   Fermer
                 </button>
               </div>
@@ -279,18 +296,42 @@ export default function DashboardPage() {
     );
   }
 
+  const weightDebugText = useMemo(() => {
+    const kgs = weightChartData.map((d) => d.kg).filter((v) => Number.isFinite(v));
+    const min = kgs.length ? Math.min(...kgs) : null;
+    const max = kgs.length ? Math.max(...kgs) : null;
+
+    return {
+      range: weightRange,
+      from: weightFromTo.from,
+      to: weightFromTo.to,
+      points: weightChartData.length,
+      min,
+      max,
+      yDomain: weightYDomain,
+      head: weightChartData.slice(0, 3),
+      tail: weightChartData.slice(-3),
+    };
+  }, [weightChartData, weightFromTo.from, weightFromTo.to, weightRange, weightYDomain]);
+
   return (
     <div className="max-w-xl mx-auto px-4 pt-12 pb-32 space-y-8">
       <header className="text-center">
-        <h1 className="text-5xl font-black text-menthe italic uppercase tracking-tighter">Dashboard</h1>
-        <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mt-2">Charts</p>
+        <h1 className="text-5xl font-black text-menthe italic uppercase tracking-tighter">
+          Dashboard
+        </h1>
+        <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mt-2">
+          Charts
+        </p>
       </header>
 
       {/* POIDS */}
       <GlassCard className="p-6 rounded-[2.5rem] border border-white/10">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">Poids</h2>
+            <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">
+              Poids
+            </h2>
           </div>
 
           <div className="flex items-center gap-2">
@@ -336,10 +377,12 @@ export default function DashboardPage() {
               <LineChart width={520} height={220} data={weightChartData}>
                 <CartesianGrid stroke="rgba(255,255,255,0.06)" />
                 <XAxis
-                  dataKey="iso"
+                  type="number"
+                  dataKey="x"
+                  domain={["dataMin", "dataMax"]}
                   stroke="rgba(255,255,255,0.25)"
                   tick={{ fontSize: 10, fontWeight: 800 }}
-                  tickFormatter={(iso) => (typeof iso === "string" ? isoToDDMM(iso) : String(iso))}
+                  tickFormatter={(v) => (typeof v === "number" ? tsToDDMM(v) : String(v))}
                 />
                 <YAxis
                   stroke="rgba(255,255,255,0.25)"
@@ -348,7 +391,7 @@ export default function DashboardPage() {
                   domain={weightYDomain}
                 />
                 <Tooltip
-                  labelFormatter={(iso) => (typeof iso === "string" ? isoToDDMM(iso) : String(iso))}
+                  labelFormatter={(v) => (typeof v === "number" ? tsToDDMM(v) : String(v))}
                   contentStyle={{
                     background: "rgba(0,0,0,0.9)",
                     border: "1px solid rgba(255,255,255,0.1)",
@@ -378,20 +421,28 @@ export default function DashboardPage() {
               DEBUG POIDS
             </p>
             <div className="mt-2 text-[10px] font-black uppercase tracking-widest text-white/70 space-y-1">
-              <p>RANGE: {weightDebug.range}</p>
-              <p>FROM: {weightDebug.from} — TO: {weightDebug.to}</p>
-              <p>POINTS: {weightDebug.points}</p>
-              <p>SORTED ISO ASC: {String(weightDebug.sorted)}</p>
-              <p>MIN KG: {weightDebug.minKg ?? "—"} / MAX KG: {weightDebug.maxKg ?? "—"}</p>
-              <p>DOMAIN: {Array.isArray(weightDebug.domain) ? weightDebug.domain.join(" .. ") : String(weightDebug.domain)}</p>
+              <p>RANGE: {weightDebugText.range}</p>
+              <p>
+                FROM: {weightDebugText.from} — TO: {weightDebugText.to}
+              </p>
+              <p>POINTS: {weightDebugText.points}</p>
+              <p>
+                MIN KG: {weightDebugText.min ?? "—"} / MAX KG: {weightDebugText.max ?? "—"}
+              </p>
+              <p>
+                DOMAIN:{" "}
+                {Array.isArray(weightDebugText.yDomain)
+                  ? weightDebugText.yDomain.join(" .. ")
+                  : String(weightDebugText.yDomain)}
+              </p>
               <div className="pt-2">
                 <p className="text-white/40">HEAD:</p>
                 <pre className="whitespace-pre-wrap break-words text-white/60">
-                  {JSON.stringify(weightDebug.head, null, 2)}
+                  {JSON.stringify(weightDebugText.head, null, 2)}
                 </pre>
                 <p className="text-white/40">TAIL:</p>
                 <pre className="whitespace-pre-wrap break-words text-white/60">
-                  {JSON.stringify(weightDebug.tail, null, 2)}
+                  {JSON.stringify(weightDebugText.tail, null, 2)}
                 </pre>
               </div>
             </div>
@@ -401,7 +452,9 @@ export default function DashboardPage() {
 
       {/* EXERCICE SETTINGS */}
       <GlassCard className="p-6 rounded-[2.5rem] border border-white/10 space-y-4">
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Exercice</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">
+          Exercice
+        </p>
 
         <select
           value={selectedExercise}
@@ -460,9 +513,13 @@ export default function DashboardPage() {
               className="absolute left-0 right-0 top-[3.2rem] mx-auto w-full bg-black/80 border border-white/10 rounded-2xl px-4 py-3 text-left"
             >
               <p className="text-[10px] font-black uppercase italic tracking-widest text-white/70">
-                {info === "LEST" ? "UNIQUEMENT LA CHARGE PORTÉE OU FIXÉE SUR UNE BARRE" : "POIDS DU CORPS + CHARGE LESTÉE"}
+                {info === "LEST"
+                  ? "UNIQUEMENT LA CHARGE PORTÉE OU FIXÉE SUR UNE BARRE"
+                  : "POIDS DU CORPS + CHARGE LESTÉE"}
               </p>
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">TAP POUR FERMER</p>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">
+                TAP POUR FERMER
+              </p>
             </button>
           )}
         </div>
@@ -473,7 +530,9 @@ export default function DashboardPage() {
         <GlassCard className="p-6 rounded-[2.5rem] border border-white/10">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">{selectedExercise.trim()}</h2>
+              <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">
+                {selectedExercise.trim()}
+              </h2>
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">
                 {pdcMode === "LEST" ? "PDC+ = LEST (KG)" : "PDC+ = TOTAL (PDC + LEST)"}
               </p>
@@ -538,14 +597,16 @@ export default function DashboardPage() {
           <LineChart width={900} height={420} data={weightChartData}>
             <CartesianGrid stroke="rgba(255,255,255,0.06)" />
             <XAxis
-              dataKey="iso"
+              type="number"
+              dataKey="x"
+              domain={["dataMin", "dataMax"]}
               stroke="rgba(255,255,255,0.25)"
               tick={{ fontSize: 10, fontWeight: 800 }}
-              tickFormatter={(iso) => (typeof iso === "string" ? isoToDDMM(iso) : String(iso))}
+              tickFormatter={(v) => (typeof v === "number" ? tsToDDMM(v) : String(v))}
             />
             <YAxis stroke="rgba(255,255,255,0.25)" tick={{ fontSize: 10, fontWeight: 800 }} reversed={false} domain={weightYDomain} />
             <Tooltip
-              labelFormatter={(iso) => (typeof iso === "string" ? isoToDDMM(iso) : String(iso))}
+              labelFormatter={(v) => (typeof v === "number" ? tsToDDMM(v) : String(v))}
               contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16 }}
             />
             <Line
