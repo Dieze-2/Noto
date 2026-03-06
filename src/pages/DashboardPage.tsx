@@ -290,11 +290,9 @@ export default function DashboardPage() {
     <div className="max-w-xl mx-auto px-4 pt-12 pb-32 space-y-8">
       <header className="text-center">
         <h1 className="text-5xl font-black text-menthe italic uppercase tracking-tighter">
-          Dashboard
+          Tableau de bord
         </h1>
-        <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mt-2">
-          Charts
-        </p>
+        
       </header>
 
       {/* POIDS */}
