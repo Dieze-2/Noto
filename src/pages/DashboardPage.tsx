@@ -48,6 +48,30 @@ function isoToDDMM(iso: string) {
   return `${dd}.${mm}`;
 }
 
+function computePaddedDomain(values: number[]): [number, number] | ["auto", "auto"] {
+  const finite = values.filter((v) => Number.isFinite(v));
+  if (finite.length === 0) return ["auto", "auto"];
+
+  let min = Math.min(...finite);
+  let max = Math.max(...finite);
+
+  if (min === max) {
+    const pad = Math.max(0.5, Math.abs(min) * 0.01);
+    return [min - pad, max + pad];
+  }
+
+  const range = max - min;
+  const pad = range * 0.08;
+  return [min - pad, max + pad];
+}
+
+function isSortedAscIso(list: string[]) {
+  for (let i = 1; i < list.length; i++) {
+    if (list[i - 1] > list[i]) return false;
+  }
+  return true;
+}
+
 export default function DashboardPage() {
   const [trackedExercises, setTrackedExercises] = useState<string[]>([]);
   const [selectedExercise, setSelectedExercise] = useState<string>("");
@@ -103,9 +127,7 @@ export default function DashboardPage() {
     [exerciseRange, firstExerciseDate]
   );
 
-  /**
-   * TOTAL: étendre le fetch poids pour fallback "dernier poids connu ≤ date" sur la fenêtre exercice.
-   */
+  // TOTAL: étendre le fetch poids pour fallback sur la fenêtre exercice
   const weightFetchFromTo = useMemo(() => {
     let from = weightFromTo.from;
     let to = weightFromTo.to;
@@ -152,10 +174,8 @@ export default function DashboardPage() {
       .catch(() => setExerciseRows([]));
   }, [selectedExercise, exerciseFromTo.from, exerciseFromTo.to]);
 
-  // build lookup from all loaded weights (sorted inside)
   const weightLookup = useMemo(() => buildWeightLookup(weightRows), [weightRows]);
 
-  // sort weights for chart to ensure polyline is chronological
   const weightChartData = useMemo(() => {
     const from = weightFromTo.from;
     const to = weightFromTo.to;
@@ -166,20 +186,44 @@ export default function DashboardPage() {
       .slice()
       .sort((a, b) => a.date.localeCompare(b.date))
       .map((r) => ({
-        iso: r.date, // keep as X key to avoid collisions
+        iso: r.date,
         kg: (r.weight_g ?? 0) / 1000,
       }));
   }, [weightRows, weightFromTo.from, weightFromTo.to]);
 
-  const weightYDomain = useMemo((): [number, number] | ["auto", "auto"] => {
-    const values = weightChartData.map((d) => d.kg).filter((v) => Number.isFinite(v));
-    if (!values.length) return ["auto", "auto"];
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    if (min === max) return [min - 0.5, max + 0.5];
-    const pad = (max - min) * 0.08;
-    return [min - pad, max + pad];
+  const weightYDomain = useMemo(() => {
+    return computePaddedDomain(weightChartData.map((d) => d.kg));
   }, [weightChartData]);
+
+  // DEV LOGS (poids) — pour diagnostiquer ordre / domaine / valeurs aberrantes
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+
+    const isos = weightChartData.map((d) => d.iso);
+    const sorted = isSortedAscIso(isos);
+
+    const kgs = weightChartData.map((d) => d.kg).filter((v) => Number.isFinite(v));
+    const min = kgs.length ? Math.min(...kgs) : null;
+    const max = kgs.length ? Math.max(...kgs) : null;
+
+    const head = weightChartData.slice(0, 5);
+    const tail = weightChartData.slice(-5);
+
+    // eslint-disable-next-line no-console
+    console.groupCollapsed(
+      `[DASH][POIDS] range=${weightRange} from=${weightFromTo.from} to=${weightFromTo.to} points=${weightChartData.length}`
+    );
+    // eslint-disable-next-line no-console
+    console.log("sortedByIsoAsc:", sorted);
+    // eslint-disable-next-line no-console
+    console.log("yDomain:", weightYDomain, "minKg:", min, "maxKg:", max);
+    // eslint-disable-next-line no-console
+    console.log("head:", head);
+    // eslint-disable-next-line no-console
+    console.log("tail:", tail);
+    // eslint-disable-next-line no-console
+    console.groupEnd();
+  }, [weightRange, weightFromTo.from, weightFromTo.to, weightChartData, weightYDomain]);
 
   const exerciseChartData = useMemo(() => {
     const byDay = new Map<string, ExerciseMasterPoint[]>();
@@ -278,9 +322,11 @@ export default function DashboardPage() {
     <div className="max-w-xl mx-auto px-4 pt-12 pb-32 space-y-8">
       <header className="text-center">
         <h1 className="text-5xl font-black text-menthe italic uppercase tracking-tighter">
-          Tableau de bord
+          Dashboard
         </h1>
-        
+        <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mt-2">
+          Charts
+        </p>
       </header>
 
       {/* POIDS */}
@@ -324,7 +370,9 @@ export default function DashboardPage() {
                   dataKey="iso"
                   stroke="rgba(255,255,255,0.25)"
                   tick={{ fontSize: 10, fontWeight: 800 }}
-                  tickFormatter={(iso) => (typeof iso === "string" ? isoToDDMM(iso) : String(iso))}
+                  tickFormatter={(iso) =>
+                    typeof iso === "string" ? isoToDDMM(iso) : String(iso)
+                  }
                 />
                 <YAxis
                   stroke="rgba(255,255,255,0.25)"
@@ -333,14 +381,23 @@ export default function DashboardPage() {
                   domain={weightYDomain}
                 />
                 <Tooltip
-                  labelFormatter={(iso) => (typeof iso === "string" ? isoToDDMM(iso) : String(iso))}
+                  labelFormatter={(iso) =>
+                    typeof iso === "string" ? isoToDDMM(iso) : String(iso)
+                  }
                   contentStyle={{
                     background: "rgba(0,0,0,0.9)",
                     border: "1px solid rgba(255,255,255,0.1)",
                     borderRadius: 16,
                   }}
                 />
-                <Line type="monotone" dataKey="kg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
+                <Line
+                  type="monotone"
+                  dataKey="kg"
+                  stroke="#00FFA3"
+                  strokeWidth={3}
+                  dot={{ r: 3, fill: "#00FFA3" }}
+                  activeDot={{ r: 6, fill: "#ffffff", stroke: "#00FFA3", strokeWidth: 3 }}
+                />
               </LineChart>
             </div>
           ) : (
@@ -468,7 +525,14 @@ export default function DashboardPage() {
                       borderRadius: 16,
                     }}
                   />
-                  <Line type="monotone" dataKey="valueKg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
+                  <Line
+                    type="monotone"
+                    dataKey="valueKg"
+                    stroke="#00FFA3"
+                    strokeWidth={3}
+                    dot={{ r: 3, fill: "#00FFA3" }}
+                    activeDot={{ r: 6, fill: "#ffffff", stroke: "#00FFA3", strokeWidth: 3 }}
+                  />
                 </LineChart>
               </div>
             ) : (
@@ -502,7 +566,14 @@ export default function DashboardPage() {
                 borderRadius: 16,
               }}
             />
-            <Line type="monotone" dataKey="valueKg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
+            <Line
+              type="monotone"
+              dataKey="valueKg"
+              stroke="#00FFA3"
+              strokeWidth={3}
+              dot={{ r: 3, fill: "#00FFA3" }}
+              activeDot={{ r: 7, fill: "#ffffff", stroke: "#00FFA3", strokeWidth: 3 }}
+            />
           </LineChart>
         </div>
       </Modal>
@@ -515,7 +586,9 @@ export default function DashboardPage() {
               dataKey="iso"
               stroke="rgba(255,255,255,0.25)"
               tick={{ fontSize: 10, fontWeight: 800 }}
-              tickFormatter={(iso) => (typeof iso === "string" ? isoToDDMM(iso) : String(iso))}
+              tickFormatter={(iso) =>
+                typeof iso === "string" ? isoToDDMM(iso) : String(iso)
+              }
             />
             <YAxis
               stroke="rgba(255,255,255,0.25)"
@@ -524,14 +597,23 @@ export default function DashboardPage() {
               domain={weightYDomain}
             />
             <Tooltip
-              labelFormatter={(iso) => (typeof iso === "string" ? isoToDDMM(iso) : String(iso))}
+              labelFormatter={(iso) =>
+                typeof iso === "string" ? isoToDDMM(iso) : String(iso)
+              }
               contentStyle={{
                 background: "rgba(0,0,0,0.9)",
                 border: "1px solid rgba(255,255,255,0.1)",
                 borderRadius: 16,
               }}
             />
-            <Line type="monotone" dataKey="kg" stroke="#00FFA3" strokeWidth={3} dot={{ r: 3 }} />
+            <Line
+              type="monotone"
+              dataKey="kg"
+              stroke="#00FFA3"
+              strokeWidth={3}
+              dot={{ r: 3, fill: "#00FFA3" }}
+              activeDot={{ r: 7, fill: "#ffffff", stroke: "#00FFA3", strokeWidth: 3 }}
+            />
           </LineChart>
         </div>
       </Modal>
