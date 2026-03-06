@@ -41,6 +41,13 @@ function isMobile() {
   return window.matchMedia?.("(max-width: 768px)")?.matches ?? false;
 }
 
+// YYYY-MM-DD -> DD.MM (ex: 2026-03-06 -> 06.03)
+function isoToDDMM(iso: string) {
+  const mm = iso.slice(5, 7);
+  const dd = iso.slice(8, 10);
+  return `${dd}.${mm}`;
+}
+
 export default function DashboardPage() {
   const [trackedExercises, setTrackedExercises] = useState<string[]>([]);
   const [selectedExercise, setSelectedExercise] = useState<string>("");
@@ -52,7 +59,9 @@ export default function DashboardPage() {
   const [exerciseRange, setExerciseRange] = useState<Range>("TOUT");
 
   const [exerciseRows, setExerciseRows] = useState<ExerciseMasterPoint[]>([]);
-  const [weightRows, setWeightRows] = useState<{ date: string; weight_g: number | null }[]>([]);
+  const [weightRows, setWeightRows] = useState<
+    { date: string; weight_g: number | null }[]
+  >([]);
 
   const [firstWeightDate, setFirstWeightDate] = useState<string | null>(null);
   const [firstExerciseDate, setFirstExerciseDate] = useState<string | null>(null);
@@ -72,7 +81,9 @@ export default function DashboardPage() {
 
   // first weight date (for TOUT)
   useEffect(() => {
-    getFirstWeightDate().then(setFirstWeightDate).catch(() => setFirstWeightDate(null));
+    getFirstWeightDate()
+      .then(setFirstWeightDate)
+      .catch(() => setFirstWeightDate(null));
   }, []);
 
   // first exercise date (for TOUT)
@@ -82,7 +93,9 @@ export default function DashboardPage() {
       return;
     }
     const name = selectedExercise.trim();
-    getFirstExerciseDate(name).then(setFirstExerciseDate).catch(() => setFirstExerciseDate(null));
+    getFirstExerciseDate(name)
+      .then(setFirstExerciseDate)
+      .catch(() => setFirstExerciseDate(null));
   }, [selectedExercise]);
 
   const weightFromTo = useMemo(
@@ -135,7 +148,9 @@ export default function DashboardPage() {
 
   useEffect(() => {
     getDailyMetricsRange(weightFetchFromTo.from, weightFetchFromTo.to)
-      .then((rows) => setWeightRows(rows.map((r) => ({ date: r.date, weight_g: r.weight_g }))))
+      .then((rows) =>
+        setWeightRows(rows.map((r) => ({ date: r.date, weight_g: r.weight_g })))
+      )
       .catch(() => setWeightRows([]));
   }, [weightFetchFromTo.from, weightFetchFromTo.to]);
 
@@ -162,7 +177,7 @@ export default function DashboardPage() {
       .filter((r) => r.date >= from && r.date <= to)
       .filter((r) => r.weight_g != null)
       .map((r) => ({
-        date: r.date.slice(5),
+        date: isoToDDMM(r.date),
         iso: r.date,
         kg: (r.weight_g ?? 0) / 1000,
       }));
@@ -203,7 +218,7 @@ export default function DashboardPage() {
         .filter((v) => Number.isFinite(v));
 
       if (!vals.length) continue;
-      points.push({ iso: date, date: date.slice(5), valueKg: Math.max(...vals) });
+      points.push({ iso: date, date: isoToDDMM(date), valueKg: Math.max(...vals) });
     }
 
     return points.sort((a, b) => a.iso.localeCompare(b.iso));
@@ -223,8 +238,6 @@ export default function DashboardPage() {
     children: React.ReactNode;
   }) {
     if (!open) return null;
-    // on garde la logique mobile si utile ailleurs (taille),
-    // mais on supprime le libellé "mode paysage (simulé)" demandé.
     void isMobile();
 
     return (
@@ -330,15 +343,19 @@ export default function DashboardPage() {
                 <XAxis
                   dataKey="date"
                   stroke="rgba(255,255,255,0.25)"
+                  interval="preserveStartEnd"
                   tick={showWeightTicks ? axisTickCommon : false}
-                  tickLine={showWeightTicks}
+                  tickLine={false}
                 />
                 <YAxis
+                  type="number"
+                  dataKey="kg"
                   stroke="rgba(255,255,255,0.25)"
                   tick={showWeightTicks ? axisTickCommon : false}
-                  tickLine={showWeightTicks}
+                  tickLine={false}
                   reversed={false}
                   domain={["auto", "auto"]}
+                  allowDataOverflow={false}
                 />
                 <Tooltip
                   contentStyle={{
@@ -477,13 +494,16 @@ export default function DashboardPage() {
                   <XAxis
                     dataKey="date"
                     stroke="rgba(255,255,255,0.25)"
+                    interval="preserveStartEnd"
                     tick={showExerciseTicks ? axisTickCommon : false}
-                    tickLine={showExerciseTicks}
+                    tickLine={false}
                   />
                   <YAxis
+                    type="number"
+                    dataKey="valueKg"
                     stroke="rgba(255,255,255,0.25)"
                     tick={showExerciseTicks ? axisTickCommon : false}
-                    tickLine={showExerciseTicks}
+                    tickLine={false}
                   />
                   <Tooltip
                     contentStyle={{
@@ -511,15 +531,19 @@ export default function DashboardPage() {
             <XAxis
               dataKey="date"
               stroke="rgba(255,255,255,0.25)"
+              interval="preserveStartEnd"
               tick={showExerciseTicks ? axisTickCommon : false}
-              tickLine={showExerciseTicks}
+              tickLine={false}
             />
             <YAxis
+              type="number"
+              dataKey="valueKg"
               stroke="rgba(255,255,255,0.25)"
               tick={showExerciseTicks ? axisTickCommon : false}
-              tickLine={showExerciseTicks}
+              tickLine={false}
               reversed={false}
               domain={["auto", "auto"]}
+              allowDataOverflow={false}
             />
             <Tooltip
               contentStyle={{
@@ -540,15 +564,19 @@ export default function DashboardPage() {
             <XAxis
               dataKey="date"
               stroke="rgba(255,255,255,0.25)"
+              interval="preserveStartEnd"
               tick={showWeightTicks ? axisTickCommon : false}
-              tickLine={showWeightTicks}
+              tickLine={false}
             />
             <YAxis
+              type="number"
+              dataKey="kg"
               stroke="rgba(255,255,255,0.25)"
               tick={showWeightTicks ? axisTickCommon : false}
-              tickLine={showWeightTicks}
+              tickLine={false}
               reversed={false}
               domain={["auto", "auto"]}
+              allowDataOverflow={false}
             />
             <Tooltip
               contentStyle={{
