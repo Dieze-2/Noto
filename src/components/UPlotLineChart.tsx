@@ -27,24 +27,12 @@ export default function UPlotLineChart(props: {
   series: SeriesSpec;
   yLabel?: string; // "KG"
   tooltipLabel?: string; // "kg"
-  debug?: boolean;
-  debugWindow?: number; // ex 2 => 2 before / 2 after
 }) {
-  const {
-    data,
-    height,
-    width,
-    series,
-    yLabel = "",
-    tooltipLabel = "kg",
-    debug = false,
-    debugWindow = 2,
-  } = props;
+  const { data, height, width, series, yLabel = "", tooltipLabel = "kg" } = props;
 
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const plotRef = useRef<uPlot | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
-  const debugRef = useRef<HTMLDivElement | null>(null);
 
   const aligned = useMemo(() => {
     const xs: number[] = [];
@@ -122,7 +110,6 @@ export default function UPlotLineChart(props: {
     const el = wrapRef.current;
     if (!el) return;
 
-    // destroy previous
     if (plotRef.current) {
       plotRef.current.destroy();
       plotRef.current = null;
@@ -131,7 +118,6 @@ export default function UPlotLineChart(props: {
     const u = new uPlot(opts, aligned, el);
     plotRef.current = u;
 
-    // tooltip
     let tip = tooltipRef.current;
     if (!tip) {
       tip = document.createElement("div");
@@ -150,35 +136,12 @@ export default function UPlotLineChart(props: {
       tooltipRef.current = tip;
     }
 
-    // debug panel
-    let dbg = debugRef.current;
-    if (!dbg) {
-      dbg = document.createElement("div");
-      dbg.style.position = "absolute";
-      dbg.style.pointerEvents = "none";
-      dbg.style.zIndex = "6";
-      dbg.style.left = "12px";
-      dbg.style.bottom = "12px";
-      dbg.style.maxWidth = "min(520px, calc(100% - 24px))";
-      dbg.style.background = "rgba(0,0,0,0.75)";
-      dbg.style.border = "1px solid rgba(255,255,255,0.10)";
-      dbg.style.borderRadius = "16px";
-      dbg.style.padding = "10px 12px";
-      dbg.style.backdropFilter = "blur(8px)";
-      dbg.style.webkitBackdropFilter = "blur(8px)";
-      dbg.style.display = "none";
-      el.appendChild(dbg);
-      debugRef.current = dbg;
-    }
-
     const valFmt = series.valueFormatter ?? ((v: number) => v.toFixed(1));
 
-    const render = () => {
+    const move = () => {
       const idx = u.cursor.idx;
-
       if (idx == null || idx < 0) {
         tip!.style.display = "none";
-        if (dbg) dbg.style.display = "none";
         return;
       }
 
@@ -187,61 +150,32 @@ export default function UPlotLineChart(props: {
 
       if (xVal == null || yVal == null) {
         tip!.style.display = "none";
-        if (dbg) dbg.style.display = "none";
         return;
       }
 
-      // tooltip content
       tip!.innerHTML = `
         <div style="font-weight:900;font-size:18px;color:white;line-height:1">${ddmm(xVal)}</div>
         <div style="margin-top:6px;font-weight:900;font-size:16px;color:${series.stroke}">${tooltipLabel}: ${valFmt(yVal)}</div>
       `;
 
-      // tooltip position near cursor
-      const left = Math.min(u.cursor.left + 16, width - 180);
+      // clamp using provided width
+      const left = Math.min(u.cursor.left + 16, Math.max(8, width - 180));
       const top = Math.max(u.cursor.top - 20, 8);
       tip!.style.transform = `translate(${left}px, ${top}px)`;
       tip!.style.display = "block";
-
-      if (dbg) {
-        if (!debug) {
-          dbg.style.display = "none";
-          return;
-        }
-
-        const w = Math.max(0, debugWindow);
-        const start = Math.max(0, idx - w);
-        const end = Math.min(aligned[0].length - 1, idx + w);
-
-        const rows: string[] = [];
-        for (let i = start; i <= end; i++) {
-          const xx = aligned[0][i];
-          const yy = aligned[1][i];
-          const mark = i === idx ? "▶" : " ";
-          rows.push(`${mark} ${ddmm(xx)}  ${valFmt(yy)}`);
-        }
-
-        dbg.innerHTML = `
-          <div style="font-weight:900;font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:rgba(255,255,255,.55)">DEBUG</div>
-          <div style="margin-top:6px;font-weight:900;font-size:12px;color:white">idx=${idx}/${aligned[0].length - 1}</div>
-          <pre style="margin:6px 0 0 0;font-size:12px;font-weight:900;color:rgba(255,255,255,.8);white-space:pre-wrap">${rows.join("\n")}</pre>
-        `;
-        dbg.style.display = "block";
-      }
     };
 
-    u.root.addEventListener("mousemove", render);
+    u.root.addEventListener("mousemove", move);
     u.root.addEventListener("mouseleave", () => {
       if (tip) tip.style.display = "none";
-      if (dbg) dbg.style.display = "none";
     });
 
     return () => {
-      u.root.removeEventListener("mousemove", render);
+      u.root.removeEventListener("mousemove", move);
       u.destroy();
       plotRef.current = null;
     };
-  }, [opts, aligned, width, series, tooltipLabel, debug, debugWindow]);
+  }, [opts, aligned, width, series, tooltipLabel]);
 
   useEffect(() => {
     const u = plotRef.current;
@@ -249,5 +183,5 @@ export default function UPlotLineChart(props: {
     u.setSize({ width, height });
   }, [width, height]);
 
-  return <div ref={wrapRef} />;
+  return <div ref={wrapRef} style={{ minWidth: "100%" }} />;
 }
