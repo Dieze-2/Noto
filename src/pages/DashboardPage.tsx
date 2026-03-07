@@ -152,7 +152,6 @@ function useElementWidth(deps: unknown[] = []) {
     const ro = new ResizeObserver(measure);
     ro.observe(el);
 
-    // mesures différées (modal layout)
     measure();
     requestAnimationFrame(measure);
     setTimeout(measure, 50);
@@ -163,7 +162,6 @@ function useElementWidth(deps: unknown[] = []) {
 
   return { ref, width };
 }
-
 
 type UDatum = { x: number; y: number };
 
@@ -189,7 +187,6 @@ export default function DashboardPage() {
   const exerciseBox = useElementWidth();
   const weightZoomBox = useElementWidth([modal === "weight"]);
   const exerciseZoomBox = useElementWidth([modal === "exercise"]);
-
 
   useEffect(() => {
     listTrackedExercises()
@@ -327,7 +324,6 @@ export default function DashboardPage() {
   const hasExercise = selectedExercise.trim().length > 0;
   const hasExerciseData = exerciseData.length > 0;
 
-  // fallback width for first render / modal open
   const wSmall = Math.max(weightBox.width, 320);
   const eSmall = Math.max(exerciseBox.width, 320);
   const wZoom = Math.max(weightZoomBox.width, 320);
@@ -337,11 +333,8 @@ export default function DashboardPage() {
     <div className="max-w-xl mx-auto px-4 pt-12 pb-32 space-y-8">
       <header className="text-center">
         <h1 className="text-5xl font-black text-menthe italic uppercase tracking-tighter">
-          Dashboard
+          Tableau de bord
         </h1>
-        <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mt-2">
-          Charts
-        </p>
       </header>
 
       {/* POIDS */}
@@ -408,11 +401,11 @@ export default function DashboardPage() {
         <select
           value={selectedExercise}
           onChange={(e) => setSelectedExercise(e.target.value)}
-          className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 font-black uppercase italic text-white outline-none focus:border-menthe"
+          className="w-full bg-black border border-menthe/60 rounded-2xl px-4 py-4 font-black uppercase italic text-white outline-none focus:border-menthe"
         >
           <option value="">—</option>
           {trackedExercises.map((n) => (
-            <option key={n} value={n}>
+            <option key={n} value={n} style={{ color: "#000000", backgroundColor: "#ffffff" }}>
               {n}
             </option>
           ))}
@@ -438,7 +431,7 @@ export default function DashboardPage() {
             <ToggleSwitch
               checked={pdcMode === "TOTAL"}
               onChange={(checked) => setPdcMode(checked ? "TOTAL" : "LEST")}
-              leftLabel="LEST"
+              leftLabel="CHARGE"
               rightLabel="TOTAL"
             />
 
@@ -460,7 +453,7 @@ export default function DashboardPage() {
             >
               <p className="text-[10px] font-black uppercase italic tracking-widest text-white/70">
                 {pdcMode === "LEST"
-                  ? "LEST = UNIQUEMENT LA CHARGE PORTÉE OU FIXÉE SUR UNE BARRE"
+                  ? "CHARGE = UNIQUEMENT LA CHARGE PORTÉE OU FIXÉE SUR UNE BARRE"
                   : "TOTAL = POIDS DU CORPS + CHARGE LESTÉE"}
               </p>
               <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">
@@ -480,9 +473,7 @@ export default function DashboardPage() {
                 {selectedExercise.trim()}
               </h2>
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">
-                {pdcMode === "LEST"
-                  ? "PDC+ = LEST (KG)"
-                  : "PDC+ = TOTAL (PDC + LEST)"}
+                {pdcMode === "LEST" ? "PDC+ = CHARGE (KG)" : "PDC+ = TOTAL (PDC + CHARGE)"}
               </p>
             </div>
 
