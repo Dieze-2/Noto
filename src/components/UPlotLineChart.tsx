@@ -94,6 +94,8 @@ export default function UPlotLineChart(props: {
       ],
       legend: { show: false },
       cursor: {
+        x: false,
+        y: false,
         focus: { prox: 24 },
         drag: { x: false, y: false },
         points: {
@@ -103,6 +105,7 @@ export default function UPlotLineChart(props: {
           fill: "#ffffff",
         },
       },
+
     };
   }, [width, height, series, yLabel]);
 
@@ -159,9 +162,35 @@ export default function UPlotLineChart(props: {
       `;
 
       // clamp using provided width
-      const left = Math.min(u.cursor.left + 16, Math.max(8, width - 180));
-      const top = Math.max(u.cursor.top - 20, 8);
-      tip!.style.transform = `translate(${left}px, ${top}px)`;
+      // dimensions approx tooltip (on fixe pour placer sans mesurer)
+      const tipW = 170;
+      const tipH = 70;
+      
+      const pad = 12;
+      
+      // zone plot
+      const plotLeft = u.bbox.left;
+      const plotTop = u.bbox.top;
+      const plotW = u.bbox.width;
+      const plotH = u.bbox.height;
+      
+      const cx = u.cursor.left;
+      const cy = u.cursor.top;
+      
+      // si le point est à droite, on met le tooltip à gauche (et inversement)
+      const placeLeft = cx > plotW * 0.55;
+      const placeTop = cy > plotH * 0.55;
+      
+      // position tooltip relative au conteneur uPlot
+      let tx = plotLeft + (placeLeft ? pad : plotW - tipW - pad);
+      let ty = plotTop + (placeTop ? pad : plotH - tipH - pad);
+      
+      // clamp dans le canvas
+      tx = Math.max(pad, Math.min(tx, width - tipW - pad));
+      ty = Math.max(pad, Math.min(ty, height - tipH - pad));
+      
+      tip!.style.transform = `translate(${tx}px, ${ty}px)`;
+
       tip!.style.display = "block";
     };
 
