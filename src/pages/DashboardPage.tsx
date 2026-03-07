@@ -8,15 +8,7 @@ import {
 } from "../db/workouts";
 import type { ExerciseMasterPoint } from "../db/workouts";
 import { format, subMonths } from "date-fns";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  Label,
-} from "recharts";
+import UPlotLineChart from "../components/UPlotLineChart";
 
 type PdcMode = "LEST" | "TOTAL";
 type Range = "3M" | "6M" | "TOUT";
@@ -37,12 +29,6 @@ function rangeToFromTo(r: Range, firstDate: string | null) {
 function isoToTs(iso: string) {
   return new Date(`${iso}T00:00:00`).getTime();
 }
-function tsToDDMM(ts: number) {
-  const d = new Date(ts);
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  return `${dd}.${mm}`;
-}
 
 function buildWeightLookup(rows: { date: string; weight_g: number | null }[]) {
   const sorted = [...rows].sort((a, b) => a.date.localeCompare(b.date));
@@ -53,159 +39,6 @@ function buildWeightLookup(rows: { date: string; weight_g: number | null }[]) {
     map.set(r.date, last);
   }
   return map;
-}
-
-function dedupeByIsoKeepLast<T extends { iso: string }>(rows: T[]): T[] {
-  const map = new Map<string, T>();
-  for (const r of rows) map.set(r.iso, r);
-  return Array.from(map.values()).sort((a, b) => a.iso.localeCompare(b.iso));
-}
-
-function computeMinMax(values: number[]) {
-  const finite = values.filter((v) => Number.isFinite(v));
-  if (!finite.length) return { min: null as number | null, max: null as number | null };
-  return { min: Math.min(...finite), max: Math.max(...finite) };
-}
-
-function DebugTooltipContent({ active, label, payload }: any) {
-  if (!active || !payload?.length) return null;
-
-  const p0 = payload[0];
-  const x = typeof label === "number" ? label : Number(label);
-  const yValue = typeof p0?.value === "number" ? p0.value : Number(p0?.value);
-  const original = p0?.payload ?? {};
-
-  return (
-    <div className="rounded-2xl bg-black/90 border border-white/10 px-4 py-3">
-      <p className="text-[10px] font-black uppercase tracking-widest text-white/60">
-        DEBUG TOOLTIP
-      </p>
-      <div className="mt-2 space-y-1">
-        <p className="text-[12px] font-black text-white">
-          label(x): {Number.isFinite(x) ? `${x} (${tsToDDMM(x)})` : String(label)}
-        </p>
-        <p className="text-[12px] font-black text-menthe">
-          payload[0].value(y):{" "}
-          {Number.isFinite(yValue) ? yValue.toFixed(3) : String(p0?.value)}
-        </p>
-
-        <p className="text-[10px] font-black uppercase tracking-widest text-white/50 mt-2">
-          payload[0].payload (original)
-        </p>
-        <pre className="text-[10px] text-white/70 whitespace-pre-wrap break-words">
-{JSON.stringify(
-  {
-    iso: original.iso,
-    x: original.x,
-    kg: original.kg,
-    valueKg: original.valueKg,
-    dataKey: p0?.dataKey,
-    name: p0?.name,
-  },
-  null,
-  2
-)}
-        </pre>
-      </div>
-    </div>
-  );
-}
-
-function ChartBlockNumericX({
-  chartKey,
-  data,
-  yKey,
-  widthBase = 520,
-  height = 220,
-  debug = false,
-  showAxisLabels = false,
-  yAxisLabel = "KG",
-}: {
-  chartKey: string;
-  data: any[];
-  yKey: string;
-  widthBase?: number;
-  height?: number;
-  debug?: boolean;
-  showAxisLabels?: boolean;
-  yAxisLabel?: string;
-}) {
-  if (!data.length) {
-    return (
-      <div className="h-[220px] w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">
-        PAS ASSEZ DE DONNÉES
-      </div>
-    );
-  }
-
-  const chartW = Math.max(widthBase, data.length * 32);
-
-  return (
-    <div className="w-full overflow-x-auto no-scrollbar">
-      <LineChart key={chartKey} width={chartW} height={height} data={data} margin={{ left: 16, right: 16, top: 8, bottom: 8 }}>
-        <CartesianGrid stroke="rgba(255,255,255,0.06)" />
-        <XAxis
-          type="number"
-          scale="linear"
-          dataKey="x"
-          domain={["dataMin", "dataMax"]}
-          stroke="rgba(255,255,255,0.35)"
-          tick={{ fontSize: 10, fontWeight: 900, fill: "rgba(255,255,255,0.55)" }}
-          tickFormatter={(v) => (typeof v === "number" ? tsToDDMM(v) : String(v))}
-          tickLine={showAxisLabels}
-          axisLine={showAxisLabels}
-        />
-        <YAxis
-          stroke="rgba(255,255,255,0.35)"
-          tick={{ fontSize: 10, fontWeight: 900, fill: "rgba(255,255,255,0.55)" }}
-          reversed={false}
-          domain={["auto", "auto"]}
-          tickLine={showAxisLabels}
-          axisLine={showAxisLabels}
-          width={56}
-        >
-          {showAxisLabels && (
-            <Label
-              value={yAxisLabel}
-              angle={-90}
-              position="insideLeft"
-              style={{ fill: "rgba(255,255,255,0.6)", fontSize: 10, fontWeight: 900, letterSpacing: "0.25em" }}
-              offset={10}
-            />
-          )}
-        </YAxis>
-
-        <Tooltip
-          cursor={false}
-          content={debug ? <DebugTooltipContent /> : undefined}
-          labelFormatter={
-            debug ? undefined : (v) => (typeof v === "number" ? tsToDDMM(v) : String(v))
-          }
-          contentStyle={
-            debug
-              ? undefined
-              : {
-                  background: "rgba(0,0,0,0.9)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  borderRadius: 16,
-                }
-          }
-        />
-
-        <Line
-          type="linear"
-          dataKey={yKey}
-          stroke="#00FFA3"
-          strokeWidth={3}
-          strokeOpacity={1}
-          dot={{ r: 3, fill: "#00FFA3" }}
-          activeDot={{ r: 7, fill: "#ffffff", stroke: "#00FFA3", strokeWidth: 3 }}
-          isAnimationActive={false}
-          animationDuration={0}
-        />
-      </LineChart>
-    </div>
-  );
 }
 
 function ToggleSwitch({
@@ -221,7 +54,11 @@ function ToggleSwitch({
 }) {
   return (
     <div className="flex items-center gap-3">
-      <span className={`text-[10px] font-black uppercase tracking-widest ${!checked ? "text-menthe" : "text-white/30"}`}>
+      <span
+        className={`text-[10px] font-black uppercase tracking-widest ${
+          !checked ? "text-menthe" : "text-white/30"
+        }`}
+      >
         {leftLabel}
       </span>
 
@@ -245,11 +82,65 @@ function ToggleSwitch({
         />
       </button>
 
-      <span className={`text-[10px] font-black uppercase tracking-widest ${checked ? "text-menthe" : "text-white/30"}`}>
+      <span
+        className={`text-[10px] font-black uppercase tracking-widest ${
+          checked ? "text-menthe" : "text-white/30"
+        }`}
+      >
         {rightLabel}
       </span>
     </div>
   );
+}
+
+function Modal({
+  open,
+  onClose,
+  title,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+}) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-[90]">
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        aria-label="Fermer"
+      />
+      <div className="absolute inset-0 flex items-center justify-center p-4">
+        <div className="w-full max-w-5xl">
+          <div className="glass-card border border-white/10 rounded-[2.5rem] overflow-hidden">
+            <div className="p-4 flex items-center justify-between">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">
+                {title}
+              </p>
+              <button
+                onClick={onClose}
+                className="text-white/40 font-black text-[10px] uppercase tracking-widest"
+              >
+                Fermer
+              </button>
+            </div>
+            <div className="p-4 bg-black">
+              <div className="w-full h-[70vh]">{children}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type UDatum = { x: number; y: number };
+
+function chartWidthK32(points: number, base: number) {
+  return Math.max(base, points * 32);
 }
 
 export default function DashboardPage() {
@@ -270,27 +161,44 @@ export default function DashboardPage() {
 
   const [modal, setModal] = useState<null | "exercise" | "weight">(null);
 
-  const [debugCharts, setDebugCharts] = useState(false);
-
+  // exercises list (from DB)
   useEffect(() => {
-    listTrackedExercises().then(setTrackedExercises).catch(() => setTrackedExercises([]));
+    listTrackedExercises()
+      .then((names) => setTrackedExercises(names))
+      .catch(() => setTrackedExercises([]));
   }, []);
 
+  // first weight date (for TOUT)
   useEffect(() => {
-    getFirstWeightDate().then(setFirstWeightDate).catch(() => setFirstWeightDate(null));
+    getFirstWeightDate()
+      .then(setFirstWeightDate)
+      .catch(() => setFirstWeightDate(null));
   }, []);
 
+  // first exercise date (for TOUT)
   useEffect(() => {
     if (!selectedExercise) {
       setFirstExerciseDate(null);
       return;
     }
-    getFirstExerciseDate(selectedExercise.trim()).then(setFirstExerciseDate).catch(() => setFirstExerciseDate(null));
+    const name = selectedExercise.trim();
+    getFirstExerciseDate(name)
+      .then(setFirstExerciseDate)
+      .catch(() => setFirstExerciseDate(null));
   }, [selectedExercise]);
 
-  const weightFromTo = useMemo(() => rangeToFromTo(weightRange, firstWeightDate), [weightRange, firstWeightDate]);
-  const exerciseFromTo = useMemo(() => rangeToFromTo(exerciseRange, firstExerciseDate), [exerciseRange, firstExerciseDate]);
+  const weightFromTo = useMemo(
+    () => rangeToFromTo(weightRange, firstWeightDate),
+    [weightRange, firstWeightDate]
+  );
+  const exerciseFromTo = useMemo(
+    () => rangeToFromTo(exerciseRange, firstExerciseDate),
+    [exerciseRange, firstExerciseDate]
+  );
 
+  /**
+   * TOTAL: étendre le fetch poids pour fallback sur la fenêtre exercice
+   */
   const weightFetchFromTo = useMemo(() => {
     let from = weightFromTo.from;
     let to = weightFromTo.to;
@@ -305,8 +213,17 @@ export default function DashboardPage() {
         from = from < firstWeightDate ? from : firstWeightDate;
       }
     }
+
     return { from, to };
-  }, [weightFromTo.from, weightFromTo.to, exerciseFromTo.from, exerciseFromTo.to, pdcMode, selectedExercise, firstWeightDate]);
+  }, [
+    weightFromTo.from,
+    weightFromTo.to,
+    exerciseFromTo.from,
+    exerciseFromTo.to,
+    pdcMode,
+    selectedExercise,
+    firstWeightDate,
+  ]);
 
   useEffect(() => {
     getDailyMetricsRange(weightFetchFromTo.from, weightFetchFromTo.to)
@@ -319,28 +236,32 @@ export default function DashboardPage() {
       setExerciseRows([]);
       return;
     }
-    getExerciseMasterHistory(selectedExercise.trim(), exerciseFromTo.from, exerciseFromTo.to)
+    const name = selectedExercise.trim();
+    getExerciseMasterHistory(name, exerciseFromTo.from, exerciseFromTo.to)
       .then(setExerciseRows)
       .catch(() => setExerciseRows([]));
   }, [selectedExercise, exerciseFromTo.from, exerciseFromTo.to]);
 
   const weightLookup = useMemo(() => buildWeightLookup(weightRows), [weightRows]);
 
-  const weightChartData = useMemo(() => {
-    const rows = weightRows
-      .filter((r) => r.date >= weightFromTo.from && r.date <= weightFromTo.to)
+  // uPlot data (Weight)
+  const weightData: UDatum[] = useMemo(() => {
+    const from = weightFromTo.from;
+    const to = weightFromTo.to;
+
+    return weightRows
+      .filter((r) => r.date >= from && r.date <= to)
       .filter((r) => r.weight_g != null)
       .slice()
       .sort((a, b) => a.date.localeCompare(b.date))
       .map((r) => ({
-        iso: r.date,
         x: isoToTs(r.date),
-        kg: (r.weight_g ?? 0) / 1000,
+        y: (r.weight_g ?? 0) / 1000,
       }));
-    return dedupeByIsoKeepLast(rows);
   }, [weightRows, weightFromTo.from, weightFromTo.to]);
 
-  const exerciseChartData = useMemo(() => {
+  // uPlot data (Exercise)
+  const exerciseData: UDatum[] = useMemo(() => {
     const byDay = new Map<string, ExerciseMasterPoint[]>();
     for (const r of exerciseRows) {
       const arr = byDay.get(r.date) ?? [];
@@ -348,7 +269,7 @@ export default function DashboardPage() {
       byDay.set(r.date, arr);
     }
 
-    const points: { iso: string; x: number; valueKg: number }[] = [];
+    const pts: { date: string; y: number }[] = [];
 
     for (const [date, arr] of byDay.entries()) {
       const vals = arr
@@ -360,7 +281,7 @@ export default function DashboardPage() {
           if (r.load_type === "PDC_PLUS") {
             if (pdcMode === "LEST") return loadKg;
             const w = weightLookup.get(date) ?? null;
-            if (w == null) return Number.NaN;
+            if (w == null) return Number.NaN; // pas de poids => pas de point
             return w / 1000 + loadKg;
           }
 
@@ -375,57 +296,33 @@ export default function DashboardPage() {
         .filter((v) => Number.isFinite(v));
 
       if (!vals.length) continue;
-
-      points.push({ iso: date, x: isoToTs(date), valueKg: Math.max(...vals) });
+      pts.push({ date, y: Math.max(...vals) });
     }
 
-    return dedupeByIsoKeepLast(points.sort((a, b) => a.iso.localeCompare(b.iso)));
+    return pts
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map((p) => ({ x: isoToTs(p.date), y: p.y }));
   }, [exerciseRows, pdcMode, weightLookup]);
 
-  const weightStats = useMemo(() => computeMinMax(weightChartData.map((d) => d.kg)), [weightChartData]);
-  const exStats = useMemo(() => computeMinMax(exerciseChartData.map((d) => d.valueKg)), [exerciseChartData]);
-
+  const hasWeightData = weightData.length > 0;
   const hasExercise = selectedExercise.trim().length > 0;
+  const hasExerciseData = exerciseData.length > 0;
 
-  const weightChartKey = useMemo(() => {
-    const first = weightChartData[0]?.iso ?? "none";
-    const last = weightChartData[weightChartData.length - 1]?.iso ?? "none";
-    return `w:${weightRange}:${weightFromTo.from}:${weightFromTo.to}:${weightChartData.length}:${first}:${last}`;
-  }, [weightRange, weightFromTo.from, weightFromTo.to, weightChartData]);
+  const weightChartWidth = useMemo(() => chartWidthK32(weightData.length, 520), [weightData.length]);
+  const exerciseChartWidth = useMemo(() => chartWidthK32(exerciseData.length, 520), [exerciseData.length]);
 
-  const exerciseChartKey = useMemo(() => {
-    const first = exerciseChartData[0]?.iso ?? "none";
-    const last = exerciseChartData[exerciseChartData.length - 1]?.iso ?? "none";
-    return `e:${selectedExercise.trim()}:${exerciseRange}:${pdcMode}:${exerciseFromTo.from}:${exerciseFromTo.to}:${exerciseChartData.length}:${first}:${last}`;
-  }, [selectedExercise, exerciseRange, pdcMode, exerciseFromTo.from, exerciseFromTo.to, exerciseChartData]);
-
-  function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
-    if (!open) return null;
-    return (
-      <div className="fixed inset-0 z-[90]">
-        <button type="button" onClick={onClose} className="absolute inset-0 bg-black/80 backdrop-blur-sm" aria-label="Fermer" />
-        <div className="absolute inset-0 flex items-center justify-center p-4">
-          <div className="w-full max-w-5xl">
-            <div className="glass-card border border-white/10 rounded-[2.5rem] overflow-hidden">
-              <div className="p-4 flex items-center justify-between">
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">{title}</p>
-                <button onClick={onClose} className="text-white/40 font-black text-[10px] uppercase tracking-widest">Fermer</button>
-              </div>
-              <div className="p-4 bg-black">
-                <div className="w-full h-[70vh]">{children}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const weightZoomWidth = useMemo(() => chartWidthK32(weightData.length, 900), [weightData.length]);
+  const exerciseZoomWidth = useMemo(() => chartWidthK32(exerciseData.length, 900), [exerciseData.length]);
 
   return (
     <div className="max-w-xl mx-auto px-4 pt-12 pb-32 space-y-8">
       <header className="text-center">
-        <h1 className="text-5xl font-black text-menthe italic uppercase tracking-tighter">Dashboard</h1>
-        <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mt-2">Charts</p>
+        <h1 className="text-5xl font-black text-menthe italic uppercase tracking-tighter">
+          Dashboard
+        </h1>
+        <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mt-2">
+          Charts
+        </p>
       </header>
 
       {/* POIDS */}
@@ -435,18 +332,13 @@ export default function DashboardPage() {
             <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">Poids</h2>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setDebugCharts((v) => !v)}
-              className={`bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest ${debugCharts ? "text-menthe" : "text-white/50"} hover:text-white`}
-            >
-              Debug
-            </button>
-            <button type="button" onClick={() => setModal("weight")} className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white">
-              Zoom
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setModal("weight")}
+            className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white"
+          >
+            Zoom
+          </button>
         </div>
 
         <div className="mt-4 flex bg-white/5 rounded-2xl p-1">
@@ -455,25 +347,33 @@ export default function DashboardPage() {
               key={r}
               type="button"
               onClick={() => setWeightRange(r)}
-              className={`flex-1 py-3 rounded-xl font-black uppercase italic text-[10px] tracking-widest ${weightRange === r ? "bg-menthe text-black" : "text-white/30"}`}
+              className={`flex-1 py-3 rounded-xl font-black uppercase italic text-[10px] tracking-widest ${
+                weightRange === r ? "bg-menthe text-black" : "text-white/30"
+              }`}
             >
               {r}
             </button>
           ))}
         </div>
 
-        <div className="mt-6 overflow-hidden">
-          <ChartBlockNumericX chartKey={weightChartKey} data={weightChartData} yKey="kg" debug={debugCharts} />
+        <div className="mt-6">
+          {hasWeightData ? (
+            <div className="overflow-x-auto no-scrollbar">
+              <UPlotLineChart
+                data={weightData}
+                width={weightChartWidth}
+                height={220}
+                yLabel=""
+                tooltipLabel="kg"
+                series={{ label: "Poids", stroke: "#00FFA3", width: 3, valueFormatter: (v) => v.toFixed(1) }}
+              />
+            </div>
+          ) : (
+            <div className="h-[220px] w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">
+              PAS DE DONNÉES POIDS
+            </div>
+          )}
         </div>
-
-        {debugCharts && (
-          <div className="mt-4 bg-white/5 border border-white/10 rounded-2xl p-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/50">DEBUG POIDS</p>
-            <p className="text-[10px] font-black uppercase tracking-widest text-white/70 mt-2">
-              points={weightChartData.length} min={weightStats.min ?? "—"} max={weightStats.max ?? "—"}
-            </p>
-          </div>
-        )}
       </GlassCard>
 
       {/* EXERCICE SETTINGS */}
@@ -499,7 +399,9 @@ export default function DashboardPage() {
               key={r}
               type="button"
               onClick={() => setExerciseRange(r)}
-              className={`flex-1 py-3 rounded-xl font-black uppercase italic text-[10px] tracking-widest ${exerciseRange === r ? "bg-menthe text-black" : "text-white/30"}`}
+              className={`flex-1 py-3 rounded-xl font-black uppercase italic text-[10px] tracking-widest ${
+                exerciseRange === r ? "bg-menthe text-black" : "text-white/30"
+              }`}
             >
               {r}
             </button>
@@ -535,7 +437,9 @@ export default function DashboardPage() {
                   ? "LEST = UNIQUEMENT LA CHARGE PORTÉE OU FIXÉE SUR UNE BARRE"
                   : "TOTAL = POIDS DU CORPS + CHARGE LESTÉE"}
               </p>
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">TAP POUR FERMER</p>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">
+                TAP POUR FERMER
+              </p>
             </button>
           )}
         </div>
@@ -546,55 +450,70 @@ export default function DashboardPage() {
         <GlassCard className="p-6 rounded-[2.5rem] border border-white/10">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">{selectedExercise.trim()}</h2>
+              <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">
+                {selectedExercise.trim()}
+              </h2>
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">
                 {pdcMode === "LEST" ? "PDC+ = LEST (KG)" : "PDC+ = TOTAL (PDC + LEST)"}
               </p>
             </div>
-            <button type="button" onClick={() => setModal("exercise")} className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white">
+
+            <button
+              type="button"
+              onClick={() => setModal("exercise")}
+              className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white"
+            >
               Zoom
             </button>
           </div>
 
-          <div className="mt-6 overflow-hidden">
-            <ChartBlockNumericX chartKey={exerciseChartKey} data={exerciseChartData} yKey="valueKg" debug={debugCharts} />
+          <div className="mt-6">
+            {hasExerciseData ? (
+              <div className="overflow-x-auto no-scrollbar">
+                <UPlotLineChart
+                  data={exerciseData}
+                  width={exerciseChartWidth}
+                  height={220}
+                  yLabel=""
+                  tooltipLabel="kg"
+                  series={{ label: "Exercice", stroke: "#00FFA3", width: 3, valueFormatter: (v) => v.toFixed(1) }}
+                />
+              </div>
+            ) : (
+              <div className="h-[220px] w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">
+                PAS ASSEZ DE DONNÉES
+              </div>
+            )}
           </div>
-
-          {debugCharts && (
-            <div className="mt-4 bg-white/5 border border-white/10 rounded-2xl p-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/50">DEBUG EXERCICE</p>
-              <p className="text-[10px] font-black uppercase tracking-widest text-white/70 mt-2">
-                points={exerciseChartData.length} min={exStats.min ?? "—"} max={exStats.max ?? "—"}
-              </p>
-            </div>
-          )}
         </GlassCard>
       )}
 
-      <Modal open={modal === "exercise"} onClose={() => setModal(null)} title="ZOOM">
-        <ChartBlockNumericX
-          chartKey={`${exerciseChartKey}:zoom`}
-          data={exerciseChartData}
-          yKey="valueKg"
-          widthBase={900}
-          height={420}
-          debug={debugCharts}
-          showAxisLabels
-          yAxisLabel="KG"
-        />
+      {/* ZOOM WEIGHT */}
+      <Modal open={modal === "weight"} onClose={() => setModal(null)} title="ZOOM">
+        <div className="overflow-x-auto no-scrollbar">
+          <UPlotLineChart
+            data={weightData}
+            width={weightZoomWidth}
+            height={420}
+            yLabel="KG"
+            tooltipLabel="kg"
+            series={{ label: "Poids", stroke: "#00FFA3", width: 3, valueFormatter: (v) => v.toFixed(1) }}
+          />
+        </div>
       </Modal>
 
-      <Modal open={modal === "weight"} onClose={() => setModal(null)} title="ZOOM">
-        <ChartBlockNumericX
-          chartKey={`${weightChartKey}:zoom`}
-          data={weightChartData}
-          yKey="kg"
-          widthBase={900}
-          height={420}
-          debug={debugCharts}
-          showAxisLabels
-          yAxisLabel="KG"
-        />
+      {/* ZOOM EXERCISE */}
+      <Modal open={modal === "exercise"} onClose={() => setModal(null)} title="ZOOM">
+        <div className="overflow-x-auto no-scrollbar">
+          <UPlotLineChart
+            data={exerciseData}
+            width={exerciseZoomWidth}
+            height={420}
+            yLabel="KG"
+            tooltipLabel="kg"
+            series={{ label: "Exercice", stroke: "#00FFA3", width: 3, valueFormatter: (v) => v.toFixed(1) }}
+          />
+        </div>
       </Modal>
     </div>
   );
