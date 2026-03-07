@@ -136,7 +136,7 @@ function Modal({
   );
 }
 
-function useElementWidth() {
+function useElementWidth(deps: unknown[] = []) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [width, setWidth] = useState<number>(0);
 
@@ -144,20 +144,26 @@ function useElementWidth() {
     const el = ref.current;
     if (!el) return;
 
-    const ro = new ResizeObserver(() => {
+    const measure = () => {
       const next = Math.floor(el.clientWidth);
       if (next > 0) setWidth(next);
-    });
+    };
 
+    const ro = new ResizeObserver(measure);
     ro.observe(el);
-    const first = Math.floor(el.clientWidth);
-    if (first > 0) setWidth(first);
+
+    // mesures différées (modal layout)
+    measure();
+    requestAnimationFrame(measure);
+    setTimeout(measure, 50);
 
     return () => ro.disconnect();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
 
   return { ref, width };
 }
+
 
 type UDatum = { x: number; y: number };
 
@@ -181,8 +187,9 @@ export default function DashboardPage() {
 
   const weightBox = useElementWidth();
   const exerciseBox = useElementWidth();
-  const weightZoomBox = useElementWidth();
-  const exerciseZoomBox = useElementWidth();
+  const weightZoomBox = useElementWidth([modal === "weight"]);
+  const exerciseZoomBox = useElementWidth([modal === "exercise"]);
+
 
   useEffect(() => {
     listTrackedExercises()
