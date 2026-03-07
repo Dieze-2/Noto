@@ -108,16 +108,19 @@ export default function UPlotLineChart(props: {
     };
   }, [width, height, series, yLabel]);
 
-  // init once
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
-    if (plotRef.current) return;
+
+    // destroy previous
+    if (plotRef.current) {
+      plotRef.current.destroy();
+      plotRef.current = null;
+    }
 
     const u = new uPlot(opts, aligned, el);
     plotRef.current = u;
 
-    // tooltip node
     let tip = tooltipRef.current;
     if (!tip) {
       tip = document.createElement("div");
@@ -139,10 +142,7 @@ export default function UPlotLineChart(props: {
     const valFmt = series.valueFormatter ?? ((v: number) => v.toFixed(1));
 
     const move = () => {
-      const u2 = plotRef.current;
-      if (!u2) return;
-
-      const idx = u2.cursor.idx;
+      const idx = u.cursor.idx;
       if (idx == null || idx < 0) {
         tip!.style.display = "none";
         return;
@@ -161,17 +161,18 @@ export default function UPlotLineChart(props: {
         <div style="margin-top:6px;font-weight:900;font-size:16px;color:${series.stroke}">${tooltipLabel}: ${valFmt(yVal)}</div>
       `;
 
+      // smart placement (coin opposé au point)
       const tipW = 170;
       const tipH = 70;
       const pad = 12;
 
-      const plotLeft = u2.bbox.left;
-      const plotTop = u2.bbox.top;
-      const plotW = u2.bbox.width;
-      const plotH = u2.bbox.height;
+      const plotLeft = u.bbox.left;
+      const plotTop = u.bbox.top;
+      const plotW = u.bbox.width;
+      const plotH = u.bbox.height;
 
-      const cx = u2.cursor.left;
-      const cy = u2.cursor.top;
+      const cx = u.cursor.left;
+      const cy = u.cursor.top;
 
       const placeLeft = cx > plotW * 0.55;
       const placeTop = cy > plotH * 0.55;
@@ -179,12 +180,9 @@ export default function UPlotLineChart(props: {
       let tx = plotLeft + (placeLeft ? pad : plotW - tipW - pad);
       let ty = plotTop + (placeTop ? pad : plotH - tipH - pad);
 
-      // clamp using CURRENT size (not props width/height, safer)
-      const curW = u2.width;
-      const curH = u2.height;
-
-      tx = Math.max(pad, Math.min(tx, curW - tipW - pad));
-      ty = Math.max(pad, Math.min(ty, curH - tipH - pad));
+      // clamp using real uPlot size
+      tx = Math.max(pad, Math.min(tx, u.width - tipW - pad));
+      ty = Math.max(pad, Math.min(ty, u.height - tipH - pad));
 
       tip!.style.transform = `translate(${tx}px, ${ty}px)`;
       tip!.style.display = "block";
@@ -200,33 +198,14 @@ export default function UPlotLineChart(props: {
       u.destroy();
       plotRef.current = null;
     };
-    // IMPORTANT: mount once
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [opts, aligned, series.stroke, series.valueFormatter, tooltipLabel]);
 
-  // update data
-  useEffect(() => {
-    const u = plotRef.current;
-    if (!u) return;
-    u.setData(aligned);
-  }, [aligned]);
-
-  // update size
+  // keep react width/height in sync
   useEffect(() => {
     const u = plotRef.current;
     if (!u) return;
     u.setSize({ width, height });
   }, [width, height]);
 
-  // update options that matter visually (series stroke/width/label, yLabel)
-  useEffect(() => {
-    const u = plotRef.current;
-    if (!u) return;
-
-    // safest: rebuild only when styling changes drastically
-    // but here minimal: force redraw
-    u.redraw();
-  }, [series.label, series.stroke, series.width, yLabel]);
-
-  return <div ref={wrapRef} style={{ minWidth: "100%" }} />;
+  return <div ref={wrapRef} style={{ width: "100%" }} />;
 }
