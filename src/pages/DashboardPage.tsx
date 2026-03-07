@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import GlassCard from "../components/GlassCard";
 import { getDailyMetricsRange, getFirstWeightDate } from "../db/dailyMetrics";
 import {
@@ -25,7 +25,6 @@ function rangeToFromTo(r: Range, firstDate: string | null) {
   if (r === "6M") return { from: isoMonthsAgo(6), to };
   return { from: isoMonthsAgo(3), to };
 }
-
 function isoToTs(iso: string) {
   return new Date(`${iso}T00:00:00`).getTime();
 }
@@ -137,11 +136,30 @@ function Modal({
   );
 }
 
-type UDatum = { x: number; y: number };
+// hook de mesure (fit card)
+function useElementWidth() {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [width, setWidth] = useState<number>(520);
 
-function chartWidthK32(points: number, base: number) {
-  return Math.max(base, points * 32);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const ro = new ResizeObserver(() => {
+      const next = Math.floor(el.clientWidth);
+      if (next > 0) setWidth(next);
+    });
+
+    ro.observe(el);
+    setWidth(Math.floor(el.clientWidth));
+
+    return () => ro.disconnect();
+  }, []);
+
+  return { ref, width };
 }
+
+type UDatum = { x: number; y: number };
 
 export default function DashboardPage() {
   const [trackedExercises, setTrackedExercises] = useState<string[]>([]);
@@ -161,21 +179,25 @@ export default function DashboardPage() {
 
   const [modal, setModal] = useState<null | "exercise" | "weight">(null);
 
-  // exercises list (from DB)
+  const [debugCharts, setDebugCharts] = useState(false);
+
+  const weightBox = useElementWidth();
+  const exerciseBox = useElementWidth();
+  const weightZoomBox = useElementWidth();
+  const exerciseZoomBox = useElementWidth();
+
   useEffect(() => {
     listTrackedExercises()
       .then((names) => setTrackedExercises(names))
       .catch(() => setTrackedExercises([]));
   }, []);
 
-  // first weight date (for TOUT)
   useEffect(() => {
     getFirstWeightDate()
       .then(setFirstWeightDate)
       .catch(() => setFirstWeightDate(null));
   }, []);
 
-  // first exercise date (for TOUT)
   useEffect(() => {
     if (!selectedExercise) {
       setFirstExerciseDate(null);
@@ -196,14 +218,12 @@ export default function DashboardPage() {
     [exerciseRange, firstExerciseDate]
   );
 
-  /**
-   * TOTAL: étendre le fetch poids pour fallback sur la fenêtre exercice
-   */
   const weightFetchFromTo = useMemo(() => {
     let from = weightFromTo.from;
     let to = weightFromTo.to;
 
-    const needsWeightsForTotal = pdcMode === "TOTAL" && selectedExercise.trim().length > 0;
+    const needsWeightsForTotal =
+      pdcMode === "TOTAL" && selectedExercise.trim().length > 0;
 
     if (needsWeightsForTotal) {
       from = from < exerciseFromTo.from ? from : exerciseFromTo.from;
@@ -227,7 +247,9 @@ export default function DashboardPage() {
 
   useEffect(() => {
     getDailyMetricsRange(weightFetchFromTo.from, weightFetchFromTo.to)
-      .then((rows) => setWeightRows(rows.map((r) => ({ date: r.date, weight_g: r.weight_g }))))
+      .then((rows) =>
+        setWeightRows(rows.map((r) => ({ date: r.date, weight_g: r.weight_g })))
+      )
       .catch(() => setWeightRows([]));
   }, [weightFetchFromTo.from, weightFetchFromTo.to]);
 
@@ -244,23 +266,15 @@ export default function DashboardPage() {
 
   const weightLookup = useMemo(() => buildWeightLookup(weightRows), [weightRows]);
 
-  // uPlot data (Weight)
   const weightData: UDatum[] = useMemo(() => {
-    const from = weightFromTo.from;
-    const to = weightFromTo.to;
-
     return weightRows
-      .filter((r) => r.date >= from && r.date <= to)
+      .filter((r) => r.date >= weightFromTo.from && r.date <= weightFromTo.to)
       .filter((r) => r.weight_g != null)
       .slice()
       .sort((a, b) => a.date.localeCompare(b.date))
-      .map((r) => ({
-        x: isoToTs(r.date),
-        y: (r.weight_g ?? 0) / 1000,
-      }));
+      .map((r) => ({ x: isoToTs(r.date), y: (r.weight_g ?? 0) / 1000 }));
   }, [weightRows, weightFromTo.from, weightFromTo.to]);
 
-  // uPlot data (Exercise)
   const exerciseData: UDatum[] = useMemo(() => {
     const byDay = new Map<string, ExerciseMasterPoint[]>();
     for (const r of exerciseRows) {
@@ -281,7 +295,7 @@ export default function DashboardPage() {
           if (r.load_type === "PDC_PLUS") {
             if (pdcMode === "LEST") return loadKg;
             const w = weightLookup.get(date) ?? null;
-            if (w == null) return Number.NaN; // pas de poids => pas de point
+            if (w == null) return Number.NaN;
             return w / 1000 + loadKg;
           }
 
@@ -308,12 +322,6 @@ export default function DashboardPage() {
   const hasExercise = selectedExercise.trim().length > 0;
   const hasExerciseData = exerciseData.length > 0;
 
-  const weightChartWidth = useMemo(() => chartWidthK32(weightData.length, 520), [weightData.length]);
-  const exerciseChartWidth = useMemo(() => chartWidthK32(exerciseData.length, 520), [exerciseData.length]);
-
-  const weightZoomWidth = useMemo(() => chartWidthK32(weightData.length, 900), [weightData.length]);
-  const exerciseZoomWidth = useMemo(() => chartWidthK32(exerciseData.length, 900), [exerciseData.length]);
-
   return (
     <div className="max-w-xl mx-auto px-4 pt-12 pb-32 space-y-8">
       <header className="text-center">
@@ -329,16 +337,30 @@ export default function DashboardPage() {
       <GlassCard className="p-6 rounded-[2.5rem] border border-white/10">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">Poids</h2>
+            <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">
+              Poids
+            </h2>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setModal("weight")}
-            className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white"
-          >
-            Zoom
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setDebugCharts((v) => !v)}
+              className={`bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                debugCharts ? "text-menthe" : "text-white/50"
+              } hover:text-white`}
+            >
+              Debug
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setModal("weight")}
+              className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white"
+            >
+              Zoom
+            </button>
+          </div>
         </div>
 
         <div className="mt-4 flex bg-white/5 rounded-2xl p-1">
@@ -356,18 +378,22 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        <div className="mt-6">
+        <div className="mt-6" ref={weightBox.ref}>
           {hasWeightData ? (
-            <div className="overflow-x-auto no-scrollbar">
-              <UPlotLineChart
-                data={weightData}
-                width={weightChartWidth}
-                height={220}
-                yLabel=""
-                tooltipLabel="kg"
-                series={{ label: "Poids", stroke: "#00FFA3", width: 3, valueFormatter: (v) => v.toFixed(1) }}
-              />
-            </div>
+            <UPlotLineChart
+              data={weightData}
+              width={weightBox.width}
+              height={220}
+              tooltipLabel="kg"
+              series={{
+                label: "Poids",
+                stroke: "#00FFA3",
+                width: 3,
+                valueFormatter: (v) => v.toFixed(1),
+              }}
+              debug={debugCharts}
+              debugWindow={2}
+            />
           ) : (
             <div className="h-[220px] w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">
               PAS DE DONNÉES POIDS
@@ -378,7 +404,9 @@ export default function DashboardPage() {
 
       {/* EXERCICE SETTINGS */}
       <GlassCard className="p-6 rounded-[2.5rem] border border-white/10 space-y-4">
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Exercice</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">
+          Exercice
+        </p>
 
         <select
           value={selectedExercise}
@@ -416,6 +444,7 @@ export default function DashboardPage() {
               leftLabel="LEST"
               rightLabel="TOTAL"
             />
+
             <button
               type="button"
               onClick={() => setInfoOpen((v) => !v)}
@@ -454,7 +483,9 @@ export default function DashboardPage() {
                 {selectedExercise.trim()}
               </h2>
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">
-                {pdcMode === "LEST" ? "PDC+ = LEST (KG)" : "PDC+ = TOTAL (PDC + LEST)"}
+                {pdcMode === "LEST"
+                  ? "PDC+ = LEST (KG)"
+                  : "PDC+ = TOTAL (PDC + LEST)"}
               </p>
             </div>
 
@@ -467,18 +498,22 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          <div className="mt-6">
+          <div className="mt-6" ref={exerciseBox.ref}>
             {hasExerciseData ? (
-              <div className="overflow-x-auto no-scrollbar">
-                <UPlotLineChart
-                  data={exerciseData}
-                  width={exerciseChartWidth}
-                  height={220}
-                  yLabel=""
-                  tooltipLabel="kg"
-                  series={{ label: "Exercice", stroke: "#00FFA3", width: 3, valueFormatter: (v) => v.toFixed(1) }}
-                />
-              </div>
+              <UPlotLineChart
+                data={exerciseData}
+                width={exerciseBox.width}
+                height={220}
+                tooltipLabel="kg"
+                series={{
+                  label: "Exercice",
+                  stroke: "#00FFA3",
+                  width: 3,
+                  valueFormatter: (v) => v.toFixed(1),
+                }}
+                debug={debugCharts}
+                debugWindow={2}
+              />
             ) : (
               <div className="h-[220px] w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">
                 PAS ASSEZ DE DONNÉES
@@ -490,28 +525,42 @@ export default function DashboardPage() {
 
       {/* ZOOM WEIGHT */}
       <Modal open={modal === "weight"} onClose={() => setModal(null)} title="ZOOM">
-        <div className="overflow-x-auto no-scrollbar">
+        <div className="w-full h-full" ref={weightZoomBox.ref}>
           <UPlotLineChart
             data={weightData}
-            width={weightZoomWidth}
+            width={weightZoomBox.width}
             height={420}
             yLabel="KG"
             tooltipLabel="kg"
-            series={{ label: "Poids", stroke: "#00FFA3", width: 3, valueFormatter: (v) => v.toFixed(1) }}
+            series={{
+              label: "Poids",
+              stroke: "#00FFA3",
+              width: 3,
+              valueFormatter: (v) => v.toFixed(1),
+            }}
+            debug={debugCharts}
+            debugWindow={2}
           />
         </div>
       </Modal>
 
       {/* ZOOM EXERCISE */}
       <Modal open={modal === "exercise"} onClose={() => setModal(null)} title="ZOOM">
-        <div className="overflow-x-auto no-scrollbar">
+        <div className="w-full h-full" ref={exerciseZoomBox.ref}>
           <UPlotLineChart
             data={exerciseData}
-            width={exerciseZoomWidth}
+            width={exerciseZoomBox.width}
             height={420}
             yLabel="KG"
             tooltipLabel="kg"
-            series={{ label: "Exercice", stroke: "#00FFA3", width: 3, valueFormatter: (v) => v.toFixed(1) }}
+            series={{
+              label: "Exercice",
+              stroke: "#00FFA3",
+              width: 3,
+              valueFormatter: (v) => v.toFixed(1),
+            }}
+            debug={debugCharts}
+            debugWindow={2}
           />
         </div>
       </Modal>
