@@ -370,25 +370,27 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        <div className="mt-6 w-full" ref={weightBox.ref}>
-          {hasWeightData ? (
-            <UPlotLineChart
-              data={weightData}
-              width={wSmall}
-              height={220}
-              tooltipLabel="kg"
-              series={{
-                label: "Poids",
-                stroke: "#00FFA3",
-                width: 3,
-                valueFormatter: (v) => v.toFixed(1),
-              }}
-            />
-          ) : (
-            <div className="h-[220px] w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">
-              PAS DE DONNÉES POIDS
-            </div>
-          )}
+        <div className="mt-6 w-full min-w-0" ref={weightBox.ref}>
+          <div className="w-full min-w-0">
+            {hasWeightData ? (
+              <UPlotLineChart
+                data={weightData}
+                width={wSmall}
+                height={220}
+                tooltipLabel="kg"
+                series={{
+                  label: "Poids",
+                  stroke: "#00FFA3",
+                  width: 3,
+                  valueFormatter: (v) => v.toFixed(1),
+                }}
+              />
+            ) : (
+              <div className="h-[220px] w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">
+                PAS DE DONNÉES POIDS
+              </div>
+            )}
+          </div>
         </div>
       </GlassCard>
 
@@ -486,26 +488,29 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          <div className="mt-6 w-full" ref={exerciseBox.ref}>
-            {hasExerciseData ? (
-              <UPlotLineChart
-                data={exerciseData}
-                width={eSmall}
-                height={220}
-                tooltipLabel="kg"
-                series={{
-                  label: "Exercice",
-                  stroke: "#00FFA3",
-                  width: 3,
-                  valueFormatter: (v) => v.toFixed(1),
-                }}
-              />
-            ) : (
-              <div className="h-[220px] w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">
-                PAS ASSEZ DE DONNÉES
-              </div>
-            )}
+          <div className="mt-6 w-full min-w-0" ref={exerciseBox.ref}>
+            <div className="w-full min-w-0">
+              {hasExerciseData ? (
+                <UPlotLineChart
+                  data={exerciseData}
+                  width={eSmall}
+                  height={220}
+                  tooltipLabel="kg"
+                  series={{
+                    label: "Exercice",
+                    stroke: "#00FFA3",
+                    width: 3,
+                    valueFormatter: (v) => v.toFixed(1),
+                  }}
+                />
+              ) : (
+                <div className="h-[220px] w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">
+                  PAS ASSEZ DE DONNÉES
+                </div>
+              )}
+            </div>
           </div>
+
         </GlassCard>
       )}
 
