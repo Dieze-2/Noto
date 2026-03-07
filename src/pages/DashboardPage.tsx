@@ -136,10 +136,9 @@ function Modal({
   );
 }
 
-// hook de mesure (fit card)
 function useElementWidth() {
   const ref = useRef<HTMLDivElement | null>(null);
-  const [width, setWidth] = useState<number>(520);
+  const [width, setWidth] = useState<number>(0);
 
   useEffect(() => {
     const el = ref.current;
@@ -151,7 +150,8 @@ function useElementWidth() {
     });
 
     ro.observe(el);
-    setWidth(Math.floor(el.clientWidth));
+    const first = Math.floor(el.clientWidth);
+    if (first > 0) setWidth(first);
 
     return () => ro.disconnect();
   }, []);
@@ -178,8 +178,6 @@ export default function DashboardPage() {
   const [firstExerciseDate, setFirstExerciseDate] = useState<string | null>(null);
 
   const [modal, setModal] = useState<null | "exercise" | "weight">(null);
-
-  const [debugCharts, setDebugCharts] = useState(false);
 
   const weightBox = useElementWidth();
   const exerciseBox = useElementWidth();
@@ -322,6 +320,12 @@ export default function DashboardPage() {
   const hasExercise = selectedExercise.trim().length > 0;
   const hasExerciseData = exerciseData.length > 0;
 
+  // fallback width for first render / modal open
+  const wSmall = Math.max(weightBox.width, 320);
+  const eSmall = Math.max(exerciseBox.width, 320);
+  const wZoom = Math.max(weightZoomBox.width, 320);
+  const eZoom = Math.max(exerciseZoomBox.width, 320);
+
   return (
     <div className="max-w-xl mx-auto px-4 pt-12 pb-32 space-y-8">
       <header className="text-center">
@@ -342,25 +346,13 @@ export default function DashboardPage() {
             </h2>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setDebugCharts((v) => !v)}
-              className={`bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                debugCharts ? "text-menthe" : "text-white/50"
-              } hover:text-white`}
-            >
-              Debug
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setModal("weight")}
-              className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white"
-            >
-              Zoom
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setModal("weight")}
+            className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white"
+          >
+            Zoom
+          </button>
         </div>
 
         <div className="mt-4 flex bg-white/5 rounded-2xl p-1">
@@ -378,11 +370,11 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        <div className="mt-6" ref={weightBox.ref}>
+        <div className="mt-6 w-full" ref={weightBox.ref}>
           {hasWeightData ? (
             <UPlotLineChart
               data={weightData}
-              width={weightBox.width}
+              width={wSmall}
               height={220}
               tooltipLabel="kg"
               series={{
@@ -391,8 +383,6 @@ export default function DashboardPage() {
                 width: 3,
                 valueFormatter: (v) => v.toFixed(1),
               }}
-              debug={debugCharts}
-              debugWindow={2}
             />
           ) : (
             <div className="h-[220px] w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">
@@ -498,11 +488,11 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          <div className="mt-6" ref={exerciseBox.ref}>
+          <div className="mt-6 w-full" ref={exerciseBox.ref}>
             {hasExerciseData ? (
               <UPlotLineChart
                 data={exerciseData}
-                width={exerciseBox.width}
+                width={eSmall}
                 height={220}
                 tooltipLabel="kg"
                 series={{
@@ -511,8 +501,6 @@ export default function DashboardPage() {
                   width: 3,
                   valueFormatter: (v) => v.toFixed(1),
                 }}
-                debug={debugCharts}
-                debugWindow={2}
               />
             ) : (
               <div className="h-[220px] w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">
@@ -528,7 +516,7 @@ export default function DashboardPage() {
         <div className="w-full h-full" ref={weightZoomBox.ref}>
           <UPlotLineChart
             data={weightData}
-            width={weightZoomBox.width}
+            width={wZoom}
             height={420}
             yLabel="KG"
             tooltipLabel="kg"
@@ -538,8 +526,6 @@ export default function DashboardPage() {
               width: 3,
               valueFormatter: (v) => v.toFixed(1),
             }}
-            debug={debugCharts}
-            debugWindow={2}
           />
         </div>
       </Modal>
@@ -549,7 +535,7 @@ export default function DashboardPage() {
         <div className="w-full h-full" ref={exerciseZoomBox.ref}>
           <UPlotLineChart
             data={exerciseData}
-            width={exerciseZoomBox.width}
+            width={eZoom}
             height={420}
             yLabel="KG"
             tooltipLabel="kg"
@@ -559,8 +545,6 @@ export default function DashboardPage() {
               width: 3,
               valueFormatter: (v) => v.toFixed(1),
             }}
-            debug={debugCharts}
-            debugWindow={2}
           />
         </div>
       </Modal>
