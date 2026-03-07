@@ -469,10 +469,7 @@ export default function DashboardPage() {
       {/* EXERCICE CHART */}
         {hasExercise && (
           <GlassCard className="p-6 rounded-[2.5rem] border border-white/10">
-            {/* Sentinel de mesure (vide) */}
-            <div ref={exerciseBox.ref} className="w-full h-px opacity-0" />
-
-        
+                 
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">
@@ -501,7 +498,7 @@ export default function DashboardPage() {
         
                   <UPlotLineChart
                     data={exerciseData}
-                    width={Math.max(exerciseBox.width, 320)}
+                    width={Math.max(exerciseBox.width -48, 320)}
                     height={220}
                     tooltipLabel="kg"
                     series={{
