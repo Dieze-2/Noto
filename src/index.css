@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "uplot/dist/uPlot.min.css";
+
 
 @theme {
   --color-menthe: #00ffa3;
