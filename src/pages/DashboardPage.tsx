@@ -467,39 +467,37 @@ export default function DashboardPage() {
       </GlassCard>
 
       {/* EXERCICE CHART */}
+        {/* EXERCICE CHART */}
         {hasExercise && (
-          <GlassCard
-            ref={exerciseBox.ref as any}
-            className="p-6 rounded-[2.5rem] border border-white/10"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">
-                  {selectedExercise.trim()}
-                </h2>
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">
-                  {pdcMode === "LEST"
-                    ? "PDC+ = CHARGE (KG)"
-                    : "PDC+ = TOTAL (PDC + CHARGE)"}
-                </p>
+          <GlassCard className="p-6 rounded-[2.5rem] border border-white/10">
+            <div ref={exerciseBox.ref} className="w-full min-w-0">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">
+                    {selectedExercise.trim()}
+                  </h2>
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">
+                    {pdcMode === "LEST"
+                      ? "CHARGE (KG)"
+                      : "TOTAL (PDC + CHARGE)"}
+                  </p>
+                </div>
+        
+                <button
+                  type="button"
+                  onClick={() => setModal("exercise")}
+                  className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white"
+                >
+                  Zoom
+                </button>
               </div>
         
-              <button
-                type="button"
-                onClick={() => setModal("exercise")}
-                className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white"
-              >
-                Zoom
-              </button>
-            </div>
-        
-            <div className="mt-6 w-full min-w-0">
-              <div className="w-full min-w-0">
+              <div className="mt-6 w-full min-w-0">
                 {hasExerciseData ? (
                   <UPlotLineChart
                     data={exerciseData}
-                    // p-6 => 24px * 2 = 48px (on enlève le padding pour width réelle du plot)
-                    width={Math.max((exerciseBox.width || 0) - 48, 320)}
+                    // on utilise la largeur mesurée du wrapper, moins rien (pas besoin de -48 ici)
+                    width={Math.max(exerciseBox.width, 320)}
                     height={220}
                     tooltipLabel="kg"
                     series={{
@@ -518,6 +516,7 @@ export default function DashboardPage() {
             </div>
           </GlassCard>
         )}
+
 
       {/* ZOOM WEIGHT */}
       <Modal open={modal === "weight"} onClose={() => setModal(null)} title="ZOOM">
