@@ -467,37 +467,40 @@ export default function DashboardPage() {
       </GlassCard>
 
       {/* EXERCICE CHART */}
-        {/* EXERCICE CHART */}
         {hasExercise && (
           <GlassCard className="p-6 rounded-[2.5rem] border border-white/10">
-            <div ref={exerciseBox.ref} className="w-full min-w-0">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">
-                    {selectedExercise.trim()}
-                  </h2>
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">
-                    {pdcMode === "LEST"
-                      ? "CHARGE (KG)"
-                      : "TOTAL (PDC + CHARGE)"}
-                  </p>
-                </div>
+            {/* Sentinel de mesure (vide) */}
+            <div ref={exerciseBox.ref} className="w-full h-0" />
         
-                <button
-                  type="button"
-                  onClick={() => setModal("exercise")}
-                  className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white"
-                >
-                  Zoom
-                </button>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">
+                  {selectedExercise.trim()}
+                </h2>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mt-1">
+                  {pdcMode === "LEST" ? "CHARGE (KG)" : "TOTAL (PDC + CHARGE)"}
+                </p>
               </div>
         
-              <div className="mt-6 w-full min-w-0">
-                {hasExerciseData ? (
+              <button
+                type="button"
+                onClick={() => setModal("exercise")}
+                className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white"
+              >
+                Zoom
+              </button>
+            </div>
+        
+            <div className="mt-6 w-full min-w-0">
+              {hasExerciseData ? (
+                <>
+                  <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-2">
+                    WIDTH: {exerciseBox.width}px
+                  </p>
+        
                   <UPlotLineChart
                     data={exerciseData}
-                    // on utilise la largeur mesurée du wrapper, moins rien (pas besoin de -48 ici)
-                    width={Math.max(exerciseBox.width, 320)}
+                    width={Math.max(exerciseBox.width - 48, 320)}
                     height={220}
                     tooltipLabel="kg"
                     series={{
@@ -507,12 +510,12 @@ export default function DashboardPage() {
                       valueFormatter: (v) => v.toFixed(1),
                     }}
                   />
-                ) : (
-                  <div className="h-[220px] w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">
-                    PAS ASSEZ DE DONNÉES
-                  </div>
-                )}
-              </div>
+                </>
+              ) : (
+                <div className="h-[220px] w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">
+                  PAS ASSEZ DE DONNÉES
+                </div>
+              )}
             </div>
           </GlassCard>
         )}
