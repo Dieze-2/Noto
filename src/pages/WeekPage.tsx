@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { startOfWeek, addDays, format, isToday, subDays, parseISO } from "date-fns";
+import { DayPicker } from "react-day-picker";
 import { fr } from "date-fns/locale";
 import {
   Footprints,
