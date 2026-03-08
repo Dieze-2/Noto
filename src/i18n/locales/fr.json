@@ -206,7 +206,11 @@
     "trainingFrequency": "Fréquence d'entraînement",
     "perWeek": "sem.",
     "muscleGroups": "Répartition musculaire",
-    "personalRecords": "Records personnels (e1RM)"
+    "personalRecords": "Records personnels (e1RM)",
+    "alertInactive": "Inactif depuis {{days}} jours",
+    "alertNoWorkout": "Aucun entraînement enregistré",
+    "alertWeightLoss": "Perte de poids rapide : -{{kg}} kg cette semaine",
+    "alertPR": "🏆 {{count}} PR battu(s) cette semaine ({{exercise}})"
   },
   "coachStats": {
     "title": "Statistiques",
