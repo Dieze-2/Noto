@@ -70,6 +70,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={session ? <Navigate to="/" replace /> : <LoginPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/*" element={<ProtectedRoutes />} />
     </Routes>
   );
