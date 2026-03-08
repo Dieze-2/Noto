@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Activity, TrendingUp, TrendingDown, Users, Zap, Calendar,
-  Loader2, Trophy, Flame,
+  Loader2, Trophy, Flame, User,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { subDays, format, differenceInCalendarWeeks, parseISO } from "date-fns";
