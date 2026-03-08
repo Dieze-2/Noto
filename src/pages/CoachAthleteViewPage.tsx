@@ -421,7 +421,62 @@ export default function CoachAthleteViewPage() {
               </GlassCard>
             </div>
 
-            {/* Metrics view toggle */}
+            {/* Data completion & consistency */}
+            <GlassCard className="p-5 rounded-3xl space-y-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={16} className="text-primary" />
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  {t("coach.completionTitle")}
+                </h3>
+                <span className="text-[10px] font-bold text-muted-foreground ml-auto">
+                  {t("coach.last30days")}
+                </span>
+              </div>
+
+              {[
+                { label: t("dashboard.weight"), count: stats.completion.daysWithWeight, total: stats.completion.totalDays, color: "bg-[hsl(var(--metric-weight))]" },
+                { label: t("coach.avgSteps"), count: stats.completion.daysWithSteps, total: stats.completion.totalDays, color: "bg-[hsl(var(--metric-steps))]" },
+                { label: t("coach.avgKcal"), count: stats.completion.daysWithKcal, total: stats.completion.totalDays, color: "bg-[hsl(var(--metric-kcal))]" },
+              ].map(({ label, count, total, color }) => {
+                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                return (
+                  <div key={label} className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-foreground">{label}</span>
+                      <span className={`text-xs font-black ${pct >= 70 ? "text-primary" : pct >= 40 ? "text-warning" : "text-destructive"}`}>
+                        {count}/{total}j · {pct}%
+                      </span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${color}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+
+              <div className="pt-2 border-t border-border space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-foreground">{t("coach.trainingConsistency")}</span>
+                  <span className={`text-xs font-black ${stats.weeksWithTraining >= 3 ? "text-primary" : stats.weeksWithTraining >= 2 ? "text-warning" : "text-destructive"}`}>
+                    {stats.weeksWithTraining}/4 {t("coach.weeksActive")}
+                  </span>
+                </div>
+                <div className="flex gap-1.5">
+                  {[0, 1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className={`flex-1 h-3 rounded-full transition-colors ${
+                        i < stats.weeksWithTraining ? "bg-primary" : "bg-muted"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            </GlassCard>
+
             <div className="flex glass rounded-xl p-1">
               {(["day", "week", "month"] as MetricsView[]).map((v) => (
                 <button
