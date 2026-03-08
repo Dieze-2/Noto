@@ -426,7 +426,7 @@ export default function DashboardPage() {
             <div className="mt-4 grid grid-cols-3 gap-3">
               <div className="bg-muted rounded-xl p-3 text-center">
                 <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
-                  {exStats.isPDC ? "Reps max" : "Total max"}
+                  {exStats.isPDC ? t("dashboard.repsMax") : t("dashboard.totalMax")}
                 </p>
                 <p className="text-lg font-black text-foreground">
                   {exStats.isPDC ? exStats.maxReps : exStats.maxTotal.toFixed(1)}
