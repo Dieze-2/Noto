@@ -250,13 +250,13 @@ export default function CoachExerciseDashboard({ athleteId }: Props) {
 
   const detailStats = useMemo(() => {
     if (detailData.length < 1) return null;
-    const volumes = detailData.map((d) => computeVolume(d, weightData));
-    const maxVolume = Math.max(...volumes);
-    const first = volumes[0];
-    const last = volumes[volumes.length - 1];
+    const e1rms = detailData.map((d) => computeE1RM(d, weightData));
+    const maxE1RM = Math.max(...e1rms);
+    const first = e1rms[0];
+    const last = e1rms[e1rms.length - 1];
     const trend = first > 0 ? ((last - first) / first) * 100 : null;
     const dates = [...new Set(detailData.map((d) => d.workout_date))];
-    return { maxVolume, trend, sessions: dates.length, lastVolume: last };
+    return { maxVolume: maxE1RM, trend, sessions: dates.length, lastVolume: last };
   }, [detailData, weightData]);
 
   if (loading) {
