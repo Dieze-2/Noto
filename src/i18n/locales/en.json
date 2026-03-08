@@ -281,6 +281,9 @@
     "popular": "Popular",
     "subscribe": "Subscribe",
     "alreadyCoach": "Already a coach",
+    "currentPlan": "Current plan",
+    "changePlan": "Change plan",
+    "stripeComingSoon": "Stripe payment coming soon.",
     "comingSoon": "Coming soon",
     "note": "All plans include unlimited access to all features. Only the number of athletes varies.",
     "classic": {

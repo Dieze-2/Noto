@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Check, Crown, Zap, Building2, ArrowLeft, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -10,6 +10,7 @@ import { createNotification } from "@/db/notifications";
 import { supabase } from "@/lib/supabaseClient";
 import { getProfile, displayName } from "@/db/profiles";
 import { useRoles } from "@/auth/RoleProvider";
+import { getCoachSubscription, CoachPlan } from "@/db/coachSubscriptions";
 
 const plans = [
   {
@@ -45,6 +46,18 @@ export default function PricingPage() {
   const navigate = useNavigate();
   const { isCoach } = useRoles();
   const [submitting, setSubmitting] = useState<string | null>(null);
+  const [currentPlan, setCurrentPlan] = useState<CoachPlan | null>(null);
+
+  useEffect(() => {
+    if (isCoach) {
+      getCoachSubscription().then((sub) => setCurrentPlan(sub?.plan ?? null));
+    }
+  }, [isCoach]);
+
+  const handleChangePlan = (planKey: string) => {
+    // TODO: redirect to Stripe checkout/portal for plan change
+    toast.info(t("pricing.stripeComingSoon"));
+  };
 
   const handleSubscribe = async (planKey: string) => {
     setSubmitting(planKey);
@@ -180,12 +193,22 @@ export default function PricingPage() {
 
                   {/* CTA */}
                   {isCoach ? (
-                    <button
-                      disabled
-                      className="w-full py-3 rounded-2xl text-xs font-black uppercase tracking-wider bg-muted text-muted-foreground opacity-60"
-                    >
-                      {t("pricing.alreadyCoach")}
-                    </button>
+                    currentPlan === plan.key ? (
+                      <div className="w-full py-3 rounded-2xl text-xs font-black uppercase tracking-wider bg-primary/10 text-primary text-center">
+                        {t("pricing.currentPlan")}
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handleChangePlan(plan.key)}
+                        className={`w-full py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-opacity flex items-center justify-center gap-2 ${
+                          plan.featured
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-foreground hover:bg-muted/80"
+                        }`}
+                      >
+                        {t("pricing.changePlan")}
+                      </button>
+                    )
                   ) : (
                     <button
                       onClick={() => handleSubscribe(plan.key)}
