@@ -20,6 +20,7 @@ import {
   getProgramSessions,
 } from "@/db/programs";
 import ProgramEditor from "@/components/ProgramEditor";
+import CoachExerciseDashboard from "@/components/CoachExerciseDashboard";
 import { toast } from "sonner";
 
 interface DailyMetric {
