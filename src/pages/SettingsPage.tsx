@@ -20,8 +20,7 @@ import { getUserGoals, saveUserGoals } from "@/db/goals";
 /* ── Workouts Export ── */
 async function exportWorkoutsCSV() {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) { toast.error("Non authentifié"); return; }
-
+  if (!user) { toast.error(i18n.t("settings.notAuthenticated")); return; }
   // Fetch workouts with exercises and sets via the flat view
   const { data, error } = await supabase
     .from("v_workout_exercises_flat")
