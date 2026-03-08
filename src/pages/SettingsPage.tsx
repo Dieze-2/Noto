@@ -275,7 +275,7 @@ export default function SettingsPage() {
 
   const handleChangePassword = async () => {
     if (newPassword.length < 6) {
-      toast.error("Le mot de passe doit contenir au moins 6 caractères");
+      toast.error(t("settings.passwordTooShort"));
       return;
     }
     if (newPassword !== confirmPassword) {
