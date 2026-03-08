@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { User, Target, LogOut, Download, Upload } from "lucide-react";
+import { User, Target, LogOut, Download, Upload, Check, Weight, Footprints, Flame } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -9,6 +9,7 @@ import GlassCard from "@/components/GlassCard";
 import { useAuth } from "@/auth/AuthProvider";
 import { supabase } from "@/lib/supabaseClient";
 import { getDailyMetricsRange } from "@/db/dailyMetrics";
+import { getUserGoals, saveUserGoals } from "@/db/goals";
 
 /* ── CSV Export ── */
 async function exportDailyMetricsCSV() {
@@ -112,6 +113,42 @@ export default function SettingsPage() {
   const navigate = useNavigate();
   const [loggingOut, setLoggingOut] = useState(false);
 
+  /* Goals state */
+  const [targetWeight, setTargetWeight] = useState("");
+  const [targetSteps, setTargetSteps] = useState("");
+  const [targetKcal, setTargetKcal] = useState("");
+  const [savingGoals, setSavingGoals] = useState(false);
+  const [goalsLoaded, setGoalsLoaded] = useState(false);
+
+  useEffect(() => {
+    getUserGoals()
+      .then((g) => {
+        if (g) {
+          setTargetWeight(g.target_weight_g ? (g.target_weight_g / 1000).toString() : "");
+          setTargetSteps(g.target_steps?.toString() ?? "");
+          setTargetKcal(g.target_kcal?.toString() ?? "");
+        }
+        setGoalsLoaded(true);
+      })
+      .catch(() => setGoalsLoaded(true));
+  }, []);
+
+  const handleSaveGoals = async () => {
+    setSavingGoals(true);
+    try {
+      await saveUserGoals({
+        target_weight_g: targetWeight ? Math.round(parseFloat(targetWeight) * 1000) : null,
+        target_steps: targetSteps ? parseInt(targetSteps) : null,
+        target_kcal: targetKcal ? parseInt(targetKcal) : null,
+      });
+      toast.success("Objectifs sauvegardés !");
+    } catch (e: any) {
+      toast.error("Erreur : " + e.message);
+    } finally {
+      setSavingGoals(false);
+    }
+  };
+
   const handleLogout = async () => {
     setLoggingOut(true);
     await supabase.auth.signOut();
@@ -166,9 +203,64 @@ export default function SettingsPage() {
 
         {/* ── OBJECTIFS ── */}
         <SettingsSection icon={Target} title="Objectifs">
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Les objectifs personnalisés arrivent bientôt ! Tu pourras définir ton poids cible, tes pas quotidiens et tes calories.
-          </p>
+          <div className="space-y-4">
+            {/* Poids cible */}
+            <div>
+              <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">
+                <Weight size={12} className="text-metric-weight" />
+                Poids cible (kg)
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                placeholder="Ex: 75.0"
+                value={targetWeight}
+                onChange={(e) => setTargetWeight(e.target.value)}
+                className="w-full glass rounded-2xl px-4 py-3 text-sm font-bold text-foreground outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/40"
+              />
+            </div>
+
+            {/* Pas quotidiens */}
+            <div>
+              <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">
+                <Footprints size={12} className="text-metric-steps" />
+                Pas quotidiens
+              </label>
+              <input
+                type="number"
+                step="100"
+                placeholder="Ex: 10000"
+                value={targetSteps}
+                onChange={(e) => setTargetSteps(e.target.value)}
+                className="w-full glass rounded-2xl px-4 py-3 text-sm font-bold text-foreground outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/40"
+              />
+            </div>
+
+            {/* Calories */}
+            <div>
+              <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">
+                <Flame size={12} className="text-metric-kcal" />
+                Calories quotidiennes
+              </label>
+              <input
+                type="number"
+                step="50"
+                placeholder="Ex: 2200"
+                value={targetKcal}
+                onChange={(e) => setTargetKcal(e.target.value)}
+                className="w-full glass rounded-2xl px-4 py-3 text-sm font-bold text-foreground outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/40"
+              />
+            </div>
+
+            <button
+              onClick={handleSaveGoals}
+              disabled={savingGoals || !goalsLoaded}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-primary text-primary-foreground text-xs font-black uppercase tracking-wider hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              <Check size={16} />
+              {savingGoals ? "Sauvegarde…" : "Enregistrer"}
+            </button>
+          </div>
         </SettingsSection>
 
         {/* ── IMPORT / EXPORT ── */}
