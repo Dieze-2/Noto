@@ -420,7 +420,8 @@ export default function AppHomePage() {
           <button onClick={() => changeDate(-1)} className="p-2 text-muted-foreground hover:text-foreground">
             <ChevronLeft size={28} />
           </button>
-          <div className="text-center">
+          <div className="text-center flex flex-col items-center">
+            <img src={logo} alt="NOTO" className="w-12 h-12 mb-1 object-contain" />
             <h1 className="text-noto-title text-3xl text-primary">
               {format(currentDate, "EEEE d", { locale: fr })}
             </h1>
