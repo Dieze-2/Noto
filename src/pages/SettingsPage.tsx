@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   User, Target, LogOut, Download, Upload, Check, Weight,
   Footprints, Flame, X, Lock, ChevronRight, Database, Sun, Moon, Globe,
+  Shield,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -16,6 +17,8 @@ import { supabase } from "@/lib/supabaseClient";
 import logo from "@/assets/logo.png";
 import { getDailyMetricsRange } from "@/db/dailyMetrics";
 import { getUserGoals, saveUserGoals } from "@/db/goals";
+import { getMyCoachId } from "@/db/coachAthletes";
+import { getProfile, displayName } from "@/db/profiles";
 
 /* ── Workouts Export ── */
 async function exportWorkoutsCSV() {
@@ -238,6 +241,9 @@ export default function SettingsPage() {
   const [savingGoals, setSavingGoals] = useState(false);
   const [goalsLoaded, setGoalsLoaded] = useState(false);
 
+  /* Coach name */
+  const [coachName, setCoachName] = useState<string | null>(null);
+
   /* Password state */
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -254,6 +260,13 @@ export default function SettingsPage() {
         setGoalsLoaded(true);
       })
       .catch(() => setGoalsLoaded(true));
+
+    // Fetch coach name
+    getMyCoachId().then(async (coachId) => {
+      if (!coachId) return;
+      const profile = await getProfile(coachId);
+      setCoachName(displayName(profile));
+    });
   }, []);
 
   const handleSaveGoals = async () => {
@@ -345,6 +358,15 @@ export default function SettingsPage() {
                 {user?.created_at ? format(new Date(user.created_at), "dd/MM/yyyy") : "—"}
               </span>
             </div>
+            {coachName && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("settings.myCoach")}</span>
+                <span className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                  <Shield size={12} className="text-primary" />
+                  {coachName}
+                </span>
+              </div>
+            )}
           </div>
         </SettingsSection>
 
