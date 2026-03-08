@@ -204,28 +204,23 @@ export default function DashboardPage() {
     return [xs, ys];
   }, [weightData]);
 
-  /* Build exercise chart data */
+  /* Build exercise chart data — e1RM */
   const exChartData = useMemo<uPlot.AlignedData>(() => {
     if (!exData.length) return [[], []];
 
     const xs = exData.map((d: any) => toUnix(d.workout_date));
-    const loads = exData.map((d: any) => (d.load_g ?? 0) / 1000);
+    const e1rms = exData.map((d: any) => {
+      const load = (d.load_g ?? 0) / 1000;
+      const sortedWeights = allWeightData.filter((w) => w.date <= d.workout_date && w.weight_g != null);
+      const closestWeight = sortedWeights.length > 0 ? sortedWeights[sortedWeights.length - 1] : null;
+      const bw = closestWeight ? (closestWeight.weight_g ?? 0) / 1000 : 0;
+      const totalLoad = d.load_type === "PDC" || d.load_type === "PDC_PLUS" ? load + bw : load;
+      if (totalLoad <= 0) return 0;
+      return totalLoad * (1 + (d.reps ?? 0) / 30);
+    });
 
-    if (showTotal) {
-      // Find last known weight for each date
-      const totalLoads = exData.map((d: any) => {
-        const load = (d.load_g ?? 0) / 1000;
-        // Find closest weight measurement BEFORE or on this date (search backwards)
-        const sortedWeights = allWeightData.filter((w) => w.date <= d.workout_date && w.weight_g != null);
-        const closestWeight = sortedWeights.length > 0 ? sortedWeights[sortedWeights.length - 1] : null;
-        const lastWeight = closestWeight ? (closestWeight.weight_g ?? 0) / 1000 : 0;
-        return d.load_type === "PDC" || d.load_type === "PDC_PLUS" ? load + lastWeight : load;
-      });
-      return [xs, loads, totalLoads];
-    }
-
-    return [xs, loads];
-  }, [exData, showTotal, allWeightData]);
+    return [xs, e1rms];
+  }, [exData, allWeightData]);
 
   /* Chart options (memoized to avoid re-creates) */
   const weightOpts = useMemo(() => buildWeightOpts(220), []);
