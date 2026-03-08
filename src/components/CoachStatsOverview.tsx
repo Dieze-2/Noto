@@ -117,25 +117,34 @@ export default function CoachStatsOverview({ athletes, profiles }: Props) {
     perAthleteExercises.forEach((exes) => {
       exes.forEach((entries, exName) => {
         if (entries.length < 2) return;
+        // Find first and last entries with usable data
         const first = entries[0];
         const last = entries[entries.length - 1];
         const firstLoad = (first.load_g ?? 0) / 1000;
         const lastLoad = (last.load_g ?? 0) / 1000;
 
-        // For PDC/bodyweight exercises: use reps as proxy
-        if (firstLoad <= 0 && lastLoad <= 0) {
-          if (first.reps > 0) {
-            const pct = ((last.reps - first.reps) / first.reps) * 100;
-            if (!globalExProgression.has(exName)) globalExProgression.set(exName, []);
-            globalExProgression.get(exName)!.push(pct);
+        let pct: number | null = null;
+
+        if (firstLoad > 0 && lastLoad > 0) {
+          // Both have load: use e1RM
+          const firstE1RM = computeE1RM(firstLoad, first.reps);
+          const lastE1RM = computeE1RM(lastLoad, last.reps);
+          if (firstE1RM > 0) pct = ((lastE1RM - firstE1RM) / firstE1RM) * 100;
+        } else if (lastLoad > 0 && firstLoad <= 0) {
+          // Started bodyweight, now has load — find first entry with load
+          const firstWithLoad = entries.find((e: any) => (e.load_g ?? 0) > 0);
+          const lastWithLoad = [...entries].reverse().find((e: any) => (e.load_g ?? 0) > 0);
+          if (firstWithLoad && lastWithLoad && firstWithLoad !== lastWithLoad) {
+            const fE1RM = computeE1RM((firstWithLoad.load_g ?? 0) / 1000, firstWithLoad.reps);
+            const lE1RM = computeE1RM((lastWithLoad.load_g ?? 0) / 1000, lastWithLoad.reps);
+            if (fE1RM > 0) pct = ((lE1RM - fE1RM) / fE1RM) * 100;
           }
-          return;
+        } else {
+          // Pure bodyweight: use reps as proxy
+          if (first.reps > 0) pct = ((last.reps - first.reps) / first.reps) * 100;
         }
 
-        const firstE1RM = computeE1RM(firstLoad, first.reps);
-        const lastE1RM = computeE1RM(lastLoad, last.reps);
-        if (firstE1RM > 0) {
-          const pct = ((lastE1RM - firstE1RM) / firstE1RM) * 100;
+        if (pct !== null) {
           if (!globalExProgression.has(exName)) globalExProgression.set(exName, []);
           globalExProgression.get(exName)!.push(pct);
         }
