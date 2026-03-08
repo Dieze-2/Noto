@@ -46,9 +46,10 @@ serve(async (req) => {
     // Find Stripe customer and active subscription
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     if (customers.data.length === 0) {
-      return new Response(JSON.stringify({ error: "No Stripe customer found" }), {
+      console.log("[UPDATE-QUANTITY] No Stripe customer found, skipping");
+      return new Response(JSON.stringify({ success: true, skipped: true, reason: "no_customer" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 404,
+        status: 200,
       });
     }
 
@@ -59,9 +60,10 @@ serve(async (req) => {
     });
 
     if (subscriptions.data.length === 0) {
-      return new Response(JSON.stringify({ error: "No active subscription" }), {
+      console.log("[UPDATE-QUANTITY] No active subscription, skipping");
+      return new Response(JSON.stringify({ success: true, skipped: true, reason: "no_subscription" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 404,
+        status: 200,
       });
     }
 
