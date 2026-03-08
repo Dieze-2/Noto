@@ -83,11 +83,31 @@ export async function acceptInvitation(invitationId: string) {
 
 /** Athlete: reject invitation */
 export async function rejectInvitation(invitationId: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  // Get the invitation to find coach_id
+  const { data: inv } = await supabase
+    .from("coach_athletes")
+    .select("coach_id, invite_email")
+    .eq("id", invitationId)
+    .single();
+
   const { error } = await supabase
     .from("coach_athletes")
     .update({ status: "rejected" })
     .eq("id", invitationId);
   if (error) throw error;
+
+  // Notify the coach
+  if (inv) {
+    await createNotification({
+      coach_id: inv.coach_id,
+      type: "invitation_rejected",
+      athlete_email: inv.invite_email,
+      athlete_id: user?.id ?? null,
+    });
+  }
 }
 
 /** Coach: remove an athlete (delete the coach_athletes row) */
