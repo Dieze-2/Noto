@@ -9,6 +9,7 @@ import LoginPage from "@/pages/LoginPage";
 import AppHomePage from "@/pages/AppHomePage";
 import WeekPage from "@/pages/WeekPage";
 import DashboardPage from "@/pages/DashboardPage";
+import CatalogPage from "@/pages/CatalogPage";
 import NotFound from "@/pages/NotFound";
 import { Loader2 } from "lucide-react";
 
