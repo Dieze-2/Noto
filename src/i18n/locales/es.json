@@ -144,7 +144,20 @@
     "last30Days": "Últimos 30 días",
     "noData": "Sin datos disponibles",
     "programs": "Programas",
-    "noPrograms": "Sin programas"
+    "noPrograms": "Sin programas",
+    "overview": "Resumen",
+    "training": "Entrenamientos",
+    "workouts": "Sesiones",
+    "avgSteps": "Prom. pasos",
+    "avgKcal": "Prom. kcal",
+    "metricsHistory": "Historial métricas",
+    "showAll": "Ver todo",
+    "showLess": "Reducir",
+    "fullHistory": "Historial completo",
+    "totalSessions": "sesiones totales",
+    "noTrainingData": "Sin entrenamientos registrados",
+    "exercisesCount": "ejer.",
+    "newProgram": "Crear un programa"
   },
   "program": {
     "title": "Programas",

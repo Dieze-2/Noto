@@ -146,10 +146,18 @@
     "programs": "Programs",
     "noPrograms": "No programs",
     "overview": "Overview",
+    "training": "Training",
     "workouts": "Workouts",
     "avgSteps": "Avg steps",
     "avgKcal": "Avg kcal",
-    "recentMetrics": "Recent metrics"
+    "metricsHistory": "Metrics history",
+    "showAll": "Show all",
+    "showLess": "Show less",
+    "fullHistory": "Full history",
+    "totalSessions": "total sessions",
+    "noTrainingData": "No training recorded",
+    "exercisesCount": "exos",
+    "newProgram": "Create a program"
   },
   "program": {
     "title": "Programs",
