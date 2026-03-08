@@ -105,6 +105,7 @@ function buildExerciseOpts(height: number, showTotal: boolean): uPlot.Options {
   }
 
   return {
+    width: 300,
     height,
     cursor: { show: true, drag: { x: false, y: false } },
     scales: {
