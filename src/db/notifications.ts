@@ -8,6 +8,7 @@ export interface CoachNotification {
   type: NotificationType;
   athlete_email: string | null;
   athlete_id: string | null;
+  request_id: string | null;
   read: boolean;
   created_at: string;
 }

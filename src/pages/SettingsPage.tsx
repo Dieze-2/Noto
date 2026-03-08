@@ -275,7 +275,12 @@ export default function SettingsPage() {
       const profile = await getProfile(coachId);
       setCoachName(displayName(profile));
     });
-  }, []);
+
+    // Fetch coach request status
+    if (!isCoach) {
+      getMyCoachRequest().then(setCoachRequest);
+    }
+  }, [isCoach]);
 
   const handleSaveGoals = async () => {
     setSavingGoals(true);
