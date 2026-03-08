@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   User, Target, LogOut, Download, Upload, Check, Weight,
   Footprints, Flame, X, Lock, ChevronRight, Database, Sun, Moon, Globe,
+  Shield,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -16,6 +17,8 @@ import { supabase } from "@/lib/supabaseClient";
 import logo from "@/assets/logo.png";
 import { getDailyMetricsRange } from "@/db/dailyMetrics";
 import { getUserGoals, saveUserGoals } from "@/db/goals";
+import { getMyCoachId } from "@/db/coachAthletes";
+import { getProfile, displayName } from "@/db/profiles";
 
 /* ── Workouts Export ── */
 async function exportWorkoutsCSV() {
