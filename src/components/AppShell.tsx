@@ -20,11 +20,6 @@ export default function AppShell({ children }: AppShellProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/login");
-  };
-
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background">
       {/* Content */}
