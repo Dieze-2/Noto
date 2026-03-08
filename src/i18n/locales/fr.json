@@ -283,6 +283,8 @@
     "alreadyCoach": "Déjà coach",
     "currentPlan": "Forfait actuel",
     "changePlan": "Changer de forfait",
+    "cancelSubscription": "Annuler mon abonnement",
+    "cancelledSuccess": "Abonnement annulé. Votre rôle coach a été retiré.",
     "stripeComingSoon": "Le paiement Stripe sera bientôt disponible.",
     "comingSoon": "Bientôt disponible",
     "note": "Tous les forfaits incluent un accès illimité à toutes les fonctionnalités. Seul le nombre d'athlètes varie.",
