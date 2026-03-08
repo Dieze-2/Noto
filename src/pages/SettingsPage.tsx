@@ -291,7 +291,7 @@ export default function SettingsPage() {
       setConfirmPassword("");
       setPasswordOpen(false);
     } catch (e: any) {
-      toast.error("Erreur : " + e.message);
+      toast.error(t("settings.error") + " : " + e.message);
     } finally {
       setChangingPw(false);
     }
