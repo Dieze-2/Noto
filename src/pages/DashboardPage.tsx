@@ -392,7 +392,7 @@ export default function DashboardPage() {
                     : "bg-muted text-muted-foreground"
                 }`}
               >
-                Charge
+                 Charge
               </button>
               <button
                 onClick={() => setShowTotal(true)}
