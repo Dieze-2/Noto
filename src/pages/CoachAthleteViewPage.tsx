@@ -24,6 +24,7 @@ import ProgramEditor from "@/components/ProgramEditor";
 import CoachExerciseDashboard from "@/components/CoachExerciseDashboard";
 import { toast } from "sonner";
 import { generateAthletePDF } from "@/lib/generateAthletePDF";
+import { getCoachNote, saveCoachNote } from "@/db/coachNotes";
 
 interface DailyMetric {
   date: string;
