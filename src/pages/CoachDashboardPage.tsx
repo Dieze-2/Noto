@@ -11,6 +11,7 @@ import { useAuth } from "@/auth/AuthProvider";
 
 import GlassCard from "@/components/GlassCard";
 import CoachNotificationBell from "@/components/CoachNotificationBell";
+import CoachStatsOverview from "@/components/CoachStatsOverview";
 import { useRoles } from "@/auth/RoleProvider";
 import {
   getCoachAthletes, inviteAthlete, removeAthlete, CoachAthlete,
@@ -212,6 +213,9 @@ export default function CoachDashboardPage() {
             </button>
           </motion.div>
         )}
+
+        {/* ── Stats Overview ── */}
+        <CoachStatsOverview athletes={athletes} profiles={profiles} />
 
         {/* ── Invite button ── */}
         <button
