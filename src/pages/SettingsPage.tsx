@@ -221,7 +221,12 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { isCoach, loading: rolesLoading } = useRoles();
   const [loggingOut, setLoggingOut] = useState(false);
+
+  /* Coach request state */
+  const [coachRequest, setCoachRequest] = useState<CoachRequest | null>(null);
+  const [submittingRequest, setSubmittingRequest] = useState(false);
 
   /* Drawers */
   const [goalsOpen, setGoalsOpen] = useState(false);
