@@ -146,10 +146,18 @@
     "programs": "Programmes",
     "noPrograms": "Aucun programme",
     "overview": "Aperçu",
+    "training": "Entraînements",
     "workouts": "Séances",
     "avgSteps": "Moy. pas",
     "avgKcal": "Moy. kcal",
-    "recentMetrics": "Métriques récentes"
+    "metricsHistory": "Historique métriques",
+    "showAll": "Tout afficher",
+    "showLess": "Réduire",
+    "fullHistory": "Historique complet",
+    "totalSessions": "séances au total",
+    "noTrainingData": "Aucun entraînement enregistré",
+    "exercisesCount": "exos",
+    "newProgram": "Créer un programme"
   },
   "program": {
     "title": "Programmes",

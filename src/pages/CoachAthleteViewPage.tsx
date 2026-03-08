@@ -4,10 +4,11 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Loader2, Weight, Footprints, Flame,
   TrendingUp, TrendingDown, Minus, Dumbbell,
-  ClipboardList, Plus, ChevronRight,
+  ClipboardList, Plus, ChevronRight, ChevronDown, ChevronUp,
+  Calendar,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { format, subDays } from "date-fns";
+import { format } from "date-fns";
 
 import GlassCard from "@/components/GlassCard";
 import { supabase } from "@/lib/supabaseClient";
@@ -24,12 +25,12 @@ interface DailyMetric {
   kcal: number | null;
 }
 
-interface WorkoutSummary {
+interface WorkoutDay {
   date: string;
-  exercise_count: number;
+  exercises: { name: string; load_type: string; load_g: number | null; reps: number }[];
 }
 
-type Tab = "overview" | "programs";
+type Tab = "overview" | "training" | "programs";
 
 export default function CoachAthleteViewPage() {
   const { athleteId } = useParams<{ athleteId: string }>();
@@ -38,14 +39,14 @@ export default function CoachAthleteViewPage() {
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [metrics, setMetrics] = useState<DailyMetric[]>([]);
-  const [workoutDays, setWorkoutDays] = useState<WorkoutSummary[]>([]);
+  const [workoutHistory, setWorkoutHistory] = useState<WorkoutDay[]>([]);
   const [programs, setPrograms] = useState<Program[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const [metricsExpanded, setMetricsExpanded] = useState(false);
 
   /* program editor */
   const [editingProgram, setEditingProgram] = useState<Program | null>(null);
-  const [newTitle, setNewTitle] = useState("");
   const [creating, setCreating] = useState(false);
 
   const refresh = async () => {
@@ -59,30 +60,34 @@ export default function CoachAthleteViewPage() {
     setProfile(prof);
     setPrograms(allPrograms.filter((p) => p.athlete_id === athleteId));
 
-    // Get last 30 days of metrics
-    const from = format(subDays(new Date(), 30), "yyyy-MM-dd");
-    const to = format(new Date(), "yyyy-MM-dd");
+    // Get ALL metrics (no date filter)
     const { data: metricsData } = await supabase
       .from("daily_metrics")
       .select("date, weight_g, steps, kcal")
       .eq("user_id", athleteId)
-      .gte("date", from)
-      .lte("date", to)
       .order("date", { ascending: false });
     setMetrics(metricsData ?? []);
 
-    // Get workout frequency (last 30 days)
-    const { data: workouts } = await supabase
-      .from("workouts")
-      .select("date")
+    // Get workout history with exercises via the flat view
+    const { data: flatExercises } = await supabase
+      .from("v_workout_exercises_flat")
+      .select("workout_date, exercise_name, load_type, load_g, reps")
       .eq("user_id", athleteId)
-      .gte("date", from)
-      .lte("date", to);
+      .order("workout_date", { ascending: false });
 
-    if (workouts) {
-      // Count exercises per workout day
-      const days = workouts.map((w) => ({ date: w.date, exercise_count: 1 }));
-      setWorkoutDays(days);
+    if (flatExercises) {
+      const byDate = new Map<string, WorkoutDay>();
+      flatExercises.forEach((row: any) => {
+        const d = row.workout_date;
+        if (!byDate.has(d)) byDate.set(d, { date: d, exercises: [] });
+        byDate.get(d)!.exercises.push({
+          name: row.exercise_name,
+          load_type: row.load_type,
+          load_g: row.load_g,
+          reps: row.reps,
+        });
+      });
+      setWorkoutHistory(Array.from(byDate.values()));
     }
 
     setLoading(false);
@@ -90,11 +95,12 @@ export default function CoachAthleteViewPage() {
 
   useEffect(() => { refresh(); }, [athleteId]);
 
-  /* ── Computed stats ── */
+  /* ── Computed stats (last 30 days for summary) ── */
   const stats = useMemo(() => {
-    const weights = metrics.filter((m) => m.weight_g != null).map((m) => m.weight_g! / 1000);
-    const stepsList = metrics.filter((m) => m.steps != null).map((m) => m.steps!);
-    const kcalList = metrics.filter((m) => m.kcal != null).map((m) => m.kcal!);
+    const last30 = metrics.slice(0, 30);
+    const weights = last30.filter((m) => m.weight_g != null).map((m) => m.weight_g! / 1000);
+    const stepsList = last30.filter((m) => m.steps != null).map((m) => m.steps!);
+    const kcalList = last30.filter((m) => m.kcal != null).map((m) => m.kcal!);
 
     const avg = (arr: number[]) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
     const latest = (arr: number[]) => arr.length > 0 ? arr[0] : null;
@@ -103,24 +109,28 @@ export default function CoachAthleteViewPage() {
       return arr[0] - arr[arr.length - 1];
     };
 
+    // Count workouts in last 30 days
+    const thirtyDaysAgo = format(new Date(Date.now() - 30 * 86400000), "yyyy-MM-dd");
+    const recentWorkouts = workoutHistory.filter((w) => w.date >= thirtyDaysAgo);
+
     return {
       currentWeight: latest(weights),
       weightTrend: trend(weights),
       avgSteps: avg(stepsList),
       avgKcal: avg(kcalList),
-      workoutCount: workoutDays.length,
-      daysTracked: metrics.length,
+      workoutCount: recentWorkouts.length,
+      totalWorkouts: workoutHistory.length,
     };
-  }, [metrics, workoutDays]);
+  }, [metrics, workoutHistory]);
 
   const athleteName = displayName(profile);
 
-  const handleCreate = async () => {
-    if (!newTitle.trim() || !athleteId) return;
+  const handleCreateProgram = async () => {
+    if (!athleteId) return;
     setCreating(true);
     try {
-      const p = await createProgram(athleteId, newTitle.trim());
-      setNewTitle("");
+      const title = `${t("program.newProgram")} - ${format(new Date(), "dd/MM/yyyy")}`;
+      const p = await createProgram(athleteId, title);
       await refresh();
       setEditingProgram(p);
     } catch (e: any) {
@@ -180,6 +190,14 @@ export default function CoachAthleteViewPage() {
     return <Minus size={14} className="text-muted-foreground" />;
   };
 
+  function loadDisplay(lt: string, lg: number | null) {
+    if (lt === "PDC") return "PDC";
+    if (lt === "PDC_PLUS") return `PDC+${(lg ?? 0) / 1000}`;
+    return `${(lg ?? 0) / 1000}`;
+  }
+
+  const visibleMetrics = metricsExpanded ? metrics : metrics.slice(0, 10);
+
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-32">
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
@@ -191,14 +209,14 @@ export default function CoachAthleteViewPage() {
           <div className="flex-1">
             <h1 className="text-noto-title text-xl text-primary">{athleteName}</h1>
             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
-              {t("coach.last30Days")}
+              {t("coach.fullHistory")}
             </p>
           </div>
         </div>
 
         {/* ── Tabs ── */}
         <div className="flex glass rounded-xl p-1">
-          {(["overview", "programs"] as Tab[]).map((tab) => (
+          {(["overview", "training", "programs"] as Tab[]).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -208,7 +226,7 @@ export default function CoachAthleteViewPage() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {tab === "overview" ? t("coach.overview") : t("coach.programs")}
+              {tab === "overview" ? t("coach.overview") : tab === "training" ? t("coach.training") : t("coach.programs")}
             </button>
           ))}
         </div>
@@ -247,8 +265,11 @@ export default function CoachAthleteViewPage() {
                 </div>
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-black text-foreground">{stats.workoutCount}</span>
-                  <span className="text-xs text-muted-foreground">{t("dashboard.sessions")}</span>
+                  <span className="text-xs text-muted-foreground">/ 30j</span>
                 </div>
+                <p className="text-[10px] text-muted-foreground">
+                  {stats.totalWorkouts} {t("coach.totalSessions")}
+                </p>
               </GlassCard>
 
               <GlassCard className="p-4 rounded-2xl space-y-1">
@@ -280,69 +301,110 @@ export default function CoachAthleteViewPage() {
               </GlassCard>
             </div>
 
-            {/* ── Recent metrics ── */}
+            {/* ── Metrics history ── */}
             <GlassCard className="p-5 rounded-3xl">
               <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">
-                {t("coach.recentMetrics")}
+                {t("coach.metricsHistory")} ({metrics.length})
               </h3>
               {metrics.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">{t("coach.noData")}</p>
               ) : (
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {metrics.slice(0, 10).map((m) => (
-                    <div key={m.date} className="flex items-center gap-3 py-2 border-b border-border/30 last:border-0">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground w-20">
-                        {format(new Date(m.date), "dd/MM")}
-                      </span>
-                      <div className="flex items-center gap-4 flex-1">
-                        {m.weight_g != null && (
-                          <div className="flex items-center gap-1 text-xs font-bold text-foreground">
-                            <Weight size={10} className="text-metric-weight" />
-                            {(m.weight_g / 1000).toFixed(1)}
-                          </div>
-                        )}
-                        {m.steps != null && (
-                          <div className="flex items-center gap-1 text-xs font-bold text-foreground">
-                            <Footprints size={10} className="text-metric-steps" />
-                            {m.steps.toLocaleString()}
-                          </div>
-                        )}
-                        {m.kcal != null && (
-                          <div className="flex items-center gap-1 text-xs font-bold text-foreground">
-                            <Flame size={10} className="text-metric-kcal" />
-                            {m.kcal.toLocaleString()}
-                          </div>
-                        )}
+                <>
+                  <div className="space-y-1">
+                    {visibleMetrics.map((m) => (
+                      <div key={m.date} className="flex items-center gap-3 py-2 border-b border-border/30 last:border-0">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground w-16">
+                          {format(new Date(m.date), "dd/MM")}
+                        </span>
+                        <div className="flex items-center gap-4 flex-1">
+                          {m.weight_g != null && (
+                            <div className="flex items-center gap-1 text-xs font-bold text-foreground">
+                              <Weight size={10} className="text-metric-weight" />
+                              {(m.weight_g / 1000).toFixed(1)}
+                            </div>
+                          )}
+                          {m.steps != null && (
+                            <div className="flex items-center gap-1 text-xs font-bold text-foreground">
+                              <Footprints size={10} className="text-metric-steps" />
+                              {m.steps.toLocaleString()}
+                            </div>
+                          )}
+                          {m.kcal != null && (
+                            <div className="flex items-center gap-1 text-xs font-bold text-foreground">
+                              <Flame size={10} className="text-metric-kcal" />
+                              {m.kcal.toLocaleString()}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                  {metrics.length > 10 && (
+                    <button
+                      onClick={() => setMetricsExpanded(!metricsExpanded)}
+                      className="w-full flex items-center justify-center gap-1 mt-3 text-[10px] font-black uppercase tracking-widest text-primary"
+                    >
+                      {metricsExpanded ? (
+                        <><ChevronUp size={12} /> {t("coach.showLess")}</>
+                      ) : (
+                        <><ChevronDown size={12} /> {t("coach.showAll")} ({metrics.length})</>
+                      )}
+                    </button>
+                  )}
+                </>
               )}
             </GlassCard>
           </>
+        ) : activeTab === "training" ? (
+          /* ── Training history ── */
+          <div className="space-y-3">
+            {workoutHistory.length === 0 ? (
+              <div className="text-center py-12 space-y-2">
+                <Dumbbell className="mx-auto h-10 w-10 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground">{t("coach.noTrainingData")}</p>
+              </div>
+            ) : (
+              workoutHistory.map((day) => (
+                <GlassCard key={day.date} className="p-4 rounded-2xl">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Calendar size={14} className="text-primary" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                      {format(new Date(day.date), "dd/MM/yyyy")}
+                    </span>
+                    <span className="text-[10px] font-bold text-primary ml-auto">
+                      {day.exercises.length} {t("coach.exercisesCount")}
+                    </span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {day.exercises.map((ex, i) => (
+                      <div key={i} className="flex items-center gap-3 py-1.5 border-b border-border/20 last:border-0">
+                        <Dumbbell size={12} className="text-muted-foreground/60 shrink-0" />
+                        <span className="text-xs font-bold text-foreground flex-1 truncate">{ex.name}</span>
+                        <span className="text-[11px] font-black text-muted-foreground whitespace-nowrap">
+                          {loadDisplay(ex.load_type, ex.load_g)} {ex.load_type !== "PDC" && ex.load_type !== "TEXT" && "kg"}
+                        </span>
+                        <span className="text-[11px] font-black text-primary whitespace-nowrap">
+                          {ex.reps} reps
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </GlassCard>
+              ))
+            )}
+          </div>
         ) : (
           /* ── Programs tab ── */
           <div className="space-y-4">
-            {/* Create form */}
-            <div className="space-y-2 p-3 rounded-2xl bg-muted/30 border border-border/50">
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                {t("program.newProgram")}
-              </p>
-              <input
-                type="text"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                placeholder={t("program.titlePlaceholder")}
-                className="w-full glass rounded-xl px-3 py-2 text-sm font-bold text-foreground outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/40"
-              />
-              <button
-                onClick={handleCreate}
-                disabled={creating || !newTitle.trim()}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-black uppercase tracking-wider hover:opacity-90 disabled:opacity-50"
-              >
-                <Plus size={14} /> {creating ? t("program.creating") : t("program.create")}
-              </button>
-            </div>
+            {/* Quick create button */}
+            <button
+              onClick={handleCreateProgram}
+              disabled={creating}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-primary text-primary-foreground text-xs font-black uppercase tracking-wider hover:opacity-90 disabled:opacity-50"
+            >
+              <Plus size={16} />
+              {creating ? t("program.creating") : t("coach.newProgram")}
+            </button>
 
             {/* Program list */}
             {programs.length === 0 ? (
@@ -356,7 +418,12 @@ export default function CoachAthleteViewPage() {
                     className="w-full flex items-center gap-3 p-3 rounded-xl glass hover:bg-muted/50 transition-colors text-left"
                   >
                     <ClipboardList size={16} className="text-primary" />
-                    <span className="text-sm font-bold text-foreground flex-1 truncate">{p.title}</span>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-bold text-foreground truncate block">{p.title}</span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {format(new Date(p.updated_at), "dd/MM/yyyy")}
+                      </span>
+                    </div>
                     <ChevronRight size={14} className="text-muted-foreground/40" />
                   </button>
                 ))}
