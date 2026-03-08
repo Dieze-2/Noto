@@ -391,8 +391,8 @@ export default function CoachAthleteViewPage() {
       result.push({
         type: "pr",
         icon: Trophy,
-        color: "text-primary",
-        bgColor: "border-primary/30 bg-primary/5",
+        color: "text-[hsl(156,100%,50%)]",
+        bgColor: "border-[hsl(156,100%,50%)]/30 bg-[hsl(156,100%,50%)]/10",
         message: t("coach.alertPR", { count: recentPRs.length, exercise: recentPRs[0].name }),
       });
     }
