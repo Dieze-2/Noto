@@ -200,12 +200,16 @@ export default function CoachExerciseDashboard({ athleteId }: Props) {
     return entries.filter((e) => e.workout_date >= from);
   }, [allData, selectedExercise, detailRange]);
 
+  const detailIsPDC = useMemo(() => detailData.every((d) => (d.load_g ?? 0) === 0), [detailData]);
+
   const detailChartData = useMemo<uPlot.AlignedData>(() => {
     if (detailData.length < 2) return [[], []];
     const xs = detailData.map((d) => toUnix(d.workout_date));
-    const ys = detailData.map((d) => (d.load_g ?? 0) / 1000);
+    const ys = detailIsPDC
+      ? detailData.map((d) => d.reps)
+      : detailData.map((d) => (d.load_g ?? 0) / 1000);
     return [xs, ys];
-  }, [detailData]);
+  }, [detailData, detailIsPDC]);
 
   const detailOpts = useMemo(() => buildExOpts(220), []);
 
