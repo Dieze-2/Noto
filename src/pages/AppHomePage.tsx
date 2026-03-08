@@ -526,7 +526,7 @@ export default function AppHomePage() {
           <DrawerInputRow weight={newSet.weight} reps={newSet.reps}
             onWeightChange={(v) => setNewSet({ ...newSet, weight: v })}
             onRepsChange={(v) => setNewSet({ ...newSet, reps: v })} />
-          <DrawerSubmit disabled={!setCanValidate} onClick={onAddSet} label="Valider" />
+          <DrawerSubmit disabled={!setCanValidate} onClick={onAddSet} label={t("today.validate")} />
         </div>
       </Drawer>
 
