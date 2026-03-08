@@ -270,19 +270,27 @@ export default function CoachDashboardPage() {
                 const profile = a.athlete_id ? profiles[a.athlete_id] : null;
                 const name = displayName(profile, a.invite_email ?? a.athlete_id ?? undefined);
                 return (
-                  <button
-                    key={a.id}
-                    onClick={() => navigate(`/coach/athlete/${a.athlete_id}`)}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl glass hover:bg-muted/50 transition-colors text-left"
-                  >
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                      <Eye size={14} />
-                    </div>
-                    <span className="text-sm font-bold text-foreground flex-1 truncate">
-                      {name}
-                    </span>
-                    <ChevronRight size={14} className="text-muted-foreground/40" />
-                  </button>
+                  <div key={a.id} className="flex items-center gap-2">
+                    <button
+                      onClick={() => navigate(`/coach/athlete/${a.athlete_id}`)}
+                      className="flex-1 flex items-center gap-3 p-3 rounded-xl glass hover:bg-muted/50 transition-colors text-left"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                        <Eye size={14} />
+                      </div>
+                      <span className="text-sm font-bold text-foreground flex-1 truncate">
+                        {name}
+                      </span>
+                      <ChevronRight size={14} className="text-muted-foreground/40" />
+                    </button>
+                    <button
+                      onClick={() => setRemoveTarget(a)}
+                      className="shrink-0 p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      title={t("coach.removeAthlete")}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 );
               })}
             </div>
