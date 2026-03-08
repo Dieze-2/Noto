@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
-import { CalendarDays, Dumbbell, LayoutDashboard, BookOpen, LogOut } from "lucide-react";
+import { CalendarDays, Dumbbell, LayoutDashboard, BookOpen, Settings } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { supabase } from "@/lib/supabaseClient";
+import { ReactNode } from "react";
 import { ReactNode } from "react";
 
 const NAV_ITEMS = [
