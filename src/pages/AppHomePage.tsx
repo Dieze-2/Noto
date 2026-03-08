@@ -538,7 +538,7 @@ export default function AppHomePage() {
           <DrawerInputRow weight={editMasterForm.weight} reps={editMasterForm.reps}
             onWeightChange={(v) => setEditMasterForm({ ...editMasterForm, weight: v })}
             onRepsChange={(v) => setEditMasterForm({ ...editMasterForm, reps: v })} />
-          <DrawerSubmit disabled={!editMasterCanSave} onClick={saveEditMaster} label="Sauver" />
+          <DrawerSubmit disabled={!editMasterCanSave} onClick={saveEditMaster} label={t("today.save")} />
         </div>
       </Drawer>
 
