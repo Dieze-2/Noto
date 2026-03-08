@@ -93,7 +93,7 @@ export default function InvitationBanner() {
                 {t("invitation.coachInvite")}
               </p>
               <p className="text-[10px] text-muted-foreground font-bold truncate">
-                {t("invitation.from")} {inv.coach_id.slice(0, 8)}…
+                {t("invitation.from")} {inv.coachName}
               </p>
             </div>
             {acting === inv.id ? (
