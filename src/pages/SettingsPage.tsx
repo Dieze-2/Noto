@@ -265,7 +265,7 @@ export default function SettingsPage() {
     getMyCoachId().then(async (coachId) => {
       if (!coachId) return;
       const profile = await getProfile(coachId);
-      setCoachName(displayName(profile, null ?? undefined));
+      setCoachName(displayName(profile));
     });
   }, []);
 
