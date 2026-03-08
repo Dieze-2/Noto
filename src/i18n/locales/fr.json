@@ -57,6 +57,7 @@
     "totalMax": "Total max",
     "progression": "Progression",
     "sessions": "Séances",
+    "record": "Record",
     "range3M": "3 mois",
     "range6M": "6 mois",
     "rangeAll": "Tout",
@@ -168,7 +169,11 @@
     "view_month": "Mois",
     "weeklyView": "Vue hebdomadaire",
     "monthlyView": "Vue mensuelle",
-    "period": "Période"
+    "period": "Période",
+    "backToExercises": "Retour aux exercices",
+    "searchExercise": "Rechercher un exercice…",
+    "exercisesTracked": "exercices suivis",
+    "detailedHistory": "Historique détaillé"
   },
   "program": {
     "title": "Programmes",
