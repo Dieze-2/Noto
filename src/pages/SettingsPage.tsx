@@ -13,7 +13,6 @@ import { useAuth } from "@/auth/AuthProvider";
 import { supabase } from "@/lib/supabaseClient";
 import { getDailyMetricsRange } from "@/db/dailyMetrics";
 import { getUserGoals, saveUserGoals } from "@/db/goals";
-import { supabase as sb } from "@/lib/supabaseClient";
 
 /* ── Workouts Export ── */
 async function exportWorkoutsCSV() {
