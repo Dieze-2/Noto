@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useRoles } from "@/auth/RoleProvider";
+import InvitationBanner from "@/components/InvitationBanner";
 
 interface NavItem {
   path: string;
