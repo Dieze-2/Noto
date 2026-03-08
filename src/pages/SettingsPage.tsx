@@ -329,7 +329,7 @@ export default function SettingsPage() {
         className="space-y-6"
       >
         <h1 className="text-noto-title text-3xl text-primary text-center mb-6">
-          Paramètres
+          {t("settings.title")}
         </h1>
 
         {/* ── PROFIL ── */}
