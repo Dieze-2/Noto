@@ -20,7 +20,7 @@ async function exportWorkoutsCSV() {
   if (!user) { toast.error("Non authentifié"); return; }
 
   // Fetch workouts with exercises and sets via the flat view
-  const { data, error } = await sb
+  const { data, error } = await supabase
     .from("v_workout_exercises_flat")
     .select("*")
     .eq("user_id", user.id)
