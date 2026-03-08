@@ -12,14 +12,25 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<"login" | "signup">("login");
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) setError(error.message);
+    if (mode === "login") {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) setError(error.message);
+    } else {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: window.location.origin },
+      });
+      if (error) setError(error.message);
+      else setError(t("login.checkEmail"));
+    }
     setLoading(false);
   };
 
@@ -38,7 +49,7 @@ export default function LoginPage() {
         </div>
 
         <GlassCard className="p-6">
-          <form onSubmit={handleLogin} className="flex flex-col gap-4">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
               <label className="text-noto-label text-muted-foreground mb-1 block">{t("login.email")}</label>
               <input
@@ -65,9 +76,22 @@ export default function LoginPage() {
             )}
 
             <Button type="submit" disabled={loading} className="mt-2 font-bold">
-              {loading ? t("login.loggingIn") : t("login.login")}
+              {loading
+                ? (mode === "login" ? t("login.loggingIn") : t("login.signingUp"))
+                : (mode === "login" ? t("login.login") : t("login.signup"))}
             </Button>
           </form>
+
+          <p className="mt-4 text-center text-sm text-muted-foreground">
+            {mode === "login" ? t("login.noAccount") : t("login.hasAccount")}{" "}
+            <button
+              type="button"
+              onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(""); }}
+              className="font-bold text-primary hover:underline"
+            >
+              {mode === "login" ? t("login.signup") : t("login.login")}
+            </button>
+          </p>
         </GlassCard>
       </motion.div>
     </div>

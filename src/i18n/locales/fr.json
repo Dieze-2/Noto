@@ -177,9 +177,14 @@
   },
   "login": {
     "email": "Email",
-    "password": "Password",
+    "password": "Mot de passe",
     "login": "Se connecter",
-    "loggingIn": "Connexion…"
+    "loggingIn": "Connexion…",
+    "signup": "Créer un compte",
+    "signingUp": "Création…",
+    "noAccount": "Pas encore de compte ?",
+    "hasAccount": "Déjà un compte ?",
+    "checkEmail": "Vérifie ta boîte mail pour confirmer ton compte !"
   },
   "notFound": {
     "title": "404",
