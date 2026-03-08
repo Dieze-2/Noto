@@ -247,7 +247,7 @@ export default function WeekPage() {
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-1.5">
                   <Flame size={16} className="text-metric-kcal" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Calories</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t("week.calories")}</span>
                 </div>
                 <span className="text-sm font-black text-foreground">
                   {stats.kcal.toLocaleString()}
