@@ -143,7 +143,8 @@
     "athlete": "Athlete",
     "last30Days": "Last 30 days",
     "noData": "No data available",
-    "programs": "Programs"
+    "programs": "Programs",
+    "noPrograms": "No programs"
   },
   "program": {
     "title": "Programs",
@@ -153,14 +154,26 @@
     "create": "Create",
     "creating": "Creating…",
     "empty": "No programs",
-    "backToList": "Back to programs",
-    "blockPlaceholder": "Describe the exercise, sets, rest…",
-    "addBlock": "Add a block",
+    "backToList": "Back",
     "save": "Save",
     "saving": "Saving…",
     "saved": "Program saved!",
     "deleted": "Program deleted",
-    "noPrograms": "No programs"
+    "deleteProgram": "Delete",
+    "noPrograms": "No programs",
+    "session": "Session",
+    "sessionName": "Session name…",
+    "addSession": "Add a session",
+    "addExercise": "Add an exercise",
+    "exercise": "Exercise",
+    "sets": "Sets",
+    "reps": "Reps",
+    "rest": "Rest",
+    "workType": "Type",
+    "note": "Note",
+    "notePlaceholder": "Dropset every set…",
+    "customType": "Other…",
+    "customTypePlaceholder": "Custom type…"
   },
   "login": {
     "email": "Email",

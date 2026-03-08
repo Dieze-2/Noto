@@ -1,22 +1,22 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Users, UserPlus, Mail, Check, X, ChevronRight, Eye,
-  ClipboardList, Loader2, Send,
+  Users, UserPlus, Mail, ChevronRight, Eye,
+  ClipboardList, Loader2, Send, X, Plus, ArrowLeft,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 import GlassCard from "@/components/GlassCard";
 import { useRoles } from "@/auth/RoleProvider";
-import { useAuth } from "@/auth/AuthProvider";
 import {
   getCoachAthletes, inviteAthlete, CoachAthlete,
 } from "@/db/coachAthletes";
 import {
-  getCoachPrograms, Program,
+  getCoachPrograms, createProgram, deleteProgram, Program,
 } from "@/db/programs";
-import { useNavigate } from "react-router-dom";
+import ProgramEditor from "@/components/ProgramEditor";
 
 export default function CoachDashboardPage() {
   const { t } = useTranslation();
@@ -31,6 +31,14 @@ export default function CoachDashboardPage() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [sending, setSending] = useState(false);
+
+  /* program editor */
+  const [editingProgram, setEditingProgram] = useState<Program | null>(null);
+
+  /* new program */
+  const [newTitle, setNewTitle] = useState("");
+  const [newAthleteId, setNewAthleteId] = useState("");
+  const [creating, setCreating] = useState(false);
 
   const refresh = async () => {
     setLoadingData(true);
@@ -58,6 +66,33 @@ export default function CoachDashboardPage() {
     }
   };
 
+  const handleCreate = async () => {
+    if (!newTitle.trim() || !newAthleteId) return;
+    setCreating(true);
+    try {
+      const p = await createProgram(newAthleteId, newTitle.trim());
+      setNewTitle("");
+      setNewAthleteId("");
+      await refresh();
+      setEditingProgram(p);
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteProgram(id);
+      setEditingProgram(null);
+      toast.success(t("program.deleted"));
+      refresh();
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
   if (rolesLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -78,6 +113,31 @@ export default function CoachDashboardPage() {
 
   const accepted = athletes.filter((a) => a.status === "accepted");
   const pending = athletes.filter((a) => a.status === "pending");
+
+  /* ── If editing a program ── */
+  if (editingProgram) {
+    return (
+      <div className="mx-auto max-w-md px-4 pt-6 pb-32">
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => { setEditingProgram(null); refresh(); }}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft size={16} /> {t("program.backToList")}
+            </button>
+            <button
+              onClick={() => handleDelete(editingProgram.id)}
+              className="text-xs font-black uppercase tracking-wider text-destructive/60 hover:text-destructive"
+            >
+              {t("program.deleteProgram")}
+            </button>
+          </div>
+          <ProgramEditor program={editingProgram} onBack={() => { setEditingProgram(null); refresh(); }} />
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-32">
@@ -136,7 +196,6 @@ export default function CoachDashboardPage() {
             </div>
           )}
 
-          {/* Pending invites */}
           {pending.length > 0 && (
             <div className="mt-4 pt-4 border-t border-border">
               <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">
@@ -156,11 +215,48 @@ export default function CoachDashboardPage() {
         </GlassCard>
 
         {/* ── Programs ── */}
-        <GlassCard className="p-5 rounded-3xl">
-          <div className="flex items-center gap-2 mb-4">
+        <GlassCard className="p-5 rounded-3xl space-y-4">
+          <div className="flex items-center gap-2">
             <ClipboardList size={18} className="text-primary" />
             <h2 className="text-noto-label text-foreground flex-1">{t("coach.programs")}</h2>
           </div>
+
+          {/* Create form */}
+          <div className="space-y-2 p-3 rounded-2xl bg-muted/30 border border-border/50">
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+              {t("program.newProgram")}
+            </p>
+            <input
+              type="text"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              placeholder={t("program.titlePlaceholder")}
+              className="w-full glass rounded-xl px-3 py-2 text-sm font-bold text-foreground outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/40"
+            />
+            {accepted.length > 0 && (
+              <select
+                value={newAthleteId}
+                onChange={(e) => setNewAthleteId(e.target.value)}
+                className="w-full glass rounded-xl px-3 py-2 text-sm font-bold text-foreground outline-none focus:ring-1 focus:ring-primary bg-transparent"
+              >
+                <option value="">{t("program.selectAthlete")}</option>
+                {accepted.map((a) => (
+                  <option key={a.id} value={a.athlete_id!}>
+                    {a.invite_email ?? a.athlete_id}
+                  </option>
+                ))}
+              </select>
+            )}
+            <button
+              onClick={handleCreate}
+              disabled={creating || !newTitle.trim() || !newAthleteId}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-black uppercase tracking-wider hover:opacity-90 disabled:opacity-50"
+            >
+              <Plus size={14} /> {creating ? t("program.creating") : t("program.create")}
+            </button>
+          </div>
+
+          {/* Program list */}
           {programs.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">{t("coach.noPrograms")}</p>
           ) : (
@@ -168,7 +264,7 @@ export default function CoachDashboardPage() {
               {programs.map((p) => (
                 <button
                   key={p.id}
-                  onClick={() => navigate(`/program/${p.id}`)}
+                  onClick={() => setEditingProgram(p)}
                   className="w-full flex items-center gap-3 p-3 rounded-xl glass hover:bg-muted/50 transition-colors text-left"
                 >
                   <span className="text-sm font-bold text-foreground flex-1 truncate">{p.title}</span>
