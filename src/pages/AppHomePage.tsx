@@ -212,6 +212,7 @@ function DrawerSubmit({ disabled, onClick, label }: { disabled: boolean; onClick
    ════════════════════════════════════════════ */
 export default function AppHomePage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const dateISO = useMemo(() => getISODateFromParams(searchParams.get("date")), [searchParams]);
   const currentDate = useMemo(() => parseISO(dateISO), [dateISO]);
