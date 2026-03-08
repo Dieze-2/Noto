@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 
-export type NotificationType = "invitation_accepted" | "invitation_rejected" | "coach_request" | "subscription_cancelled";
+export type NotificationType = "invitation_accepted" | "invitation_rejected" | "coach_request" | "cancellation_request" | "cancellation_approved";
 
 export interface CoachNotification {
   id: string;
