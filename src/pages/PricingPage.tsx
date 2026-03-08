@@ -64,7 +64,6 @@ export default function PricingPage() {
   const handleCancel = async () => {
     setCancelling(true);
     try {
-      // Notify admins before cancelling
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const profile = await getProfile(user.id);
@@ -77,7 +76,7 @@ export default function PricingPage() {
           for (const ar of adminRoles) {
             await createNotification({
               coach_id: ar.user_id,
-              type: "subscription_cancelled",
+              type: "cancellation_request",
               athlete_email: name,
               athlete_id: user.id,
             });
@@ -85,9 +84,8 @@ export default function PricingPage() {
         }
       }
 
-      await cancelCoachSubscription();
-      toast.success(t("pricing.cancelledSuccess"));
-      navigate("/settings");
+      await requestCancellation();
+      toast.success(t("pricing.cancellationRequested"));
     } catch (e: any) {
       toast.error(e.message);
     } finally {
