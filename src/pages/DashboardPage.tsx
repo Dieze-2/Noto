@@ -392,7 +392,26 @@ export default function DashboardPage() {
           ) : (
             <UPlotChart options={exOpts} data={exChartData} />
           )}
-        </GlassCard>
+
+          {/* Exercise stats summary */}
+          {exStats && (
+            <div className="mt-4 grid grid-cols-3 gap-3">
+              <div className="bg-muted rounded-xl p-3 text-center">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Max</p>
+                <p className="text-lg font-black text-foreground">{exStats.maxLoad}<span className="text-xs text-muted-foreground ml-0.5">kg</span></p>
+              </div>
+              <div className="bg-muted rounded-xl p-3 text-center">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Progression</p>
+                <p className={`text-lg font-black ${exStats.progression >= 0 ? "text-primary" : "text-destructive"}`}>
+                  {exStats.progression > 0 ? "+" : ""}{exStats.progression.toFixed(0)}<span className="text-xs">%</span>
+                </p>
+              </div>
+              <div className="bg-muted rounded-xl p-3 text-center">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Séances</p>
+                <p className="text-lg font-black text-foreground">{exStats.sessions}</p>
+              </div>
+            </div>
+          )}
         {/* Fullscreen overlays */}
         <ChartFullscreen
           open={fullscreenChart === "weight"}
