@@ -3,7 +3,8 @@ import { motion } from "framer-motion";
 import { subMonths, format, parseISO } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { getDateLocale } from "@/i18n/dateLocale";
-import { Weight, Dumbbell, TrendingUp, TrendingDown } from "lucide-react";
+import { Weight, Dumbbell, TrendingUp, TrendingDown, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import uPlot from "uplot";
 
 import GlassCard from "@/components/GlassCard";
