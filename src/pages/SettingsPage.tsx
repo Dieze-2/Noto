@@ -28,8 +28,8 @@ async function exportWorkoutsCSV() {
     .eq("user_id", user.id)
     .order("workout_date", { ascending: true });
 
-  if (error) { toast.error("Erreur : " + error.message); return; }
-  if (!data?.length) { toast.error("Aucune séance à exporter"); return; }
+  if (error) { toast.error(i18n.t("settings.error") + " : " + error.message); return; }
+  if (!data?.length) { toast.error(i18n.t("settings.noWorkoutsToExport")); return; }
 
   const header = "date,exercise_name,load_type,load_g,reps";
   const lines = data.map(
