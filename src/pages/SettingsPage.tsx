@@ -286,7 +286,7 @@ export default function SettingsPage() {
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
-      toast.success("Mot de passe modifié !");
+      toast.success(t("settings.passwordChanged"));
       setNewPassword("");
       setConfirmPassword("");
       setPasswordOpen(false);
