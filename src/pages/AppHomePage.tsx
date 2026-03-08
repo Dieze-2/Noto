@@ -514,7 +514,7 @@ export default function AppHomePage() {
           <DrawerInputRow weight={masterForm.weight} reps={masterForm.reps}
             onWeightChange={(v) => setMasterForm({ ...masterForm, weight: v })}
             onRepsChange={(v) => setMasterForm({ ...masterForm, reps: v })} />
-          <DrawerSubmit disabled={!masterCanValidate} onClick={onAddMaster} label="Valider" />
+          <DrawerSubmit disabled={!masterCanValidate} onClick={onAddMaster} label={t("today.validate")} />
         </div>
       </Drawer>
 
