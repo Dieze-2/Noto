@@ -47,6 +47,14 @@ export default function CoachDashboardPage() {
     const [a, p] = await Promise.all([getCoachAthletes(), getCoachPrograms()]);
     setAthletes(a);
     setPrograms(p);
+    // Fetch athlete profiles
+    const ids = a.filter((x) => x.athlete_id).map((x) => x.athlete_id!);
+    if (ids.length) {
+      const profiles = await getProfiles(ids);
+      const map: Record<string, Profile> = {};
+      profiles.forEach((pr) => { map[pr.id] = pr; });
+      setAthleteProfiles(map);
+    }
     setLoadingData(false);
   };
 
