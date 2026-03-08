@@ -456,7 +456,7 @@ export default function DashboardPage() {
         <ChartFullscreen
           open={fullscreenChart === "weight"}
           onClose={() => setFullscreenChart(null)}
-          title="Poids"
+          title={t("dashboard.weight")}
           options={weightOpts}
           data={weightChartData}
         />
