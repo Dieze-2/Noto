@@ -1,31 +1,43 @@
 import { cn } from "@/lib/utils";
 import { InputHTMLAttributes, forwardRef, KeyboardEvent, ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 
 interface StatBubbleProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "onChange"> {
-  icon?: ReactNode;
+  icon?: ReactNode | LucideIcon;
   label?: string;
   unit?: string;
   value: string;
+  colorClass?: string;
+  accent?: boolean;
   onChange: (value: string) => void;
 }
 
 const StatBubble = forwardRef<HTMLInputElement, StatBubbleProps>(
-  ({ icon, label, unit, value, onChange, className, ...props }, ref) => {
+  ({ icon, label, unit, value, colorClass, accent, onChange, className, ...props }, ref) => {
     const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "Enter") {
         (e.target as HTMLInputElement).blur();
       }
     };
 
+    // Support both ReactNode and LucideIcon component
+    const renderIcon = () => {
+      if (!icon) return null;
+      if (typeof icon === "function") {
+        const IconComp = icon as LucideIcon;
+        return <IconComp size={20} className={cn(accent ? "text-primary" : colorClass || "text-muted-foreground")} />;
+      }
+      return icon;
+    };
+
     return (
       <div className={cn("glass rounded-xl p-3 flex flex-col items-center gap-1.5", className)}>
-        {icon && <div className="flex items-center justify-center">{icon}</div>}
+        {renderIcon()}
         {!icon && label && <span className="text-noto-label text-muted-foreground">{label}</span>}
         <div className="flex items-baseline gap-1">
           <input
             ref={ref}
             type="text"
-            inputMode="decimal"
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -35,6 +47,7 @@ const StatBubble = forwardRef<HTMLInputElement, StatBubbleProps>(
           />
           {unit && <span className="text-xs text-muted-foreground">{unit}</span>}
         </div>
+        {icon && label && <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">{label}</span>}
       </div>
     );
   }
