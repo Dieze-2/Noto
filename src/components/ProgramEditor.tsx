@@ -239,9 +239,10 @@ function ExerciseRow({ exercise, onUpdate, onDelete }: {
 }
 
 /* ── Main editor ── */
-export default function ProgramEditor({ program, onBack }: {
+export default function ProgramEditor({ program, onBack, hideTitle = false }: {
   program: Program;
   onBack: () => void;
+  hideTitle?: boolean;
 }) {
   const { t } = useTranslation();
   const [sessions, setSessions] = useState<ProgramSessionWithExercises[]>([]);
