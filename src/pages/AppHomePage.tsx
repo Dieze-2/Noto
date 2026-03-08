@@ -519,7 +519,7 @@ export default function AppHomePage() {
       </Drawer>
 
       {/* Add Set */}
-      <Drawer open={setOpen} onClose={() => { setSetOpen(false); setSetTarget(null); }} title="Ajouter Set">
+      <Drawer open={setOpen} onClose={() => { setSetOpen(false); setSetTarget(null); }} title={t("today.addSet")}>
         <div className="glass rounded-[2rem] p-6 space-y-4">
           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{setTarget?.exercise_name ?? ""}</p>
           <LoadTypeToggle value={newSet.load_type} onChange={(v) => setNewSet({ ...newSet, load_type: v })} />
