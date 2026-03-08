@@ -331,7 +331,8 @@
     "accepted": "{{email}} a accepté votre invitation",
     "rejected": "{{email}} a refusé votre invitation",
     "coachRequest": "{{email}} souhaite devenir coach",
-    "subscriptionCancelled": "{{email}} a annulé son abonnement coach"
+    "cancellationRequest": "{{email}} demande l'annulation de son abonnement",
+    "cancellationApproved": "Votre annulation a été approuvée. Accès coach actif jusqu'à fin du mois."
   },
   "admin": {
     "title": "Administration",
@@ -343,11 +344,17 @@
     "reject": "Refuser",
     "approved": "Demande approuvée ! Le rôle coach a été attribué.",
     "rejected": "Demande refusée.",
+    "cancellationRequests": "Demandes d'annulation",
+    "cancellationDesc": "Souhaite annuler son abonnement",
+    "approveCancellation": "Valider",
+    "cancellationApproved": "Annulation validée. Accès coach actif jusqu'à fin du mois.",
+    "planLabel": "Forfait {{plan}}",
     "grantTrial": "Essai coach (30 jours)",
     "grantTrialDesc": "Attribuer un accès coach gratuit pendant 30 jours à un utilisateur.",
     "trialEmailPlaceholder": "Email de l'utilisateur…",
     "startTrial": "Démarrer",
     "trialGranted": "Essai coach de 30 jours accordé !",
     "userNotFound": "Utilisateur introuvable avec cet email."
+  }
   }
 }
