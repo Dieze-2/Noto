@@ -445,6 +445,31 @@ export default function SettingsPage() {
           </button>
         </div>
       </SettingsDrawer>
+
+      {/* ═══ DRAWER DONNÉES ═══ */}
+      <SettingsDrawer open={dataOpen} onClose={() => setDataOpen(false)} title="Données">
+        <div className="space-y-4">
+          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+            Format CSV : date, weight_g, steps, kcal, note
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => { exportDailyMetricsCSV(); setDataOpen(false); }}
+              className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-primary/10 text-primary text-xs font-black uppercase tracking-wider hover:bg-primary/20 transition-colors"
+            >
+              <Download size={18} />
+              Exporter
+            </button>
+            <button
+              onClick={() => { handleImport(); setDataOpen(false); }}
+              className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-muted text-muted-foreground text-xs font-black uppercase tracking-wider hover:text-foreground transition-colors"
+            >
+              <Upload size={18} />
+              Importer
+            </button>
+          </div>
+        </div>
+      </SettingsDrawer>
     </div>
   );
 }
