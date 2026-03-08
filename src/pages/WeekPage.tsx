@@ -70,6 +70,7 @@ function SwipeDeleteEventRow({ ev, isEditing, onDelete, children }: {
    ════════════════════════════════════════════ */
 export default function WeekPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [anchorDate, setAnchorDate] = useState(new Date());
