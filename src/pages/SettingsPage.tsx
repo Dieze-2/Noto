@@ -70,7 +70,7 @@ async function exportDailyMetricsCSV() {
 async function importDailyMetricsCSV(file: File) {
   const text = await file.text();
   const lines = text.split("\n").filter((l) => l.trim());
-  if (lines.length < 2) { toast.error("Fichier CSV vide ou invalide"); return; }
+  if (lines.length < 2) { toast.error(i18n.t("settings.csvEmpty")); return; }
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) { toast.error("Non authentifié"); return; }
   const rows = lines.slice(1).map((line) => {
