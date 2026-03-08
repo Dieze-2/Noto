@@ -20,6 +20,7 @@ const NAV_ICONS: NavItem[] = [
   { path: "/dashboard", key: "stats", icon: LayoutDashboard },
   { path: "/program", key: "program", icon: ClipboardList },
   { path: "/coach", key: "coach", icon: Users, coachOnly: true },
+  { path: "/admin", key: "admin", icon: Shield, adminOnly: true },
   { path: "/catalog", key: "exercises", icon: BookOpen },
   { path: "/settings", key: "settings", icon: Settings },
 ];
