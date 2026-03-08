@@ -242,7 +242,7 @@ export default function CoachExerciseDashboard({ athleteId }: Props) {
   const detailChartData = useMemo<uPlot.AlignedData>(() => {
     if (detailData.length < 2) return [[], []];
     const xs = detailData.map((d) => toUnix(d.workout_date));
-    const ys = detailData.map((d) => computeVolume(d, weightData));
+    const ys = detailData.map((d) => computeE1RM(d, weightData));
     return [xs, ys];
   }, [detailData, weightData]);
 
