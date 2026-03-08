@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { User, Target, LogOut, Download, Upload } from "lucide-react";
+import { User, Target, LogOut, Download, Upload, Check, Weight, Footprints, Flame } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -9,6 +9,7 @@ import GlassCard from "@/components/GlassCard";
 import { useAuth } from "@/auth/AuthProvider";
 import { supabase } from "@/lib/supabaseClient";
 import { getDailyMetricsRange } from "@/db/dailyMetrics";
+import { getUserGoals, saveUserGoals } from "@/db/goals";
 
 /* ── CSV Export ── */
 async function exportDailyMetricsCSV() {
