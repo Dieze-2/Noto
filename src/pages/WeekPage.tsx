@@ -296,7 +296,7 @@ export default function WeekPage() {
 
                 <div className="flex-1 min-w-0">
                   <p className="font-black uppercase italic text-sm text-foreground flex items-center">
-                    {format(day, "EEEE", { locale: fr })}
+                    {format(day, "EEEE", { locale: getDateLocale() })}
                     {dayEvents.length > 0 && (
                       <Sparkles size={12} className="ml-2"
                         style={{ color: isHex6(dayEvents[0].color) ? dayEvents[0].color! : "#FFA94D" }} />
