@@ -16,6 +16,7 @@ import { supabase } from "@/lib/supabaseClient";
 import logo from "@/assets/logo.png";
 import { getDailyMetricsRange } from "@/db/dailyMetrics";
 import { getUserGoals, saveUserGoals } from "@/db/goals";
+import { getProfile, updateMyProfile, formatName } from "@/db/profiles";
 
 /* ── Workouts Export ── */
 async function exportWorkoutsCSV() {
