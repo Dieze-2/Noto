@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { CalendarDays, Dumbbell, LayoutDashboard, LogOut } from "lucide-react";
+import { CalendarDays, Dumbbell, LayoutDashboard, BookOpen, LogOut } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 import { ReactNode } from "react";
@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { path: "/", label: "Today", icon: Dumbbell },
   { path: "/week", label: "Week", icon: CalendarDays },
   { path: "/dashboard", label: "Stats", icon: LayoutDashboard },
+  { path: "/catalog", label: "Exos", icon: BookOpen },
 ];
 
 interface AppShellProps {
