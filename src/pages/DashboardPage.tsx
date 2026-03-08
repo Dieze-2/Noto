@@ -244,6 +244,17 @@ export default function DashboardPage() {
     return { first, last, diff, pct };
   }, [weightData]);
 
+  /* Exercise stats */
+  const exStats = useMemo(() => {
+    if (exData.length < 1) return null;
+    const loads = exData.map((d: any) => (d.load_g ?? 0) / 1000);
+    const maxLoad = Math.max(...loads);
+    const firstLoad = loads[0];
+    const lastLoad = loads[loads.length - 1];
+    const progression = firstLoad > 0 ? ((lastLoad - firstLoad) / firstLoad) * 100 : 0;
+    return { maxLoad, lastLoad, progression, sessions: exData.length };
+  }, [exData]);
+
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-32">
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
