@@ -218,9 +218,10 @@ export default function DashboardPage() {
       // Find last known weight for each date
       const totalLoads = exData.map((d: any) => {
         const load = (d.load_g ?? 0) / 1000;
-        // Find closest weight measurement
-        const matchingWeight = weightData.find((w) => w.date <= d.workout_date && w.weight_g != null);
-        const lastWeight = matchingWeight ? (matchingWeight.weight_g ?? 0) / 1000 : 0;
+        // Find closest weight measurement BEFORE or on this date (search backwards)
+        const sortedWeights = [...weightData].filter((w) => w.date <= d.workout_date && w.weight_g != null);
+        const closestWeight = sortedWeights.length > 0 ? sortedWeights[sortedWeights.length - 1] : null;
+        const lastWeight = closestWeight ? (closestWeight.weight_g ?? 0) / 1000 : 0;
         return d.load_type === "PDC" || d.load_type === "PDC_PLUS" ? load + lastWeight : load;
       });
       return [xs, loads, totalLoads];
