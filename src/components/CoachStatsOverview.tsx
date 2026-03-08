@@ -2,10 +2,10 @@ import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Activity, TrendingUp, TrendingDown, Users, Zap, Calendar,
-  Loader2,
+  Loader2, Trophy, Target, BarChart3, Flame,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { subDays, format, differenceInDays, parseISO } from "date-fns";
+import { subDays, format, differenceInCalendarWeeks, parseISO } from "date-fns";
 
 import GlassCard from "@/components/GlassCard";
 import { supabase } from "@/lib/supabaseClient";
@@ -17,17 +17,6 @@ interface Props {
   profiles: Record<string, Profile>;
 }
 
-interface AthleteStats {
-  athleteId: string;
-  name: string;
-  sessionsLast30: number;
-  avgFrequency: number; // sessions per week
-  exerciseCount: number;
-  avgProgression: number | null; // % e1RM change
-  lastWorkoutDate: string | null;
-  isActive: boolean; // had a workout in last 14 days
-}
-
 /** Compute estimated 1RM (Epley formula) */
 function computeE1RM(loadKg: number, reps: number): number {
   if (loadKg <= 0) return 0;
@@ -37,7 +26,8 @@ function computeE1RM(loadKg: number, reps: number): number {
 export default function CoachStatsOverview({ athletes, profiles }: Props) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
-  const [athleteStats, setAthleteStats] = useState<AthleteStats[]>([]);
+  const [recentWorkouts, setRecentWorkouts] = useState<any[]>([]);
+  const [allWorkouts, setAllWorkouts] = useState<any[]>([]);
 
   const acceptedAthletes = athletes.filter(
     (a) => a.status === "accepted" && a.athlete_id
@@ -52,105 +42,143 @@ export default function CoachStatsOverview({ athletes, profiles }: Props) {
     (async () => {
       const athleteIds = acceptedAthletes.map((a) => a.athlete_id!);
       const thirtyDaysAgo = format(subDays(new Date(), 30), "yyyy-MM-dd");
-      const fourteenDaysAgo = format(subDays(new Date(), 14), "yyyy-MM-dd");
 
-      // Fetch all workout data for accepted athletes in last 30 days
-      const { data: recentWorkouts, error: wErr } = await supabase
-        .from("v_workout_exercises_flat")
-        .select("user_id, workout_date, exercise_name, load_type, load_g, reps")
-        .in("user_id", athleteIds)
-        .gte("workout_date", thirtyDaysAgo)
-        .order("workout_date", { ascending: true });
+      const [{ data: recent }, { data: all }] = await Promise.all([
+        supabase
+          .from("v_workout_exercises_flat")
+          .select("user_id, workout_date, exercise_name, load_type, load_g, reps")
+          .in("user_id", athleteIds)
+          .gte("workout_date", thirtyDaysAgo)
+          .order("workout_date", { ascending: true }),
+        supabase
+          .from("v_workout_exercises_flat")
+          .select("user_id, workout_date, exercise_name, load_type, load_g, reps")
+          .in("user_id", athleteIds)
+          .order("workout_date", { ascending: true }),
+      ]);
 
-      // Also fetch ALL data to compute progression
-      const { data: allWorkouts, error: aErr } = await supabase
-        .from("v_workout_exercises_flat")
-        .select("user_id, workout_date, exercise_name, load_type, load_g, reps")
-        .in("user_id", athleteIds)
-        .order("workout_date", { ascending: true });
-
-      if (wErr || aErr) {
-        console.error("CoachStatsOverview:", wErr || aErr);
-        setLoading(false);
-        return;
-      }
-
-      const stats: AthleteStats[] = athleteIds.map((id) => {
-        const profile = profiles[id];
-        const name = displayName(profile, id.slice(0, 8));
-
-        // Recent data (30 days)
-        const recent = (recentWorkouts ?? []).filter((w: any) => w.user_id === id);
-        const recentDates = [...new Set(recent.map((w: any) => w.workout_date))];
-        const sessionsLast30 = recentDates.length;
-        const avgFrequency = sessionsLast30 / (30 / 7); // per week
-
-        // Unique exercises
-        const exerciseNames = [...new Set(recent.map((w: any) => w.exercise_name))];
-
-        // Last workout date
-        const lastWorkoutDate = recentDates.length > 0
-          ? recentDates[recentDates.length - 1]
-          : null;
-        const isActive = lastWorkoutDate ? lastWorkoutDate >= fourteenDaysAgo : false;
-
-        // Compute average e1RM progression across all exercises
-        const allForAthlete = (allWorkouts ?? []).filter((w: any) => w.user_id === id);
-        const exMap = new Map<string, any[]>();
-        allForAthlete.forEach((w: any) => {
-          if (!exMap.has(w.exercise_name)) exMap.set(w.exercise_name, []);
-          exMap.get(w.exercise_name)!.push(w);
-        });
-
-        const progressions: number[] = [];
-        exMap.forEach((entries) => {
-          if (entries.length < 2) return;
-          const firstLoad = (entries[0].load_g ?? 0) / 1000;
-          const lastLoad = (entries[entries.length - 1].load_g ?? 0) / 1000;
-          const firstE1RM = computeE1RM(firstLoad, entries[0].reps);
-          const lastE1RM = computeE1RM(lastLoad, entries[entries.length - 1].reps);
-          if (firstE1RM > 0) {
-            progressions.push(((lastE1RM - firstE1RM) / firstE1RM) * 100);
-          }
-        });
-
-        const avgProgression = progressions.length > 0
-          ? progressions.reduce((a, b) => a + b, 0) / progressions.length
-          : null;
-
-        return {
-          athleteId: id,
-          name,
-          sessionsLast30,
-          avgFrequency,
-          exerciseCount: exerciseNames.length,
-          avgProgression,
-          lastWorkoutDate,
-          isActive,
-        };
-      });
-
-      setAthleteStats(stats);
+      setRecentWorkouts(recent ?? []);
+      setAllWorkouts(all ?? []);
       setLoading(false);
     })();
   }, [acceptedAthletes.length]);
 
-  const globalStats = useMemo(() => {
-    if (athleteStats.length === 0) return null;
+  const stats = useMemo(() => {
+    const athleteIds = acceptedAthletes.map((a) => a.athlete_id!);
+    if (athleteIds.length === 0) return null;
 
-    const activeCount = athleteStats.filter((s) => s.isActive).length;
-    const inactiveCount = athleteStats.length - activeCount;
-    const avgFrequency =
-      athleteStats.reduce((sum, s) => sum + s.avgFrequency, 0) / athleteStats.length;
-    const withProgression = athleteStats.filter((s) => s.avgProgression !== null);
-    const avgProgression =
-      withProgression.length > 0
-        ? withProgression.reduce((sum, s) => sum + s.avgProgression!, 0) / withProgression.length
-        : null;
-    const totalSessions = athleteStats.reduce((sum, s) => sum + s.sessionsLast30, 0);
+    const fourteenDaysAgo = format(subDays(new Date(), 14), "yyyy-MM-dd");
+    const sevenDaysAgo = format(subDays(new Date(), 7), "yyyy-MM-dd");
 
-    return { activeCount, inactiveCount, avgFrequency, avgProgression, totalSessions };
-  }, [athleteStats]);
+    // --- Per-athlete recent data ---
+    const perAthlete = athleteIds.map((id) => {
+      const recent = recentWorkouts.filter((w) => w.user_id === id);
+      const recentDates = [...new Set(recent.map((w: any) => w.workout_date))];
+      const lastDate = recentDates[recentDates.length - 1] ?? null;
+      return {
+        id,
+        sessionsLast30: recentDates.length,
+        isActive: lastDate ? lastDate >= fourteenDaysAgo : false,
+        recentDates,
+      };
+    });
+
+    const activeCount = perAthlete.filter((s) => s.isActive).length;
+    const inactiveCount = perAthlete.length - activeCount;
+    const totalSessions = perAthlete.reduce((s, a) => s + a.sessionsLast30, 0);
+    const avgFrequency = perAthlete.length > 0
+      ? perAthlete.reduce((s, a) => s + a.sessionsLast30, 0) / perAthlete.length / (30 / 7)
+      : 0;
+
+    // --- Consistency: % of athletes who trained this week ---
+    const trainedThisWeek = perAthlete.filter((a) =>
+      a.recentDates.some((d: string) => d >= sevenDaysAgo)
+    ).length;
+    const consistencyRate = perAthlete.length > 0
+      ? Math.round((trainedThisWeek / perAthlete.length) * 100)
+      : 0;
+
+    // --- Global e1RM progressions per exercise ---
+    const exMap = new Map<string, { first: any; last: any; progressions: number[] }>();
+    allWorkouts.forEach((w) => {
+      const loadKg = (w.load_g ?? 0) / 1000;
+      if (loadKg <= 0) return;
+      const key = w.exercise_name;
+      if (!exMap.has(key)) {
+        exMap.set(key, { first: w, last: w, progressions: [] });
+      } else {
+        exMap.get(key)!.last = w;
+      }
+    });
+
+    // Per exercise across all athletes
+    const exerciseProgressions: { name: string; pct: number }[] = [];
+    const perAthleteExercises = new Map<string, Map<string, any[]>>();
+
+    allWorkouts.forEach((w) => {
+      const aKey = w.user_id;
+      if (!perAthleteExercises.has(aKey)) perAthleteExercises.set(aKey, new Map());
+      const exes = perAthleteExercises.get(aKey)!;
+      if (!exes.has(w.exercise_name)) exes.set(w.exercise_name, []);
+      exes.get(w.exercise_name)!.push(w);
+    });
+
+    // Aggregate progression per exercise across all athletes
+    const globalExProgression = new Map<string, number[]>();
+    perAthleteExercises.forEach((exes) => {
+      exes.forEach((entries, exName) => {
+        if (entries.length < 2) return;
+        const firstLoad = (entries[0].load_g ?? 0) / 1000;
+        const lastLoad = (entries[entries.length - 1].load_g ?? 0) / 1000;
+        const firstE1RM = computeE1RM(firstLoad, entries[0].reps);
+        const lastE1RM = computeE1RM(lastLoad, entries[entries.length - 1].reps);
+        if (firstE1RM > 0) {
+          const pct = ((lastE1RM - firstE1RM) / firstE1RM) * 100;
+          if (!globalExProgression.has(exName)) globalExProgression.set(exName, []);
+          globalExProgression.get(exName)!.push(pct);
+        }
+      });
+    });
+
+    globalExProgression.forEach((values, name) => {
+      const avg = values.reduce((a, b) => a + b, 0) / values.length;
+      exerciseProgressions.push({ name, pct: avg });
+    });
+
+    exerciseProgressions.sort((a, b) => b.pct - a.pct);
+
+    // Overall avg progression
+    const allProgressions = exerciseProgressions.map((e) => e.pct);
+    const avgProgression = allProgressions.length > 0
+      ? allProgressions.reduce((a, b) => a + b, 0) / allProgressions.length
+      : null;
+
+    // Best & worst exercise
+    const bestExercise = exerciseProgressions.length > 0 ? exerciseProgressions[0] : null;
+    const worstExercise = exerciseProgressions.length > 0
+      ? exerciseProgressions[exerciseProgressions.length - 1]
+      : null;
+
+    // Unique exercises practiced
+    const uniqueExercises = new Set(recentWorkouts.map((w) => w.exercise_name)).size;
+
+    // Total sets (entries in recent workouts)
+    const totalSets = recentWorkouts.length;
+
+    return {
+      activeCount,
+      inactiveCount,
+      totalSessions,
+      avgFrequency,
+      avgProgression,
+      consistencyRate,
+      bestExercise,
+      worstExercise,
+      uniqueExercises,
+      totalSets,
+      topExercises: exerciseProgressions.slice(0, 5),
+    };
+  }, [recentWorkouts, allWorkouts, acceptedAthletes.length]);
 
   if (acceptedAthletes.length === 0) return null;
 
@@ -162,7 +190,7 @@ export default function CoachStatsOverview({ athletes, profiles }: Props) {
     );
   }
 
-  if (!globalStats) return null;
+  if (!stats) return null;
 
   return (
     <motion.div
@@ -177,19 +205,19 @@ export default function CoachStatsOverview({ athletes, profiles }: Props) {
         </h2>
       </div>
 
-      {/* Global stat cards */}
+      {/* Row 1: Key metrics */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <GlassCard className="p-4 rounded-2xl text-center">
           <div className="flex items-center justify-center gap-1 mb-1">
             <Users size={14} className="text-primary" />
           </div>
-          <div className="text-2xl font-black text-primary">{globalStats.activeCount}</div>
+          <div className="text-2xl font-black text-primary">{stats.activeCount}</div>
           <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
             {t("coachStats.activeAthletes")}
           </div>
-          {globalStats.inactiveCount > 0 && (
+          {stats.inactiveCount > 0 && (
             <div className="text-[9px] text-destructive font-bold mt-0.5">
-              {globalStats.inactiveCount} {t("coachStats.inactive")}
+              {stats.inactiveCount} {t("coachStats.inactive")}
             </div>
           )}
         </GlassCard>
@@ -198,7 +226,7 @@ export default function CoachStatsOverview({ athletes, profiles }: Props) {
           <div className="flex items-center justify-center gap-1 mb-1">
             <Calendar size={14} className="text-primary" />
           </div>
-          <div className="text-2xl font-black text-foreground">{globalStats.totalSessions}</div>
+          <div className="text-2xl font-black text-foreground">{stats.totalSessions}</div>
           <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
             {t("coachStats.totalSessions30d")}
           </div>
@@ -209,7 +237,7 @@ export default function CoachStatsOverview({ athletes, profiles }: Props) {
             <Zap size={14} className="text-primary" />
           </div>
           <div className="text-2xl font-black text-foreground">
-            {globalStats.avgFrequency.toFixed(1)}
+            {stats.avgFrequency.toFixed(1)}
           </div>
           <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
             {t("coachStats.avgFrequency")}
@@ -218,15 +246,15 @@ export default function CoachStatsOverview({ athletes, profiles }: Props) {
 
         <GlassCard className="p-4 rounded-2xl text-center">
           <div className="flex items-center justify-center gap-1 mb-1">
-            {globalStats.avgProgression !== null && globalStats.avgProgression >= 0 ? (
+            {stats.avgProgression !== null && stats.avgProgression >= 0 ? (
               <TrendingUp size={14} className="text-primary" />
             ) : (
               <TrendingDown size={14} className="text-destructive" />
             )}
           </div>
-          {globalStats.avgProgression !== null ? (
-            <div className={`text-2xl font-black ${globalStats.avgProgression >= 0 ? "text-primary" : "text-destructive"}`}>
-              {globalStats.avgProgression > 0 ? "+" : ""}{globalStats.avgProgression.toFixed(1)}%
+          {stats.avgProgression !== null ? (
+            <div className={`text-2xl font-black ${stats.avgProgression >= 0 ? "text-primary" : "text-destructive"}`}>
+              {stats.avgProgression > 0 ? "+" : ""}{stats.avgProgression.toFixed(1)}%
             </div>
           ) : (
             <div className="text-2xl font-black text-muted-foreground">—</div>
@@ -237,38 +265,99 @@ export default function CoachStatsOverview({ athletes, profiles }: Props) {
         </GlassCard>
       </div>
 
-      {/* Per-athlete breakdown */}
-      <GlassCard className="rounded-2xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-border">
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-            {t("coachStats.perAthlete")}
-          </p>
-        </div>
-        <div className="divide-y divide-border">
-          {athleteStats.map((s) => (
-            <div key={s.athleteId} className="px-4 py-3 flex items-center gap-3">
-              <div className={`w-2 h-2 rounded-full shrink-0 ${s.isActive ? "bg-primary" : "bg-destructive/50"}`} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-foreground truncate">{s.name}</p>
-                <p className="text-[10px] text-muted-foreground font-bold">
-                  {s.sessionsLast30} {t("coachStats.sessions")} · {s.avgFrequency.toFixed(1)}x/{t("coachStats.week")}
-                  {s.lastWorkoutDate && ` · ${t("coachStats.last")}: ${format(parseISO(s.lastWorkoutDate), "dd/MM")}`}
-                </p>
+      {/* Row 2: Secondary metrics */}
+      <div className="grid grid-cols-3 gap-3">
+        <GlassCard className="p-4 rounded-2xl text-center">
+          <div className="flex items-center justify-center gap-1 mb-1">
+            <Flame size={14} className="text-primary" />
+          </div>
+          <div className="text-xl font-black text-foreground">{stats.consistencyRate}%</div>
+          <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+            {t("coachStats.consistency")}
+          </div>
+        </GlassCard>
+
+        <GlassCard className="p-4 rounded-2xl text-center">
+          <div className="flex items-center justify-center gap-1 mb-1">
+            <BarChart3 size={14} className="text-primary" />
+          </div>
+          <div className="text-xl font-black text-foreground">{stats.totalSets}</div>
+          <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+            {t("coachStats.totalSets")}
+          </div>
+        </GlassCard>
+
+        <GlassCard className="p-4 rounded-2xl text-center">
+          <div className="flex items-center justify-center gap-1 mb-1">
+            <Target size={14} className="text-primary" />
+          </div>
+          <div className="text-xl font-black text-foreground">{stats.uniqueExercises}</div>
+          <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+            {t("coachStats.uniqueExercises")}
+          </div>
+        </GlassCard>
+      </div>
+
+      {/* Top progressions */}
+      {stats.topExercises.length > 0 && (
+        <GlassCard className="rounded-2xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+            <Trophy size={12} className="text-primary" />
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+              {t("coachStats.topProgressions")}
+            </p>
+          </div>
+          <div className="divide-y divide-border">
+            {stats.topExercises.map((ex, i) => (
+              <div key={ex.name} className="px-4 py-2.5 flex items-center gap-3">
+                <span className="text-[10px] font-black text-muted-foreground w-5 text-center">
+                  {i + 1}
+                </span>
+                <span className="text-xs font-bold text-foreground flex-1 truncate">
+                  {ex.name}
+                </span>
+                <span className={`text-xs font-black ${ex.pct >= 0 ? "text-primary" : "text-destructive"}`}>
+                  {ex.pct > 0 ? "+" : ""}{ex.pct.toFixed(1)}%
+                </span>
               </div>
-              <div className="text-right shrink-0">
-                {s.avgProgression !== null ? (
-                  <span className={`text-xs font-black ${s.avgProgression >= 0 ? "text-primary" : "text-destructive"}`}>
-                    {s.avgProgression > 0 ? "+" : ""}{s.avgProgression.toFixed(1)}%
-                  </span>
-                ) : (
-                  <span className="text-xs font-bold text-muted-foreground">—</span>
-                )}
-                <p className="text-[9px] text-muted-foreground font-bold">{t("coachStats.e1rmProgression")}</p>
+            ))}
+          </div>
+        </GlassCard>
+      )}
+
+      {/* Best / Worst highlights */}
+      {(stats.bestExercise || stats.worstExercise) && (
+        <div className="grid grid-cols-2 gap-3">
+          {stats.bestExercise && (
+            <GlassCard className="p-4 rounded-2xl">
+              <div className="flex items-center gap-1.5 mb-2">
+                <TrendingUp size={12} className="text-primary" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  {t("coachStats.bestExercise")}
+                </span>
               </div>
-            </div>
-          ))}
+              <p className="text-xs font-bold text-foreground truncate">{stats.bestExercise.name}</p>
+              <p className="text-lg font-black text-primary">
+                +{stats.bestExercise.pct.toFixed(1)}%
+              </p>
+            </GlassCard>
+          )}
+          {stats.worstExercise && stats.worstExercise.name !== stats.bestExercise?.name && (
+            <GlassCard className="p-4 rounded-2xl">
+              <div className="flex items-center gap-1.5 mb-2">
+                <TrendingDown size={12} className="text-destructive" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  {t("coachStats.worstExercise")}
+                </span>
+              </div>
+              <p className="text-xs font-bold text-foreground truncate">{stats.worstExercise.name}</p>
+              <p className={`text-lg font-black ${stats.worstExercise.pct >= 0 ? "text-primary" : "text-destructive"}`}>
+                {stats.worstExercise.pct > 0 ? "+" : ""}{stats.worstExercise.pct.toFixed(1)}%
+              </p>
+            </GlassCard>
+          )}
         </div>
-      </GlassCard>
+      )}
     </motion.div>
   );
 }
