@@ -267,7 +267,7 @@ export default function SettingsPage() {
       toast.success(t("settings.goalsSaved"));
       setGoalsOpen(false);
     } catch (e: any) {
-      toast.error("Erreur : " + e.message);
+      toast.error(t("settings.error") + " : " + e.message);
     } finally {
       setSavingGoals(false);
     }
