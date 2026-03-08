@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Check, Crown, Zap, Building2, ArrowLeft, Loader2 } from "lucide-react";
+import { Check, Crown, Zap, Building2, ArrowLeft, Loader2, ExternalLink } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import GlassCard from "@/components/GlassCard";
 import { submitCoachRequest, getMyCoachRequest } from "@/db/coachRequests";
@@ -10,7 +10,15 @@ import { createNotification } from "@/db/notifications";
 import { supabase } from "@/lib/supabaseClient";
 import { getProfile, displayName } from "@/db/profiles";
 import { useRoles } from "@/auth/RoleProvider";
-import { getCoachSubscription, requestCancellation, isTrialEligible, CoachPlan } from "@/db/coachSubscriptions";
+import {
+  getCoachSubscription,
+  requestCancellation,
+  isTrialEligible,
+  startCheckout,
+  checkStripeSubscription,
+  openCustomerPortal,
+  CoachPlan,
+} from "@/db/coachSubscriptions";
 
 const plans = [
   {
@@ -49,6 +57,20 @@ export default function PricingPage() {
   const [currentPlan, setCurrentPlan] = useState<CoachPlan | null>(null);
   const [trialEligible, setTrialEligible] = useState(false);
   const [requestingTrial, setRequestingTrial] = useState(false);
+  const [managingPortal, setManagingPortal] = useState(false);
+
+  // Handle checkout success/cancel from URL
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.includes("checkout=success")) {
+      toast.success(t("pricing.checkoutSuccess", "Abonnement activé avec succès !"));
+      // Clean URL
+      window.location.hash = hash.replace(/[?&]checkout=success/, "");
+    } else if (hash.includes("checkout=cancel")) {
+      toast.info(t("pricing.checkoutCancelled", "Paiement annulé."));
+      window.location.hash = hash.replace(/[?&]checkout=cancel/, "");
+    }
+  }, []);
 
   useEffect(() => {
     if (isCoach) {
@@ -58,9 +80,32 @@ export default function PricingPage() {
     }
   }, [isCoach]);
 
-  const handleChangePlan = (planKey: string) => {
-    // TODO: redirect to Stripe checkout/portal for plan change
-    toast.info(t("pricing.stripeComingSoon"));
+  const handleSubscribe = async (planKey: CoachPlan) => {
+    setSubmitting(planKey);
+    try {
+      const url = await startCheckout(planKey);
+      if (url) {
+        window.open(url, "_blank");
+      }
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSubmitting(null);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    setManagingPortal(true);
+    try {
+      const url = await openCustomerPortal();
+      if (url) {
+        window.open(url, "_blank");
+      }
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setManagingPortal(false);
+    }
   };
 
   const [cancelling, setCancelling] = useState(false);
@@ -87,7 +132,6 @@ export default function PricingPage() {
           }
         }
       }
-
       await requestCancellation();
       toast.success(t("pricing.cancellationRequested"));
     } catch (e: any) {
@@ -134,57 +178,6 @@ export default function PricingPage() {
     }
   };
 
-  const handleSubscribe = async (planKey: string) => {
-    setSubmitting(planKey);
-    try {
-      // Check if already has a pending request
-      const existing = await getMyCoachRequest();
-      if (existing?.status === "pending") {
-        toast.error(t("settings.coachRequestAlreadySent"));
-        setSubmitting(null);
-        return;
-      }
-
-      // Submit coach request
-      const req = await submitCoachRequest();
-
-      // Notify admins
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const profile = await getProfile(user.id);
-        const name = profile ? displayName(profile) : user.email ?? "";
-        // Find admin users to notify
-        const { data: adminRoles } = await supabase
-          .from("user_roles")
-          .select("user_id")
-          .eq("role", "admin");
-
-        if (adminRoles) {
-          for (const ar of adminRoles) {
-            await createNotification({
-              coach_id: ar.user_id,
-              type: "coach_request",
-              athlete_email: name,
-              athlete_id: user.id,
-              request_id: req.id,
-            });
-          }
-        }
-      }
-
-      toast.success(t("settings.coachRequestSent"));
-      navigate("/settings");
-    } catch (e: any) {
-      if (e.message?.includes("duplicate") || e.code === "23505") {
-        toast.error(t("settings.coachRequestAlreadySent"));
-      } else {
-        toast.error(e.message);
-      }
-    } finally {
-      setSubmitting(null);
-    }
-  };
-
   return (
     <div className="mx-auto max-w-5xl px-4 pt-6 pb-32 lg:pb-8">
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
@@ -210,6 +203,7 @@ export default function PricingPage() {
             const Icon = plan.icon;
             const features = t(`pricing.${plan.key}.features`, { returnObjects: true }) as string[];
             const isSubmitting = submitting === plan.key;
+            const isCurrent = isCoach && currentPlan === plan.key;
             return (
               <motion.div
                 key={plan.key}
@@ -220,11 +214,17 @@ export default function PricingPage() {
                 <GlassCard
                   className={`p-6 rounded-3xl relative overflow-hidden ${
                     plan.featured ? "ring-2 ring-primary" : ""
-                  }`}
+                  } ${isCurrent ? "ring-2 ring-primary" : ""}`}
                 >
                   {plan.featured && (
                     <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-bl-xl">
                       {t("pricing.popular")}
+                    </div>
+                  )}
+
+                  {isCurrent && (
+                    <div className="absolute top-0 left-0 bg-primary text-primary-foreground text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-br-xl">
+                      {t("pricing.currentPlan")}
                     </div>
                   )}
 
@@ -267,23 +267,19 @@ export default function PricingPage() {
                   </ul>
 
                   {/* CTA */}
-                  {isCoach ? (
-                    currentPlan === plan.key ? (
-                      <div className="w-full py-3 rounded-2xl text-xs font-black uppercase tracking-wider bg-primary/10 text-primary text-center">
-                        {t("pricing.currentPlan")}
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => handleChangePlan(plan.key)}
-                        className={`w-full py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-opacity flex items-center justify-center gap-2 ${
-                          plan.featured
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-foreground hover:bg-muted/80"
-                        }`}
-                      >
-                        {t("pricing.changePlan")}
-                      </button>
-                    )
+                  {isCurrent ? (
+                    <button
+                      onClick={handleManageSubscription}
+                      disabled={managingPortal}
+                      className="w-full py-3 rounded-2xl text-xs font-black uppercase tracking-wider bg-primary/10 text-primary text-center flex items-center justify-center gap-2 hover:bg-primary/20 transition-colors disabled:opacity-50"
+                    >
+                      {managingPortal ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <ExternalLink size={14} />
+                      )}
+                      {t("pricing.manageSubscription", "Gérer mon abonnement")}
+                    </button>
                   ) : (
                     <button
                       onClick={() => handleSubscribe(plan.key)}
@@ -295,7 +291,7 @@ export default function PricingPage() {
                       }`}
                     >
                       {isSubmitting && <Loader2 size={14} className="animate-spin" />}
-                      {t("pricing.subscribe")}
+                      {isCoach ? t("pricing.changePlan") : t("pricing.subscribe")}
                     </button>
                   )}
                 </GlassCard>
