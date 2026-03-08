@@ -270,6 +270,9 @@
     "popular": "Popular",
     "subscribe": "Suscribirse",
     "alreadyCoach": "Ya eres coach",
+    "currentPlan": "Plan actual",
+    "changePlan": "Cambiar de plan",
+    "stripeComingSoon": "El pago con Stripe estará disponible pronto.",
     "comingSoon": "Próximamente",
     "note": "Todos los planes incluyen acceso ilimitado a todas las funciones. Solo varía el número de atletas.",
     "classic": {

@@ -281,6 +281,9 @@
     "popular": "Populaire",
     "subscribe": "Adhérer",
     "alreadyCoach": "Déjà coach",
+    "currentPlan": "Forfait actuel",
+    "changePlan": "Changer de forfait",
+    "stripeComingSoon": "Le paiement Stripe sera bientôt disponible.",
     "comingSoon": "Bientôt disponible",
     "note": "Tous les forfaits incluent un accès illimité à toutes les fonctionnalités. Seul le nombre d'athlètes varie.",
     "classic": {
