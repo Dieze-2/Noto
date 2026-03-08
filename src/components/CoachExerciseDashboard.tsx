@@ -162,7 +162,12 @@ export default function CoachExerciseDashboard({ athleteId }: Props) {
         const isPDC = loads.every((l) => l === 0);
         const lastLoad = loads[loads.length - 1];
         const firstLoad = loads[0];
-        const trend = firstLoad > 0 ? ((lastLoad - firstLoad) / firstLoad) * 100 : 0;
+        // Use reps progression for PDC, load progression otherwise
+        const firstReps = reps[0];
+        const lastReps = reps[reps.length - 1];
+        const trend = isPDC
+          ? (firstReps > 0 ? ((lastReps - firstReps) / firstReps) * 100 : 0)
+          : (firstLoad > 0 ? ((lastLoad - firstLoad) / firstLoad) * 100 : 0);
         // Get unique session dates
         const dates = [...new Set(entries.map((e) => e.workout_date))];
 
@@ -195,12 +200,16 @@ export default function CoachExerciseDashboard({ athleteId }: Props) {
     return entries.filter((e) => e.workout_date >= from);
   }, [allData, selectedExercise, detailRange]);
 
+  const detailIsPDC = useMemo(() => detailData.every((d) => (d.load_g ?? 0) === 0), [detailData]);
+
   const detailChartData = useMemo<uPlot.AlignedData>(() => {
     if (detailData.length < 2) return [[], []];
     const xs = detailData.map((d) => toUnix(d.workout_date));
-    const ys = detailData.map((d) => (d.load_g ?? 0) / 1000);
+    const ys = detailIsPDC
+      ? detailData.map((d) => d.reps)
+      : detailData.map((d) => (d.load_g ?? 0) / 1000);
     return [xs, ys];
-  }, [detailData]);
+  }, [detailData, detailIsPDC]);
 
   const detailOpts = useMemo(() => buildExOpts(220), []);
 
@@ -213,7 +222,11 @@ export default function CoachExerciseDashboard({ athleteId }: Props) {
     const isPDC = loads.every((l) => l === 0);
     const first = loads[0];
     const last = loads[loads.length - 1];
-    const trend = first > 0 ? ((last - first) / first) * 100 : null;
+    const firstReps = reps[0];
+    const lastReps = reps[reps.length - 1];
+    const trend = isPDC
+      ? (firstReps > 0 ? ((lastReps - firstReps) / firstReps) * 100 : null)
+      : (first > 0 ? ((last - first) / first) * 100 : null);
     const dates = [...new Set(detailData.map((d) => d.workout_date))];
     return { maxLoad, maxReps, isPDC, trend, sessions: dates.length, lastLoad: last, avgReps: Math.round(reps.reduce((a, b) => a + b, 0) / reps.length) };
   }, [detailData]);
