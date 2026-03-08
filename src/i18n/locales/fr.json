@@ -143,7 +143,8 @@
     "athlete": "Apprenti",
     "last30Days": "30 derniers jours",
     "noData": "Aucune donnée disponible",
-    "programs": "Programmes"
+    "programs": "Programmes",
+    "noPrograms": "Aucun programme"
   },
   "program": {
     "title": "Programmes",
@@ -153,14 +154,26 @@
     "create": "Créer",
     "creating": "Création…",
     "empty": "Aucun programme",
-    "backToList": "Retour aux programmes",
-    "blockPlaceholder": "Décrivez l'exercice, les séries, les repos…",
-    "addBlock": "Ajouter un bloc",
+    "backToList": "Retour",
     "save": "Enregistrer",
     "saving": "Sauvegarde…",
     "saved": "Programme sauvegardé !",
     "deleted": "Programme supprimé",
-    "noPrograms": "Aucun programme"
+    "deleteProgram": "Supprimer",
+    "noPrograms": "Aucun programme",
+    "session": "Séance",
+    "sessionName": "Nom de la séance…",
+    "addSession": "Ajouter une séance",
+    "addExercise": "Ajouter un exercice",
+    "exercise": "Exercice",
+    "sets": "Séries",
+    "reps": "Reps",
+    "rest": "Repos",
+    "workType": "Type",
+    "note": "Note",
+    "notePlaceholder": "Dropset à chaque série…",
+    "customType": "Autre…",
+    "customTypePlaceholder": "Type personnalisé…"
   },
   "login": {
     "email": "Email",
