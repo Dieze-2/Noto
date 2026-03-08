@@ -563,6 +563,95 @@ export default function CoachAthleteViewPage() {
               </div>
             </GlassCard>
 
+            {/* ── Training Frequency (last 8 weeks) ── */}
+            <GlassCard className="p-5 rounded-3xl space-y-3">
+              <div className="flex items-center gap-2">
+                <Calendar size={16} className="text-primary" />
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex-1">
+                  {t("coach.trainingFrequency")}
+                </h3>
+                <span className="text-xs font-black text-foreground">
+                  ø {frequencyByWeek.avgFreq.toFixed(1)} / {t("coach.perWeek")}
+                </span>
+              </div>
+              <div className="flex items-end gap-1 h-16">
+                {frequencyByWeek.weeks.map((w, i) => {
+                  const maxCount = Math.max(...frequencyByWeek.weeks.map((x) => x.count), 1);
+                  const h = w.count > 0 ? Math.max((w.count / maxCount) * 100, 12) : 4;
+                  return (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                      <span className="text-[9px] font-black text-foreground">{w.count || ""}</span>
+                      <div
+                        className={`w-full rounded-t-md transition-all ${w.count > 0 ? "bg-primary" : "bg-muted"}`}
+                        style={{ height: `${h}%` }}
+                      />
+                      <span className="text-[8px] text-muted-foreground">{w.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </GlassCard>
+
+            {/* ── Muscle Group Distribution ── */}
+            {muscleGroups.length > 0 && (
+              <GlassCard className="p-5 rounded-3xl space-y-3">
+                <div className="flex items-center gap-2">
+                  <Dumbbell size={16} className="text-primary" />
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex-1">
+                    {t("coach.muscleGroups")}
+                  </h3>
+                  <span className="text-[10px] font-bold text-muted-foreground">
+                    {t("coach.last30days")}
+                  </span>
+                </div>
+                {muscleGroups.map((mg) => {
+                  const colors: Record<string, string> = {
+                    Push: "bg-[hsl(220,70%,55%)]",
+                    Pull: "bg-[hsl(156,100%,45%)]",
+                    Legs: "bg-[hsl(36,100%,55%)]",
+                    Core: "bg-[hsl(270,60%,60%)]",
+                    Autre: "bg-muted-foreground",
+                  };
+                  return (
+                    <div key={mg.name} className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-foreground">{mg.name}</span>
+                        <span className="text-xs font-black text-muted-foreground">{mg.count} · {mg.pct}%</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${colors[mg.name] ?? "bg-muted-foreground"}`}
+                          style={{ width: `${mg.pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </GlassCard>
+            )}
+
+            {/* ── Personal Records ── */}
+            {personalRecords.length > 0 && (
+              <GlassCard className="p-5 rounded-3xl space-y-3">
+                <div className="flex items-center gap-2">
+                  <TrendingUp size={16} className="text-primary" />
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex-1">
+                    {t("coach.personalRecords")}
+                  </h3>
+                </div>
+                <div className="space-y-1">
+                  {personalRecords.map((pr, i) => (
+                    <div key={pr.name} className="flex items-center gap-3 py-2 border-b border-border/20 last:border-0">
+                      <span className="text-[10px] font-black text-muted-foreground w-5 text-right">{i + 1}</span>
+                      <span className="text-xs font-bold text-foreground flex-1 truncate">{pr.name}</span>
+                      <span className="text-xs font-black text-primary">{pr.e1rm.toFixed(1)} kg</span>
+                      <span className="text-[10px] text-muted-foreground">{format(parseISO(pr.date), "dd/MM/yy")}</span>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+            )}
+
             <div className="flex glass rounded-xl p-1">
               {(["day", "week", "month"] as MetricsView[]).map((v) => (
                 <button
