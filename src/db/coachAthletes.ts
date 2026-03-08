@@ -76,3 +76,18 @@ export async function getAthleteEmail(userId: string): Promise<string | null> {
   // We can't query auth.users from client, so we rely on invite_email
   return null;
 }
+
+/** Athlete: get the coach who accepted this athlete */
+export async function getMyCoachId(): Promise<string | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data, error } = await supabase
+    .from("coach_athletes")
+    .select("coach_id")
+    .eq("athlete_id", user.id)
+    .eq("status", "accepted")
+    .limit(1)
+    .maybeSingle();
+  if (error) { console.error("getMyCoachId:", error); return null; }
+  return data?.coach_id ?? null;
+}

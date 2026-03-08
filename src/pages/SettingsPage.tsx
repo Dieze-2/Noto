@@ -241,6 +241,9 @@ export default function SettingsPage() {
   const [savingGoals, setSavingGoals] = useState(false);
   const [goalsLoaded, setGoalsLoaded] = useState(false);
 
+  /* Coach name */
+  const [coachName, setCoachName] = useState<string | null>(null);
+
   /* Password state */
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -257,6 +260,13 @@ export default function SettingsPage() {
         setGoalsLoaded(true);
       })
       .catch(() => setGoalsLoaded(true));
+
+    // Fetch coach name
+    getMyCoachId().then(async (coachId) => {
+      if (!coachId) return;
+      const profile = await getProfile(coachId);
+      setCoachName(displayName(profile, null ?? undefined));
+    });
   }, []);
 
   const handleSaveGoals = async () => {
