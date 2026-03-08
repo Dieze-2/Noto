@@ -5,7 +5,7 @@ import {
   ArrowLeft, Loader2, Weight, Footprints, Flame,
   TrendingUp, TrendingDown, Minus, Dumbbell,
   ClipboardList, Plus, ChevronRight, ChevronDown, ChevronUp,
-  Calendar, Trash2,
+  Calendar, Trash2, CheckCircle2,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addWeeks, addMonths, isBefore, parseISO } from "date-fns";
@@ -232,7 +232,30 @@ export default function CoachAthleteViewPage() {
     const trend = (arr: number[]) => { if (arr.length < 2) return 0; return arr[0] - arr[arr.length - 1]; };
     const thirtyDaysAgo = format(new Date(Date.now() - 30 * 86400000), "yyyy-MM-dd");
     const recentWorkouts = workoutHistory.filter((w) => w.date >= thirtyDaysAgo);
-    return { currentWeight: latest(weights), weightTrend: trend(weights), avgSteps: avg(stepsList), avgKcal: avg(kcalList), workoutCount: recentWorkouts.length, totalWorkouts: workoutHistory.length };
+
+    // Completion: count days with data in last 30
+    const daysWithWeight = last30.filter((m) => m.weight_g != null).length;
+    const daysWithSteps = last30.filter((m) => m.steps != null).length;
+    const daysWithKcal = last30.filter((m) => m.kcal != null).length;
+    const totalDays = Math.min(last30.length, 30);
+
+    // Training consistency: weeks with at least 1 session in last 4 weeks
+    const fourWeeksAgo = format(new Date(Date.now() - 28 * 86400000), "yyyy-MM-dd");
+    const last4WeeksWorkouts = workoutHistory.filter((w) => w.date >= fourWeeksAgo);
+    const weeksWithTraining = new Set(
+      last4WeeksWorkouts.map((w) => {
+        const d = parseISO(w.date);
+        return format(startOfWeek(d, { weekStartsOn: 1 }), "yyyy-MM-dd");
+      })
+    ).size;
+
+    return {
+      currentWeight: latest(weights), weightTrend: trend(weights),
+      avgSteps: avg(stepsList), avgKcal: avg(kcalList),
+      workoutCount: recentWorkouts.length, totalWorkouts: workoutHistory.length,
+      completion: { daysWithWeight, daysWithSteps, daysWithKcal, totalDays },
+      weeksWithTraining,
+    };
   }, [metrics, workoutHistory]);
 
   const weeklyRows = useMemo(() => computeWeeklyRows(metrics, workoutHistory), [metrics, workoutHistory]);
@@ -398,7 +421,62 @@ export default function CoachAthleteViewPage() {
               </GlassCard>
             </div>
 
-            {/* Metrics view toggle */}
+            {/* Data completion & consistency */}
+            <GlassCard className="p-5 rounded-3xl space-y-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={16} className="text-primary" />
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  {t("coach.completionTitle")}
+                </h3>
+                <span className="text-[10px] font-bold text-muted-foreground ml-auto">
+                  {t("coach.last30days")}
+                </span>
+              </div>
+
+              {[
+                { label: t("dashboard.weight"), count: stats.completion.daysWithWeight, total: stats.completion.totalDays, color: "bg-[hsl(var(--metric-weight))]" },
+                { label: t("coach.avgSteps"), count: stats.completion.daysWithSteps, total: stats.completion.totalDays, color: "bg-[hsl(var(--metric-steps))]" },
+                { label: t("coach.avgKcal"), count: stats.completion.daysWithKcal, total: stats.completion.totalDays, color: "bg-[hsl(var(--metric-kcal))]" },
+              ].map(({ label, count, total, color }) => {
+                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                return (
+                  <div key={label} className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-foreground">{label}</span>
+                      <span className={`text-xs font-black ${pct >= 70 ? "text-primary" : pct >= 40 ? "text-warning" : "text-destructive"}`}>
+                        {count}/{total}j · {pct}%
+                      </span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${color}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+
+              <div className="pt-2 border-t border-border space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-foreground">{t("coach.trainingConsistency")}</span>
+                  <span className={`text-xs font-black ${stats.weeksWithTraining >= 3 ? "text-primary" : stats.weeksWithTraining >= 2 ? "text-warning" : "text-destructive"}`}>
+                    {stats.weeksWithTraining}/4 {t("coach.weeksActive")}
+                  </span>
+                </div>
+                <div className="flex gap-1.5">
+                  {[0, 1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className={`flex-1 h-3 rounded-full transition-colors ${
+                        i < stats.weeksWithTraining ? "bg-primary" : "bg-muted"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            </GlassCard>
+
             <div className="flex glass rounded-xl p-1">
               {(["day", "week", "month"] as MetricsView[]).map((v) => (
                 <button
