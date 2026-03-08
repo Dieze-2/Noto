@@ -99,17 +99,6 @@ export default function CoachStatsOverview({ athletes, profiles }: Props) {
       : 0;
 
     // --- Global e1RM progressions per exercise ---
-    const exMap = new Map<string, { first: any; last: any; progressions: number[] }>();
-    allWorkouts.forEach((w) => {
-      const loadKg = (w.load_g ?? 0) / 1000;
-      if (loadKg <= 0) return;
-      const key = w.exercise_name;
-      if (!exMap.has(key)) {
-        exMap.set(key, { first: w, last: w, progressions: [] });
-      } else {
-        exMap.get(key)!.last = w;
-      }
-    });
 
     // Per exercise across all athletes
     const exerciseProgressions: { name: string; pct: number }[] = [];
