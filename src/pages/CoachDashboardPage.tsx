@@ -308,6 +308,13 @@ export default function CoachDashboardPage() {
                   <span className="text-[10px] font-bold uppercase text-warning bg-warning/10 px-2 py-0.5 rounded-full">
                     {t("coach.pending")}
                   </span>
+                  <button
+                    onClick={() => setRemoveTarget(a)}
+                    className="shrink-0 p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                    title={t("coach.cancelInvite")}
+                  >
+                    <X size={12} />
+                  </button>
                 </div>
               ))}
             </div>
