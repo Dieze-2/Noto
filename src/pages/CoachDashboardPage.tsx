@@ -22,6 +22,7 @@ import {
   canInviteAthlete, PLAN_CONFIG, CoachPlan,
   getCoachSubscription,
 } from "@/db/coachSubscriptions";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function CoachDashboardPage() {
   const { t } = useTranslation();
