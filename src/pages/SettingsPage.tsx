@@ -13,6 +13,38 @@ import { useAuth } from "@/auth/AuthProvider";
 import { supabase } from "@/lib/supabaseClient";
 import { getDailyMetricsRange } from "@/db/dailyMetrics";
 import { getUserGoals, saveUserGoals } from "@/db/goals";
+import { supabase as sb } from "@/lib/supabaseClient";
+
+/* ── Workouts Export ── */
+async function exportWorkoutsCSV() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) { toast.error("Non authentifié"); return; }
+
+  // Fetch workouts with exercises and sets via the flat view
+  const { data, error } = await sb
+    .from("v_workout_exercises_flat")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("workout_date", { ascending: true });
+
+  if (error) { toast.error("Erreur : " + error.message); return; }
+  if (!data?.length) { toast.error("Aucune séance à exporter"); return; }
+
+  const header = "date,exercise_name,load_type,load_g,reps";
+  const lines = data.map(
+    (r: any) => `${r.workout_date},${r.exercise_name},${r.load_type},${r.load_g ?? ""},${r.reps ?? ""}`
+  );
+  const csv = [header, ...lines].join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `noto-workouts-${format(new Date(), "yyyy-MM-dd")}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast.success("Export séances téléchargé !");
+}
 
 /* ── CSV Export ── */
 async function exportDailyMetricsCSV() {
