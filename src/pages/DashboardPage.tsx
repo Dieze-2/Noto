@@ -82,7 +82,7 @@ function buildWeightOpts(height: number): uPlot.Options {
   };
 }
 
-function buildExerciseOpts(height: number, showTotal: boolean): uPlot.Options {
+function buildExerciseOpts(height: number, showTotal: boolean): Omit<uPlot.Options, "width"> & { width: number } {
   const series: uPlot.Series[] = [
     {},
     {
