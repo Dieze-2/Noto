@@ -338,7 +338,7 @@ export default function DashboardPage() {
             <Skeleton className="h-[220px] w-full rounded-2xl" />
           ) : weightData.length < 2 ? (
             <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">
-              Pas assez de données
+              {t("dashboard.notEnoughData")}
             </div>
           ) : (
             <UPlotChart options={weightOpts} data={weightChartData} />
