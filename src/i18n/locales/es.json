@@ -318,7 +318,8 @@
     "markAllRead": "Marcar todo leído",
     "accepted": "{{email}} aceptó tu invitación",
     "rejected": "{{email}} rechazó tu invitación",
-    "coachRequest": "{{email}} quiere convertirse en coach"
+    "coachRequest": "{{email}} quiere convertirse en coach",
+    "subscriptionCancelled": "{{email}} canceló su suscripción de coach"
   },
   "admin": {
     "title": "Administración",
@@ -329,6 +330,12 @@
     "approve": "Aprobar",
     "reject": "Rechazar",
     "approved": "¡Solicitud aprobada! Rol de coach asignado.",
-    "rejected": "Solicitud rechazada."
+    "rejected": "Solicitud rechazada.",
+    "grantTrial": "Prueba coach (30 días)",
+    "grantTrialDesc": "Dar acceso coach gratuito por 30 días a un usuario.",
+    "trialEmailPlaceholder": "Email del usuario…",
+    "startTrial": "Iniciar",
+    "trialGranted": "¡Prueba de 30 días concedida!",
+    "userNotFound": "No se encontró ningún usuario con este email."
   }
 }
