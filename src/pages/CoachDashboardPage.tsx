@@ -17,6 +17,7 @@ import {
   getCoachPrograms, createProgram, deleteProgram, Program,
 } from "@/db/programs";
 import ProgramEditor from "@/components/ProgramEditor";
+import { getProfiles, formatName, Profile } from "@/db/profiles";
 
 export default function CoachDashboardPage() {
   const { t } = useTranslation();
@@ -25,6 +26,7 @@ export default function CoachDashboardPage() {
 
   const [athletes, setAthletes] = useState<CoachAthlete[]>([]);
   const [programs, setPrograms] = useState<Program[]>([]);
+  const [athleteProfiles, setAthleteProfiles] = useState<Record<string, Profile>>({});
   const [loadingData, setLoadingData] = useState(true);
 
   /* invite drawer */
@@ -45,6 +47,14 @@ export default function CoachDashboardPage() {
     const [a, p] = await Promise.all([getCoachAthletes(), getCoachPrograms()]);
     setAthletes(a);
     setPrograms(p);
+    // Fetch athlete profiles
+    const ids = a.filter((x) => x.athlete_id).map((x) => x.athlete_id!);
+    if (ids.length) {
+      const profiles = await getProfiles(ids);
+      const map: Record<string, Profile> = {};
+      profiles.forEach((pr) => { map[pr.id] = pr; });
+      setAthleteProfiles(map);
+    }
     setLoadingData(false);
   };
 
@@ -188,7 +198,7 @@ export default function CoachDashboardPage() {
                     <Eye size={14} />
                   </div>
                   <span className="text-sm font-bold text-foreground flex-1 truncate">
-                    {a.invite_email ?? a.athlete_id}
+                    {a.athlete_id && athleteProfiles[a.athlete_id] ? formatName(athleteProfiles[a.athlete_id]) : a.invite_email ?? a.athlete_id}
                   </span>
                   <ChevronRight size={14} className="text-muted-foreground/40" />
                 </button>
@@ -242,7 +252,7 @@ export default function CoachDashboardPage() {
                 <option value="">{t("program.selectAthlete")}</option>
                 {accepted.map((a) => (
                   <option key={a.id} value={a.athlete_id!}>
-                    {a.invite_email ?? a.athlete_id}
+                    {a.athlete_id && athleteProfiles[a.athlete_id] ? formatName(athleteProfiles[a.athlete_id]) : a.invite_email ?? a.athlete_id}
                   </option>
                 ))}
               </select>

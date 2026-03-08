@@ -85,6 +85,7 @@
     "goalsSaved": "Goals saved!",
     "saving": "Saving…",
     "register": "Save",
+    "profileSaved": "Profile saved!",
     "password": "Password",
     "changePassword": "Change password",
     "newPassword": "New password",
@@ -190,6 +191,8 @@
     "resetEmailSent": "A reset email has been sent!",
     "sending": "Sending…",
     "backToLogin": "Back to login",
+    "firstName": "First name",
+    "lastName": "Last name",
     "newPasswordLabel": "Choose your new password",
     "passwordResetSuccess": "Password changed! Redirecting…",
     "invalidResetLink": "Invalid or expired reset link."

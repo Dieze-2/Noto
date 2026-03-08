@@ -85,6 +85,7 @@
     "goalsSaved": "¡Objetivos guardados!",
     "saving": "Guardando…",
     "register": "Guardar",
+    "profileSaved": "¡Perfil guardado!",
     "password": "Contraseña",
     "changePassword": "Cambiar contraseña",
     "newPassword": "Nueva contraseña",
@@ -190,6 +191,8 @@
     "resetEmailSent": "¡Se ha enviado un email de restablecimiento!",
     "sending": "Enviando…",
     "backToLogin": "Volver al inicio de sesión",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
     "newPasswordLabel": "Elige tu nueva contraseña",
     "passwordResetSuccess": "¡Contraseña cambiada! Redirigiendo…",
     "invalidResetLink": "Enlace de restablecimiento inválido o expirado."
