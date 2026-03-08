@@ -10,7 +10,7 @@ import { createNotification } from "@/db/notifications";
 import { supabase } from "@/lib/supabaseClient";
 import { getProfile, displayName } from "@/db/profiles";
 import { useRoles } from "@/auth/RoleProvider";
-import { getCoachSubscription, requestCancellation, CoachPlan } from "@/db/coachSubscriptions";
+import { getCoachSubscription, requestCancellation, isTrialEligible, CoachPlan } from "@/db/coachSubscriptions";
 
 const plans = [
   {
@@ -47,10 +47,14 @@ export default function PricingPage() {
   const { isCoach } = useRoles();
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [currentPlan, setCurrentPlan] = useState<CoachPlan | null>(null);
+  const [trialEligible, setTrialEligible] = useState(false);
+  const [requestingTrial, setRequestingTrial] = useState(false);
 
   useEffect(() => {
     if (isCoach) {
       getCoachSubscription().then((sub) => setCurrentPlan(sub?.plan ?? null));
+    } else {
+      isTrialEligible().then(setTrialEligible);
     }
   }, [isCoach]);
 
@@ -90,6 +94,43 @@ export default function PricingPage() {
       toast.error(e.message);
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const handleRequestTrial = async () => {
+    setRequestingTrial(true);
+    try {
+      const req = await submitCoachRequest();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const profile = await getProfile(user.id);
+        const name = profile ? displayName(profile) : user.email ?? "";
+        const { data: adminRoles } = await supabase
+          .from("user_roles")
+          .select("user_id")
+          .eq("role", "admin");
+        if (adminRoles) {
+          for (const ar of adminRoles) {
+            await createNotification({
+              coach_id: ar.user_id,
+              type: "coach_request",
+              athlete_email: `${name} (essai 30j)`,
+              athlete_id: user.id,
+              request_id: req.id,
+            });
+          }
+        }
+      }
+      toast.success(t("pricing.trialRequested"));
+      setTrialEligible(false);
+    } catch (e: any) {
+      if (e.message?.includes("duplicate") || e.code === "23505") {
+        toast.error(t("settings.coachRequestAlreadySent"));
+      } else {
+        toast.error(e.message);
+      }
+    } finally {
+      setRequestingTrial(false);
     }
   };
 
@@ -275,6 +316,29 @@ export default function PricingPage() {
               {t("pricing.cancelSubscription")}
             </button>
           </div>
+        )}
+
+        {/* Free trial request */}
+        {!isCoach && trialEligible && (
+          <GlassCard className="p-6 rounded-3xl text-center space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mx-auto">
+              <Crown size={22} />
+            </div>
+            <h3 className="text-sm font-black uppercase tracking-widest text-foreground">
+              {t("pricing.trialTitle")}
+            </h3>
+            <p className="text-xs text-muted-foreground font-bold max-w-sm mx-auto">
+              {t("pricing.trialDesc")}
+            </p>
+            <button
+              onClick={handleRequestTrial}
+              disabled={requestingTrial}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-primary text-primary-foreground text-xs font-black uppercase tracking-wider hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {requestingTrial && <Loader2 size={14} className="animate-spin" />}
+              {t("pricing.requestTrial")}
+            </button>
+          </GlassCard>
         )}
 
         {/* Footer note */}
