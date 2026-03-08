@@ -162,7 +162,12 @@ export default function CoachExerciseDashboard({ athleteId }: Props) {
         const isPDC = loads.every((l) => l === 0);
         const lastLoad = loads[loads.length - 1];
         const firstLoad = loads[0];
-        const trend = firstLoad > 0 ? ((lastLoad - firstLoad) / firstLoad) * 100 : 0;
+        // Use reps progression for PDC, load progression otherwise
+        const firstReps = reps[0];
+        const lastReps = reps[reps.length - 1];
+        const trend = isPDC
+          ? (firstReps > 0 ? ((lastReps - firstReps) / firstReps) * 100 : 0)
+          : (firstLoad > 0 ? ((lastLoad - firstLoad) / firstLoad) * 100 : 0);
         // Get unique session dates
         const dates = [...new Set(entries.map((e) => e.workout_date))];
 
