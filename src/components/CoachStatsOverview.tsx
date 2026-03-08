@@ -275,73 +275,86 @@ export default function CoachStatsOverview({ athletes, profiles }: Props) {
         </GlassCard>
       </div>
 
-      {/* Row 2: Consistency */}
-      <GlassCard className="p-4 rounded-2xl text-center">
-        <div className="flex items-center justify-center gap-1 mb-1">
-          <Flame size={14} className="text-primary" />
-        </div>
-        <div className="text-xl font-black text-foreground">{stats.consistencyRate}%</div>
-        <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-          {t("coachStats.consistency")}
-        </div>
-      </GlassCard>
-
-      {/* Top progressions */}
-      {stats.topExercises.length > 0 && (
-        <GlassCard className="rounded-2xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-border flex items-center gap-2">
-            <Trophy size={12} className="text-primary" />
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-              {t("coachStats.topProgressions")}
-            </p>
+      {/* Row 2: Consistency + Top progressions side by side */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <GlassCard className="p-4 rounded-2xl text-center">
+          <div className="flex items-center justify-center gap-1 mb-1">
+            <Flame size={14} className="text-primary" />
           </div>
-          <div className="divide-y divide-border">
-            {stats.topExercises.map((ex, i) => (
-              <div key={ex.name} className="px-4 py-2.5 flex items-center gap-3">
-                <span className="text-[10px] font-black text-muted-foreground w-5 text-center">
-                  {i + 1}
-                </span>
-                <span className="text-xs font-bold text-foreground flex-1 truncate">
-                  {ex.name}
-                </span>
-                <span className={`text-xs font-black ${ex.pct >= 0 ? "text-primary" : "text-destructive"}`}>
-                  {ex.pct > 0 ? "+" : ""}{ex.pct.toFixed(1)}%
-                </span>
-              </div>
-            ))}
+          <div className="text-2xl font-black text-foreground">{stats.consistencyRate}%</div>
+          <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+            {t("coachStats.consistency")}
           </div>
         </GlassCard>
-      )}
 
-      {/* Best / Worst highlights */}
-      {(stats.bestExercise || stats.worstExercise) && (
+        {stats.topExercises.length > 0 && (
+          <GlassCard className="rounded-2xl overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-border flex items-center gap-2">
+              <Trophy size={12} className="text-primary" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                {t("coachStats.topProgressions")}
+              </p>
+            </div>
+            <div className="divide-y divide-border">
+              {stats.topExercises.map((ex, i) => (
+                <div key={ex.name} className="px-4 py-2 flex items-center gap-3">
+                  <span className="text-[10px] font-black text-muted-foreground w-5 text-center">
+                    {i + 1}
+                  </span>
+                  <span className="text-xs font-bold text-foreground flex-1 truncate">
+                    {ex.name}
+                  </span>
+                  <span className={`text-xs font-black ${ex.pct >= 0 ? "text-primary" : "text-destructive"}`}>
+                    {ex.pct > 0 ? "+" : ""}{ex.pct.toFixed(1)}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          </GlassCard>
+        )}
+      </div>
+
+      {/* Row 3: Best / Worst athlete */}
+      {(stats.bestAthlete || stats.worstAthlete) && (
         <div className="grid grid-cols-2 gap-3">
-          {stats.bestExercise && (
+          {stats.bestAthlete && (
             <GlassCard className="p-4 rounded-2xl">
               <div className="flex items-center gap-1.5 mb-2">
                 <TrendingUp size={12} className="text-primary" />
                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                  {t("coachStats.bestExercise")}
+                  {t("coachStats.bestAthlete")}
                 </span>
               </div>
-              <p className="text-xs font-bold text-foreground truncate">{stats.bestExercise.name}</p>
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <User size={12} className="text-primary" />
+                </div>
+                <p className="text-xs font-bold text-foreground truncate">{stats.bestAthlete.name}</p>
+              </div>
               <p className="text-lg font-black text-primary">
-                +{stats.bestExercise.pct.toFixed(1)}%
+                {stats.bestAthlete.pct > 0 ? "+" : ""}{stats.bestAthlete.pct.toFixed(1)}%
               </p>
+              <p className="text-[9px] font-bold text-muted-foreground">{t("coachStats.avgE1rm")}</p>
             </GlassCard>
           )}
-          {stats.worstExercise && stats.worstExercise.name !== stats.bestExercise?.name && (
+          {stats.worstAthlete && stats.worstAthlete.id !== stats.bestAthlete?.id && (
             <GlassCard className="p-4 rounded-2xl">
               <div className="flex items-center gap-1.5 mb-2">
                 <TrendingDown size={12} className="text-destructive" />
                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                  {t("coachStats.worstExercise")}
+                  {t("coachStats.worstAthlete")}
                 </span>
               </div>
-              <p className="text-xs font-bold text-foreground truncate">{stats.worstExercise.name}</p>
-              <p className={`text-lg font-black ${stats.worstExercise.pct >= 0 ? "text-primary" : "text-destructive"}`}>
-                {stats.worstExercise.pct > 0 ? "+" : ""}{stats.worstExercise.pct.toFixed(1)}%
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-6 h-6 rounded-lg bg-destructive/10 flex items-center justify-center">
+                  <User size={12} className="text-destructive" />
+                </div>
+                <p className="text-xs font-bold text-foreground truncate">{stats.worstAthlete.name}</p>
+              </div>
+              <p className={`text-lg font-black ${stats.worstAthlete.pct >= 0 ? "text-primary" : "text-destructive"}`}>
+                {stats.worstAthlete.pct > 0 ? "+" : ""}{stats.worstAthlete.pct.toFixed(1)}%
               </p>
+              <p className="text-[9px] font-bold text-muted-foreground">{t("coachStats.avgE1rm")}</p>
             </GlassCard>
           )}
         </div>
