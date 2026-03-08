@@ -336,7 +336,7 @@ export default function SettingsPage() {
         <SettingsSection icon={User} title={t("settings.profile")} trailing={<img src={logo} alt="NOTO" className="w-8 h-8 object-contain opacity-50 rounded-lg" />}>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Email</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("settings.email")}</span>
               <span className="text-sm font-bold text-foreground truncate ml-4">{user?.email ?? "—"}</span>
             </div>
             <div className="flex items-center justify-between">
