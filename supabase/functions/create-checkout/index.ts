@@ -31,7 +31,7 @@ serve(async (req) => {
     const user = data.user;
     if (!user?.email) throw new Error("Not authenticated");
 
-    const { plan } = await req.json();
+    const { plan, trial } = await req.json();
     const priceId = PLAN_PRICES[plan];
     if (!priceId) throw new Error(`Invalid plan: ${plan}`);
 
@@ -46,10 +46,9 @@ serve(async (req) => {
       customerId = customers.data[0].id;
     }
 
-    // For Pro/Club with graduated pricing, start with quantity = 1 (minimum)
     const quantity = 1;
 
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams: any = {
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: [{ price: priceId, quantity }],
@@ -59,7 +58,14 @@ serve(async (req) => {
       },
       success_url: `${req.headers.get("origin")}/#/pricing?checkout=success`,
       cancel_url: `${req.headers.get("origin")}/#/pricing?checkout=cancel`,
-    });
+    };
+
+    // Add 30-day trial if requested
+    if (trial) {
+      sessionParams.subscription_data.trial_period_days = 30;
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

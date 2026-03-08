@@ -182,10 +182,10 @@ export async function canInviteAthlete(): Promise<{
   return { allowed: count < maxAllowed, currentCount: count, maxAllowed, plan };
 }
 
-/** Start Stripe Checkout for a plan */
-export async function startCheckout(plan: CoachPlan): Promise<string> {
+/** Start Stripe Checkout for a plan (with optional 30-day trial) */
+export async function startCheckout(plan: CoachPlan, trial = false): Promise<string> {
   const { data, error } = await supabase.functions.invoke("create-checkout", {
-    body: { plan },
+    body: { plan, trial },
   });
   if (error) throw error;
   if (data?.error) throw new Error(data.error);
