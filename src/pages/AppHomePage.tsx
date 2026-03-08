@@ -550,7 +550,7 @@ export default function AppHomePage() {
           <DrawerInputRow weight={editSetForm.weight} reps={editSetForm.reps}
             onWeightChange={(v) => setEditSetForm({ ...editSetForm, weight: v })}
             onRepsChange={(v) => setEditSetForm({ ...editSetForm, reps: v })} />
-          <DrawerSubmit disabled={!editSetCanSave} onClick={saveEditSet} label="Sauver" />
+          <DrawerSubmit disabled={!editSetCanSave} onClick={saveEditSet} label={t("today.save")} />
         </div>
       </Drawer>
     </div>
