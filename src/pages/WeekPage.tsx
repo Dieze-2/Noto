@@ -386,7 +386,7 @@ export default function WeekPage() {
                     {/* ── CREATE FORM ── */}
                     <GlassCard className="p-6 rounded-[2.5rem] space-y-4 border-b-4 border-primary">
                       <input
-                        placeholder="Nom de l'événement..."
+                        placeholder={t("week.eventName")}
                         value={title} onChange={(e) => setTitle(e.target.value)}
                         className="w-full glass rounded-2xl px-4 py-3 text-xl font-bold text-foreground outline-none focus:ring-1 focus:ring-primary"
                       />
