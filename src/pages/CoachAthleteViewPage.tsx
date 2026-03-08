@@ -359,8 +359,8 @@ export default function CoachAthleteViewPage() {
       result.push({
         type: "inactive",
         icon: Moon,
-        color: "text-warning",
-        bgColor: "border-warning/30 bg-warning/5",
+        color: "text-[hsl(36,100%,55%)]",
+        bgColor: "border-[hsl(36,100%,55%)]/30 bg-[hsl(36,100%,55%)]/10",
         message: daysSince != null
           ? t("coach.alertInactive", { days: daysSince })
           : t("coach.alertNoWorkout"),
@@ -378,8 +378,8 @@ export default function CoachAthleteViewPage() {
         result.push({
           type: "weightLoss",
           icon: AlertTriangle,
-          color: "text-destructive",
-          bgColor: "border-destructive/30 bg-destructive/5",
+          color: "text-[hsl(0,85%,60%)]",
+          bgColor: "border-[hsl(0,85%,60%)]/30 bg-[hsl(0,85%,60%)]/10",
           message: t("coach.alertWeightLoss", { kg: Math.abs(diff).toFixed(1) }),
         });
       }
@@ -391,8 +391,8 @@ export default function CoachAthleteViewPage() {
       result.push({
         type: "pr",
         icon: Trophy,
-        color: "text-primary",
-        bgColor: "border-primary/30 bg-primary/5",
+        color: "text-[hsl(156,100%,50%)]",
+        bgColor: "border-[hsl(156,100%,50%)]/30 bg-[hsl(156,100%,50%)]/10",
         message: t("coach.alertPR", { count: recentPRs.length, exercise: recentPRs[0].name }),
       });
     }
