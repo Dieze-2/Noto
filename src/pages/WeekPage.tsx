@@ -75,6 +75,7 @@ export default function WeekPage() {
   const [currentWeekData, setCurrentWeekData] = useState<DailyMetrics[]>([]);
   const [prevWeekData, setPrevWeekData] = useState<DailyMetrics[]>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
+  const [goals, setGoals] = useState<UserGoals | null>(null);
 
   /* ── Drawer NOTE state ── */
   const [noteOpen, setNoteOpen] = useState(false);
