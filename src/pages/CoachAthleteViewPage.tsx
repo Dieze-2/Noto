@@ -378,8 +378,8 @@ export default function CoachAthleteViewPage() {
         result.push({
           type: "weightLoss",
           icon: AlertTriangle,
-          color: "text-destructive",
-          bgColor: "border-destructive/30 bg-destructive/5",
+          color: "text-[hsl(0,85%,60%)]",
+          bgColor: "border-[hsl(0,85%,60%)]/30 bg-[hsl(0,85%,60%)]/10",
           message: t("coach.alertWeightLoss", { kg: Math.abs(diff).toFixed(1) }),
         });
       }
