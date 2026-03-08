@@ -411,7 +411,7 @@ export default function DashboardPage() {
             <Skeleton className="h-[220px] w-full rounded-2xl" />
           ) : exercises.length === 0 ? (
             <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">
-              Aucun exercice enregistré
+              {t("dashboard.noExercise")}
             </div>
           ) : exData.length < 2 ? (
             <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">
