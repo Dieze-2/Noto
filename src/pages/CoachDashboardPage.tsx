@@ -314,7 +314,7 @@ export default function CoachDashboardPage() {
                           {name}
                         </span>
                         {isInactive && (
-                          <span className="text-[10px] font-bold text-warning">
+                          <span className="text-[10px] font-bold text-[hsl(36,100%,55%)]">
                             {daysSince != null ? t("coach.alertInactive", { days: daysSince }) : t("coach.alertNoWorkout")}
                           </span>
                         )}
