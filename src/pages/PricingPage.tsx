@@ -2,20 +2,13 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Check, Crown, Zap, Building2, ArrowLeft, Loader2, ExternalLink } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import GlassCard from "@/components/GlassCard";
-import { submitCoachRequest, getMyCoachRequest } from "@/db/coachRequests";
-import { createNotification } from "@/db/notifications";
-import { supabase } from "@/lib/supabaseClient";
-import { getProfile, displayName } from "@/db/profiles";
 import { useRoles } from "@/auth/RoleProvider";
 import {
-  getCoachSubscription,
-  requestCancellation,
   isTrialEligible,
   startCheckout,
-  checkStripeSubscription,
   openCustomerPortal,
   CoachPlan,
 } from "@/db/coachSubscriptions";
@@ -52,11 +45,9 @@ const plans = [
 export default function PricingPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { isCoach } = useRoles();
+  const { isCoach, subscription, refresh } = useRoles();
   const [submitting, setSubmitting] = useState<string | null>(null);
-  const [currentPlan, setCurrentPlan] = useState<CoachPlan | null>(null);
   const [trialEligible, setTrialEligible] = useState(false);
-  const [requestingTrial, setRequestingTrial] = useState(false);
   const [managingPortal, setManagingPortal] = useState(false);
 
   // Handle checkout success/cancel from URL
@@ -64,7 +55,7 @@ export default function PricingPage() {
     const hash = window.location.hash;
     if (hash.includes("checkout=success")) {
       toast.success(t("pricing.checkoutSuccess", "Abonnement activé avec succès !"));
-      // Clean URL
+      refresh(); // Re-check subscription status
       window.location.hash = hash.replace(/[?&]checkout=success/, "");
     } else if (hash.includes("checkout=cancel")) {
       toast.info(t("pricing.checkoutCancelled", "Paiement annulé."));
@@ -73,20 +64,18 @@ export default function PricingPage() {
   }, []);
 
   useEffect(() => {
-    if (isCoach) {
-      getCoachSubscription().then((sub) => setCurrentPlan(sub?.plan ?? null));
-    } else {
+    if (!isCoach) {
       isTrialEligible().then(setTrialEligible);
     }
   }, [isCoach]);
 
-  const handleSubscribe = async (planKey: CoachPlan) => {
-    setSubmitting(planKey);
+  const currentPlan = subscription?.plan ?? null;
+
+  const handleSubscribe = async (planKey: CoachPlan, trial = false) => {
+    setSubmitting(planKey + (trial ? "-trial" : ""));
     try {
-      const url = await startCheckout(planKey);
-      if (url) {
-        window.open(url, "_blank");
-      }
+      const url = await startCheckout(planKey, trial);
+      if (url) window.open(url, "_blank");
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -98,83 +87,11 @@ export default function PricingPage() {
     setManagingPortal(true);
     try {
       const url = await openCustomerPortal();
-      if (url) {
-        window.open(url, "_blank");
-      }
+      if (url) window.open(url, "_blank");
     } catch (e: any) {
       toast.error(e.message);
     } finally {
       setManagingPortal(false);
-    }
-  };
-
-  const [cancelling, setCancelling] = useState(false);
-
-  const handleCancel = async () => {
-    setCancelling(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const profile = await getProfile(user.id);
-        const name = profile ? displayName(profile) : user.email ?? "";
-        const { data: adminRoles } = await supabase
-          .from("user_roles")
-          .select("user_id")
-          .eq("role", "admin");
-        if (adminRoles) {
-          for (const ar of adminRoles) {
-            await createNotification({
-              coach_id: ar.user_id,
-              type: "cancellation_request",
-              athlete_email: name,
-              athlete_id: user.id,
-            });
-          }
-        }
-      }
-      await requestCancellation();
-      toast.success(t("pricing.cancellationRequested"));
-    } catch (e: any) {
-      toast.error(e.message);
-    } finally {
-      setCancelling(false);
-    }
-  };
-
-  const handleRequestTrial = async () => {
-    setRequestingTrial(true);
-    try {
-      const req = await submitCoachRequest();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const profile = await getProfile(user.id);
-        const name = profile ? displayName(profile) : user.email ?? "";
-        const { data: adminRoles } = await supabase
-          .from("user_roles")
-          .select("user_id")
-          .eq("role", "admin");
-        if (adminRoles) {
-          for (const ar of adminRoles) {
-            await createNotification({
-              coach_id: ar.user_id,
-              type: "coach_request",
-              athlete_email: `${name} (essai 30j)`,
-              athlete_id: user.id,
-              request_id: req.id,
-            });
-          }
-        }
-      }
-      toast.success(t("pricing.trialRequested"));
-      setTrialEligible(false);
-    } catch (e: any) {
-      if (e.message?.includes("duplicate") || e.code === "23505") {
-        toast.error(t("settings.coachRequestAlreadySent"));
-      } else {
-        toast.error(e.message);
-      }
-    } finally {
-      setRequestingTrial(false);
     }
   };
 
@@ -300,21 +217,22 @@ export default function PricingPage() {
           })}
         </div>
 
-        {/* Cancel subscription */}
+        {/* Manage subscription via Stripe Portal */}
         {isCoach && (
           <div className="text-center">
             <button
-              onClick={handleCancel}
-              disabled={cancelling}
-              className="text-xs font-bold text-destructive hover:text-destructive/80 transition-colors disabled:opacity-50 flex items-center gap-1.5 mx-auto"
+              onClick={handleManageSubscription}
+              disabled={managingPortal}
+              className="text-xs font-bold text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 flex items-center gap-1.5 mx-auto"
             >
-              {cancelling && <Loader2 size={12} className="animate-spin" />}
+              {managingPortal && <Loader2 size={12} className="animate-spin" />}
+              <ExternalLink size={12} />
               {t("pricing.cancelSubscription")}
             </button>
           </div>
         )}
 
-        {/* Free trial request */}
+        {/* Free trial via Stripe (30 days, Classic plan) */}
         {!isCoach && trialEligible && (
           <GlassCard className="p-6 rounded-3xl text-center space-y-3">
             <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mx-auto">
@@ -327,11 +245,11 @@ export default function PricingPage() {
               {t("pricing.trialDesc")}
             </p>
             <button
-              onClick={handleRequestTrial}
-              disabled={requestingTrial}
+              onClick={() => handleSubscribe("classic", true)}
+              disabled={!!submitting}
               className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-primary text-primary-foreground text-xs font-black uppercase tracking-wider hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {requestingTrial && <Loader2 size={14} className="animate-spin" />}
+              {submitting === "classic-trial" && <Loader2 size={14} className="animate-spin" />}
               {t("pricing.requestTrial")}
             </button>
           </GlassCard>
