@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 import { createNotification } from "@/db/notifications";
+import { syncAthleteQuantity } from "@/db/coachSubscriptions";
 
 export interface CoachAthlete {
   id: string;
@@ -35,6 +36,8 @@ export async function inviteAthlete(email: string) {
     .select()
     .single();
   if (error) throw error;
+  // Sync athlete count with Stripe
+  syncAthleteQuantity().catch(() => {});
   return data;
 }
 
@@ -117,6 +120,8 @@ export async function removeAthlete(relationId: string) {
     .delete()
     .eq("id", relationId);
   if (error) throw error;
+  // Sync athlete count with Stripe
+  syncAthleteQuantity().catch(() => {});
 }
 
 /** Get athlete profile info (email) by user id */
