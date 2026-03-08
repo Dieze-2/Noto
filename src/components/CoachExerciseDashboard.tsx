@@ -247,10 +247,15 @@ export default function CoachExerciseDashboard({ athleteId }: Props) {
   }, [allData, selectedExercise, detailRange]);
 
   const detailChartData = useMemo<uPlot.AlignedData>(() => {
-    if (detailData.length < 2) return [[], []];
+    if (detailData.length < 2) return [[], [], []];
     const xs = detailData.map((d) => toUnix(d.workout_date));
     const ys = detailData.map((d) => computeE1RM(d, weightData));
-    return [xs, ys];
+    const charges = detailData.map((d) => {
+      const load = (d.load_g ?? 0) / 1000;
+      const isPDC = d.load_type === "PDC" || d.load_type === "PDC_PLUS";
+      return isPDC ? load + getBodyweightForDate(weightData, d.workout_date) : load;
+    });
+    return [xs, ys, charges];
   }, [detailData, weightData]);
 
   const detailOpts = useMemo(() => buildExOpts(220), []);
