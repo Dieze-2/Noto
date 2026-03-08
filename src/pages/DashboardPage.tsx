@@ -434,7 +434,7 @@ export default function DashboardPage() {
                 </p>
               </div>
               <div className="bg-muted rounded-xl p-3 text-center">
-                <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Progression</p>
+                <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-1">{t("dashboard.progression")}</p>
                 {(() => {
                   const prog = exStats.progression ?? exStats.repsProg;
                   if (prog === null) return <p className="text-lg font-black text-muted-foreground">—</p>;
