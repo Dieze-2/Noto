@@ -50,7 +50,7 @@ async function exportWorkoutsCSV() {
 /* ── CSV Export ── */
 async function exportDailyMetricsCSV() {
   const rows = await getDailyMetricsRange("2000-01-01", format(new Date(), "yyyy-MM-dd"));
-  if (!rows.length) { toast.error("Aucune donnée à exporter"); return; }
+  if (!rows.length) { toast.error(i18n.t("settings.noDataToExport")); return; }
   const header = "date,weight_g,steps,kcal,note";
   const lines = rows.map(
     (r) => `${r.date},${r.weight_g ?? ""},${r.steps ?? ""},${r.kcal ?? ""},"${(r.note ?? "").replace(/"/g, '""')}"`
