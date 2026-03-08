@@ -66,12 +66,13 @@ function getBodyweightForDate(weights: WeightEntry[], date: string): number {
   return before[before.length - 1].weight_g / 1000;
 }
 
-/** Compute volume for a single entry: totalLoad × reps */
-function computeVolume(entry: ExerciseEntry, weights: WeightEntry[]): number {
+/** Compute estimated 1RM (Epley formula): load × (1 + reps/30) */
+function computeE1RM(entry: ExerciseEntry, weights: WeightEntry[]): number {
   const load = (entry.load_g ?? 0) / 1000;
   const isPDC = entry.load_type === "PDC" || entry.load_type === "PDC_PLUS";
   const totalLoad = isPDC ? load + getBodyweightForDate(weights, entry.workout_date) : load;
-  return totalLoad * entry.reps;
+  if (totalLoad <= 0) return 0;
+  return totalLoad * (1 + entry.reps / 30);
 }
 
 function buildExOpts(height: number): uPlot.Options {
