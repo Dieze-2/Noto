@@ -153,6 +153,9 @@ export default function DashboardPage() {
   const [showTotal, setShowTotal] = useState(false);
   const [loadingEx, setLoadingEx] = useState(true);
 
+  /* Fullscreen state */
+  const [fullscreenChart, setFullscreenChart] = useState<"weight" | "exercise" | null>(null);
+
   /* Load exercise list */
   useEffect(() => {
     listTrackedExercises().then((list) => {
