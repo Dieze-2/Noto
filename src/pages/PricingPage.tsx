@@ -318,6 +318,29 @@ export default function PricingPage() {
           </div>
         )}
 
+        {/* Free trial request */}
+        {!isCoach && trialEligible && (
+          <GlassCard className="p-6 rounded-3xl text-center space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mx-auto">
+              <Crown size={22} />
+            </div>
+            <h3 className="text-sm font-black uppercase tracking-widest text-foreground">
+              {t("pricing.trialTitle")}
+            </h3>
+            <p className="text-xs text-muted-foreground font-bold max-w-sm mx-auto">
+              {t("pricing.trialDesc")}
+            </p>
+            <button
+              onClick={handleRequestTrial}
+              disabled={requestingTrial}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-primary text-primary-foreground text-xs font-black uppercase tracking-wider hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {requestingTrial && <Loader2 size={14} className="animate-spin" />}
+              {t("pricing.requestTrial")}
+            </button>
+          </GlassCard>
+        )}
+
         {/* Footer note */}
         <p className="text-center text-[10px] text-muted-foreground font-bold">
           {t("pricing.note")}
