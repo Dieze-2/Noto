@@ -6,6 +6,7 @@
     "exercises": "Exos",
     "settings": "Settings",
     "coach": "Coach",
+    "admin": "Admin",
     "program": "Sessions"
   },
   "today": {
@@ -324,5 +325,16 @@
     "accepted": "{{email}} accepted your invitation",
     "rejected": "{{email}} declined your invitation",
     "coachRequest": "{{email}} wants to become a coach"
+  },
+  "admin": {
+    "title": "Administration",
+    "subtitle": "Manage requests and users",
+    "notAdmin": "Admin access only",
+    "coachRequests": "Coach requests",
+    "noRequests": "No pending requests",
+    "approve": "Approve",
+    "reject": "Reject",
+    "approved": "Request approved! Coach role granted.",
+    "rejected": "Request rejected."
   }
 }

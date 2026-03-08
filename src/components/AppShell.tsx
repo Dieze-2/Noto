@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { CalendarDays, Dumbbell, LayoutDashboard, BookOpen, Settings, Users, ClipboardList } from "lucide-react";
+import { CalendarDays, Dumbbell, LayoutDashboard, BookOpen, Settings, Users, ClipboardList, Shield } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -11,6 +11,7 @@ interface NavItem {
   key: string;
   icon: React.ElementType;
   coachOnly?: boolean;
+  adminOnly?: boolean;
 }
 
 const NAV_ICONS: NavItem[] = [
@@ -19,6 +20,7 @@ const NAV_ICONS: NavItem[] = [
   { path: "/dashboard", key: "stats", icon: LayoutDashboard },
   { path: "/program", key: "program", icon: ClipboardList },
   { path: "/coach", key: "coach", icon: Users, coachOnly: true },
+  { path: "/admin", key: "admin", icon: Shield, adminOnly: true },
   { path: "/catalog", key: "exercises", icon: BookOpen },
   { path: "/settings", key: "settings", icon: Settings },
 ];
@@ -31,9 +33,13 @@ export default function AppShell({ children }: AppShellProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { isCoach } = useRoles();
+  const { isCoach, isAdmin } = useRoles();
 
-  const visibleItems = NAV_ICONS.filter((item) => !item.coachOnly || isCoach);
+  const visibleItems = NAV_ICONS.filter((item) => {
+    if (item.coachOnly && !isCoach) return false;
+    if (item.adminOnly && !isAdmin) return false;
+    return true;
+  });
 
   return (
     <div className="flex min-h-[100dvh] bg-background">
