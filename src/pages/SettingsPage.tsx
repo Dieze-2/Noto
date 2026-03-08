@@ -14,6 +14,37 @@ import { supabase } from "@/lib/supabaseClient";
 import { getDailyMetricsRange } from "@/db/dailyMetrics";
 import { getUserGoals, saveUserGoals } from "@/db/goals";
 
+/* ── Workouts Export ── */
+async function exportWorkoutsCSV() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) { toast.error("Non authentifié"); return; }
+
+  // Fetch workouts with exercises and sets via the flat view
+  const { data, error } = await supabase
+    .from("v_workout_exercises_flat")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("workout_date", { ascending: true });
+
+  if (error) { toast.error("Erreur : " + error.message); return; }
+  if (!data?.length) { toast.error("Aucune séance à exporter"); return; }
+
+  const header = "date,exercise_name,load_type,load_g,reps";
+  const lines = data.map(
+    (r: any) => `${r.workout_date},${r.exercise_name},${r.load_type},${r.load_g ?? ""},${r.reps ?? ""}`
+  );
+  const csv = [header, ...lines].join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `noto-workouts-${format(new Date(), "yyyy-MM-dd")}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast.success("Export séances téléchargé !");
+}
+
 /* ── CSV Export ── */
 async function exportDailyMetricsCSV() {
   const rows = await getDailyMetricsRange("2000-01-01", format(new Date(), "yyyy-MM-dd"));
@@ -448,25 +479,50 @@ export default function SettingsPage() {
 
       {/* ═══ DRAWER DONNÉES ═══ */}
       <SettingsDrawer open={dataOpen} onClose={() => setDataOpen(false)} title="Données">
-        <div className="space-y-4">
-          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
-            Format CSV : date, weight_g, steps, kcal, note
-          </p>
-          <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-5">
+          {/* Métriques */}
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">
+              Métriques quotidiennes
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => { exportDailyMetricsCSV(); setDataOpen(false); }}
+                className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-primary/10 text-primary text-xs font-black uppercase tracking-wider hover:bg-primary/20 transition-colors"
+              >
+                <Download size={16} />
+                Exporter
+              </button>
+              <button
+                onClick={() => { handleImport(); setDataOpen(false); }}
+                className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-muted text-muted-foreground text-xs font-black uppercase tracking-wider hover:text-foreground transition-colors"
+              >
+                <Upload size={16} />
+                Importer
+              </button>
+            </div>
+            <p className="text-[9px] text-muted-foreground mt-1">
+              CSV : date, weight_g, steps, kcal, note
+            </p>
+          </div>
+
+          <div className="h-px bg-border" />
+
+          {/* Séances */}
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">
+              Séances d'entraînement
+            </p>
             <button
-              onClick={() => { exportDailyMetricsCSV(); setDataOpen(false); }}
-              className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-primary/10 text-primary text-xs font-black uppercase tracking-wider hover:bg-primary/20 transition-colors"
+              onClick={() => { exportWorkoutsCSV(); setDataOpen(false); }}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-primary/10 text-primary text-xs font-black uppercase tracking-wider hover:bg-primary/20 transition-colors"
             >
-              <Download size={18} />
-              Exporter
+              <Download size={16} />
+              Exporter les séances
             </button>
-            <button
-              onClick={() => { handleImport(); setDataOpen(false); }}
-              className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-muted text-muted-foreground text-xs font-black uppercase tracking-wider hover:text-foreground transition-colors"
-            >
-              <Upload size={18} />
-              Importer
-            </button>
+            <p className="text-[9px] text-muted-foreground mt-1">
+              CSV : date, exercise_name, load_type, load_g, reps
+            </p>
           </div>
         </div>
       </SettingsDrawer>
