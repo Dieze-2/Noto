@@ -19,6 +19,7 @@ export async function createNotification(payload: {
   type: NotificationType;
   athlete_email: string | null;
   athlete_id: string | null;
+  request_id?: string | null;
 }) {
   const { error } = await supabase
     .from("coach_notifications")
@@ -27,6 +28,7 @@ export async function createNotification(payload: {
       type: payload.type,
       athlete_email: payload.athlete_email,
       athlete_id: payload.athlete_id,
+      request_id: payload.request_id ?? null,
     });
 
   if (error) console.error("createNotification:", error);
