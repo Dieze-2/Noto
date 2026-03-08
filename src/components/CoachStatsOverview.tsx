@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Activity, TrendingUp, TrendingDown, Users, Zap, Calendar,
-  Loader2, Trophy, Target, BarChart3, Flame,
+  Loader2, Trophy, Flame,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { subDays, format, differenceInCalendarWeeks, parseISO } from "date-fns";
@@ -99,17 +99,6 @@ export default function CoachStatsOverview({ athletes, profiles }: Props) {
       : 0;
 
     // --- Global e1RM progressions per exercise ---
-    const exMap = new Map<string, { first: any; last: any; progressions: number[] }>();
-    allWorkouts.forEach((w) => {
-      const loadKg = (w.load_g ?? 0) / 1000;
-      if (loadKg <= 0) return;
-      const key = w.exercise_name;
-      if (!exMap.has(key)) {
-        exMap.set(key, { first: w, last: w, progressions: [] });
-      } else {
-        exMap.get(key)!.last = w;
-      }
-    });
 
     // Per exercise across all athletes
     const exerciseProgressions: { name: string; pct: number }[] = [];
@@ -128,10 +117,23 @@ export default function CoachStatsOverview({ athletes, profiles }: Props) {
     perAthleteExercises.forEach((exes) => {
       exes.forEach((entries, exName) => {
         if (entries.length < 2) return;
-        const firstLoad = (entries[0].load_g ?? 0) / 1000;
-        const lastLoad = (entries[entries.length - 1].load_g ?? 0) / 1000;
-        const firstE1RM = computeE1RM(firstLoad, entries[0].reps);
-        const lastE1RM = computeE1RM(lastLoad, entries[entries.length - 1].reps);
+        const first = entries[0];
+        const last = entries[entries.length - 1];
+        const firstLoad = (first.load_g ?? 0) / 1000;
+        const lastLoad = (last.load_g ?? 0) / 1000;
+
+        // For PDC/bodyweight exercises: use reps as proxy
+        if (firstLoad <= 0 && lastLoad <= 0) {
+          if (first.reps > 0) {
+            const pct = ((last.reps - first.reps) / first.reps) * 100;
+            if (!globalExProgression.has(exName)) globalExProgression.set(exName, []);
+            globalExProgression.get(exName)!.push(pct);
+          }
+          return;
+        }
+
+        const firstE1RM = computeE1RM(firstLoad, first.reps);
+        const lastE1RM = computeE1RM(lastLoad, last.reps);
         if (firstE1RM > 0) {
           const pct = ((lastE1RM - firstE1RM) / firstE1RM) * 100;
           if (!globalExProgression.has(exName)) globalExProgression.set(exName, []);
@@ -159,12 +161,6 @@ export default function CoachStatsOverview({ athletes, profiles }: Props) {
       ? exerciseProgressions[exerciseProgressions.length - 1]
       : null;
 
-    // Unique exercises practiced
-    const uniqueExercises = new Set(recentWorkouts.map((w) => w.exercise_name)).size;
-
-    // Total sets (entries in recent workouts)
-    const totalSets = recentWorkouts.length;
-
     return {
       activeCount,
       inactiveCount,
@@ -174,8 +170,6 @@ export default function CoachStatsOverview({ athletes, profiles }: Props) {
       consistencyRate,
       bestExercise,
       worstExercise,
-      uniqueExercises,
-      totalSets,
       topExercises: exerciseProgressions.slice(0, 5),
     };
   }, [recentWorkouts, allWorkouts, acceptedAthletes.length]);
@@ -265,38 +259,16 @@ export default function CoachStatsOverview({ athletes, profiles }: Props) {
         </GlassCard>
       </div>
 
-      {/* Row 2: Secondary metrics */}
-      <div className="grid grid-cols-3 gap-3">
-        <GlassCard className="p-4 rounded-2xl text-center">
-          <div className="flex items-center justify-center gap-1 mb-1">
-            <Flame size={14} className="text-primary" />
-          </div>
-          <div className="text-xl font-black text-foreground">{stats.consistencyRate}%</div>
-          <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-            {t("coachStats.consistency")}
-          </div>
-        </GlassCard>
-
-        <GlassCard className="p-4 rounded-2xl text-center">
-          <div className="flex items-center justify-center gap-1 mb-1">
-            <BarChart3 size={14} className="text-primary" />
-          </div>
-          <div className="text-xl font-black text-foreground">{stats.totalSets}</div>
-          <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-            {t("coachStats.totalSets")}
-          </div>
-        </GlassCard>
-
-        <GlassCard className="p-4 rounded-2xl text-center">
-          <div className="flex items-center justify-center gap-1 mb-1">
-            <Target size={14} className="text-primary" />
-          </div>
-          <div className="text-xl font-black text-foreground">{stats.uniqueExercises}</div>
-          <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-            {t("coachStats.uniqueExercises")}
-          </div>
-        </GlassCard>
-      </div>
+      {/* Row 2: Consistency */}
+      <GlassCard className="p-4 rounded-2xl text-center">
+        <div className="flex items-center justify-center gap-1 mb-1">
+          <Flame size={14} className="text-primary" />
+        </div>
+        <div className="text-xl font-black text-foreground">{stats.consistencyRate}%</div>
+        <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+          {t("coachStats.consistency")}
+        </div>
+      </GlassCard>
 
       {/* Top progressions */}
       {stats.topExercises.length > 0 && (
