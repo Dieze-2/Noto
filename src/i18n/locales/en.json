@@ -129,7 +129,8 @@
     "importSuccess": "{{count}} rows imported!",
     "csvEmpty": "Empty or invalid CSV file",
     "steps": "steps",
-    "kcal": "kcal"
+    "kcal": "kcal",
+    "myCoach": "My coach"
   },
   "coach": {
     "title": "Coach Dashboard",

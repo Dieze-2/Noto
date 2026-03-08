@@ -129,7 +129,8 @@
     "importSuccess": "{{count}} lignes importées !",
     "csvEmpty": "Fichier CSV vide ou invalide",
     "steps": "pas",
-    "kcal": "kcal"
+    "kcal": "kcal",
+    "myCoach": "Mon coach"
   },
   "coach": {
     "title": "Espace Coach",

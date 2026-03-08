@@ -124,7 +124,8 @@
     "importSuccess": "¡{{count}} filas importadas!",
     "csvEmpty": "Archivo CSV vacío o inválido",
     "steps": "pasos",
-    "kcal": "kcal"
+    "kcal": "kcal",
+    "myCoach": "Mi coach"
   },
   "coach": {
     "title": "Panel del Coach",

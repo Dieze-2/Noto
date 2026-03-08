@@ -358,6 +358,15 @@ export default function SettingsPage() {
                 {user?.created_at ? format(new Date(user.created_at), "dd/MM/yyyy") : "—"}
               </span>
             </div>
+            {coachName && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("settings.myCoach")}</span>
+                <span className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                  <Shield size={12} className="text-primary" />
+                  {coachName}
+                </span>
+              </div>
+            )}
           </div>
         </SettingsSection>
 
