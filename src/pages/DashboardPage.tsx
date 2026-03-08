@@ -248,11 +248,18 @@ export default function DashboardPage() {
   const exStats = useMemo(() => {
     if (exData.length < 1) return null;
     const loads = exData.map((d: any) => (d.load_g ?? 0) / 1000);
+    const reps = exData.map((d: any) => d.reps ?? 0);
     const maxLoad = Math.max(...loads);
-    const firstLoad = loads[0];
-    const lastLoad = loads[loads.length - 1];
-    const progression = firstLoad > 0 ? ((lastLoad - firstLoad) / firstLoad) * 100 : 0;
-    return { maxLoad, lastLoad, progression, sessions: exData.length };
+    const maxReps = Math.max(...reps);
+    const nonZeroLoads = loads.filter((l: number) => l > 0);
+    const firstLoad = nonZeroLoads.length > 0 ? nonZeroLoads[0] : 0;
+    const lastLoad = nonZeroLoads.length > 0 ? nonZeroLoads[nonZeroLoads.length - 1] : 0;
+    const progression = firstLoad > 0 ? ((lastLoad - firstLoad) / firstLoad) * 100 : null;
+    // Reps progression fallback for PDC exercises
+    const firstReps = reps[0];
+    const lastReps = reps[reps.length - 1];
+    const repsProg = firstReps > 0 ? ((lastReps - firstReps) / firstReps) * 100 : null;
+    return { maxLoad, maxReps, lastLoad, progression, repsProg, sessions: exData.length, isPDC: maxLoad === 0 };
   }, [exData]);
 
   return (
