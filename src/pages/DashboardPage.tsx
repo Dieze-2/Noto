@@ -153,6 +153,9 @@ export default function DashboardPage() {
   const [showTotal, setShowTotal] = useState(false);
   const [loadingEx, setLoadingEx] = useState(true);
 
+  /* All weight data for Total calculation (independent of weight chart range) */
+  const [allWeightData, setAllWeightData] = useState<DailyMetrics[]>([]);
+
   /* Fullscreen state */
   const [fullscreenChart, setFullscreenChart] = useState<"weight" | "exercise" | null>(null);
 
@@ -168,6 +171,10 @@ export default function DashboardPage() {
   /* Load first weight date */
   useEffect(() => {
     getFirstWeightDate().then(setFirstWeight);
+    // Load ALL weight data for Total calculation
+    getDailyMetricsRange("2000-01-01", format(new Date(), "yyyy-MM-dd")).then((d) => {
+      setAllWeightData(d.filter((r) => r.weight_g != null));
+    });
   }, []);
 
   /* Load weight data */
@@ -219,7 +226,7 @@ export default function DashboardPage() {
       const totalLoads = exData.map((d: any) => {
         const load = (d.load_g ?? 0) / 1000;
         // Find closest weight measurement BEFORE or on this date (search backwards)
-        const sortedWeights = [...weightData].filter((w) => w.date <= d.workout_date && w.weight_g != null);
+        const sortedWeights = allWeightData.filter((w) => w.date <= d.workout_date && w.weight_g != null);
         const closestWeight = sortedWeights.length > 0 ? sortedWeights[sortedWeights.length - 1] : null;
         const lastWeight = closestWeight ? (closestWeight.weight_g ?? 0) / 1000 : 0;
         return d.load_type === "PDC" || d.load_type === "PDC_PLUS" ? load + lastWeight : load;
@@ -228,7 +235,7 @@ export default function DashboardPage() {
     }
 
     return [xs, loads];
-  }, [exData, showTotal, weightData]);
+  }, [exData, showTotal, allWeightData]);
 
   /* Chart options (memoized to avoid re-creates) */
   const weightOpts = useMemo(() => buildWeightOpts(220), []);
