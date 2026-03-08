@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users, UserPlus, Mail, ChevronRight, Eye,
-  Loader2, Send, X,
+  Loader2, Send, X, User,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/auth/AuthProvider";
 
 import GlassCard from "@/components/GlassCard";
 import { useRoles } from "@/auth/RoleProvider";
@@ -18,6 +19,7 @@ import { getProfiles, displayName, Profile } from "@/db/profiles";
 export default function CoachDashboardPage() {
   const { t } = useTranslation();
   const { isCoach, loading: rolesLoading } = useRoles();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [athletes, setAthletes] = useState<CoachAthlete[]>([]);
@@ -106,6 +108,23 @@ export default function CoachDashboardPage() {
           </div>
           <ChevronRight size={16} className="text-muted-foreground/40" />
         </button>
+
+        {/* ── My own profile (coach as athlete) ── */}
+        {user && (
+          <button
+            onClick={() => navigate(`/coach/athlete/${user.id}`)}
+            className="w-full flex items-center gap-3 p-4 rounded-2xl glass hover:bg-muted/50 transition-colors text-left"
+          >
+            <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center text-accent-foreground">
+              <User size={18} />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-black uppercase tracking-wider text-foreground">{t("coach.myProfile")}</p>
+              <p className="text-[10px] text-muted-foreground font-bold">{t("coach.myProfileDesc")}</p>
+            </div>
+            <ChevronRight size={16} className="text-muted-foreground/40" />
+          </button>
+        )}
 
         {/* ── Athletes ── */}
         <GlassCard className="p-5 rounded-3xl">
