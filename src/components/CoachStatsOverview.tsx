@@ -161,12 +161,6 @@ export default function CoachStatsOverview({ athletes, profiles }: Props) {
       ? exerciseProgressions[exerciseProgressions.length - 1]
       : null;
 
-    // Unique exercises practiced
-    const uniqueExercises = new Set(recentWorkouts.map((w) => w.exercise_name)).size;
-
-    // Total sets (entries in recent workouts)
-    const totalSets = recentWorkouts.length;
-
     return {
       activeCount,
       inactiveCount,
@@ -176,8 +170,6 @@ export default function CoachStatsOverview({ athletes, profiles }: Props) {
       consistencyRate,
       bestExercise,
       worstExercise,
-      uniqueExercises,
-      totalSets,
       topExercises: exerciseProgressions.slice(0, 5),
     };
   }, [recentWorkouts, allWorkouts, acceptedAthletes.length]);
