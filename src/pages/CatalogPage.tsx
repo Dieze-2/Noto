@@ -76,17 +76,17 @@ export default function CatalogPage() {
                         </h3>
                         <div className="flex gap-2">
                           {ex.note && (
-                            <button
+                          <button
                               type="button"
                               onClick={() => setExpandedId(isExpanded ? null : ex.id)}
-                              className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
+                              className={`w-12 h-12 rounded-full flex items-center justify-center text-[9px] font-black uppercase tracking-wider transition-colors ${
                                 isExpanded
                                   ? "bg-primary text-primary-foreground"
-                                  : "bg-muted text-muted-foreground hover:text-foreground"
+                                  : "bg-muted-foreground/20 text-muted-foreground hover:text-foreground"
                               }`}
                               aria-label="Voir la note"
                             >
-                              <StickyNote size={14} />
+                              Note
                             </button>
                           )}
                           {ex.youtube_url && (
@@ -94,10 +94,10 @@ export default function CatalogPage() {
                               href={ex.youtube_url}
                               target="_blank"
                               rel="noreferrer"
-                              className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground shadow-md hover:opacity-90 transition-opacity"
+                              className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-primary-foreground shadow-lg hover:opacity-90 transition-opacity"
                               aria-label="Voir la vidéo"
                             >
-                              <Play size={14} />
+                              <Play size={18} fill="currentColor" />
                             </a>
                           )}
                         </div>
