@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { path: "/week", label: "Week", icon: CalendarDays },
   { path: "/dashboard", label: "Stats", icon: LayoutDashboard },
   { path: "/catalog", label: "Exos", icon: BookOpen },
+  { path: "/settings", label: "Réglages", icon: Settings },
 ];
 
 interface AppShellProps {
