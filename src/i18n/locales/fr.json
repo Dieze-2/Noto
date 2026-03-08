@@ -359,6 +359,24 @@
     "trialEmailPlaceholder": "Email de l'utilisateur…",
     "startTrial": "Démarrer",
     "trialGranted": "Essai coach de 30 jours accordé !",
-    "userNotFound": "Utilisateur introuvable avec cet email."
+    "userNotFound": "Utilisateur introuvable avec cet email.",
+    "statsOverview": "Vue d'ensemble",
+    "totalCoaches": "Coachs actifs",
+    "activeTrials": "Essais en cours",
+    "planBreakdown": "Répartition",
+    "coachList": "Liste des coachs",
+    "coachName": "Coach",
+    "plan": "Forfait",
+    "athletes": "Athlètes",
+    "status": "Statut",
+    "trialActive": "Essai",
+    "trialExpiresSoon": "Expire bientôt",
+    "subscribed": "Abonné",
+    "pendingCancel": "Résiliation demandée",
+    "cancelScheduled": "Fin le {{date}}",
+    "expiringTrials": "Essais expirant sous 7 jours",
+    "noExpiringTrials": "Aucun essai n'expire prochainement",
+    "trialEndsOn": "Fin le {{date}}",
+    "noCoaches": "Aucun coach inscrit"
   }
 }
