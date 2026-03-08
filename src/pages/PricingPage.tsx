@@ -97,6 +97,43 @@ export default function PricingPage() {
     }
   };
 
+  const handleRequestTrial = async () => {
+    setRequestingTrial(true);
+    try {
+      const req = await submitCoachRequest();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const profile = await getProfile(user.id);
+        const name = profile ? displayName(profile) : user.email ?? "";
+        const { data: adminRoles } = await supabase
+          .from("user_roles")
+          .select("user_id")
+          .eq("role", "admin");
+        if (adminRoles) {
+          for (const ar of adminRoles) {
+            await createNotification({
+              coach_id: ar.user_id,
+              type: "coach_request",
+              athlete_email: `${name} (essai 30j)`,
+              athlete_id: user.id,
+              request_id: req.id,
+            });
+          }
+        }
+      }
+      toast.success(t("pricing.trialRequested"));
+      setTrialEligible(false);
+    } catch (e: any) {
+      if (e.message?.includes("duplicate") || e.code === "23505") {
+        toast.error(t("settings.coachRequestAlreadySent"));
+      } else {
+        toast.error(e.message);
+      }
+    } finally {
+      setRequestingTrial(false);
+    }
+  };
+
   const handleSubscribe = async (planKey: string) => {
     setSubmitting(planKey);
     try {
