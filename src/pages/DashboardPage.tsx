@@ -425,10 +425,10 @@ export default function DashboardPage() {
             <div className="mt-4 grid grid-cols-3 gap-3">
               <div className="bg-muted rounded-xl p-3 text-center">
                 <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
-                  {exStats.isPDC ? "Reps max" : "Charge max"}
+                  {exStats.isPDC ? "Reps max" : "Total max"}
                 </p>
                 <p className="text-lg font-black text-foreground">
-                  {exStats.isPDC ? exStats.maxReps : exStats.maxLoad}
+                  {exStats.isPDC ? exStats.maxReps : exStats.maxTotal.toFixed(1)}
                   <span className="text-xs text-muted-foreground ml-0.5">{exStats.isPDC ? "reps" : "kg"}</span>
                 </p>
               </div>
