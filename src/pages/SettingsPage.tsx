@@ -44,7 +44,7 @@ async function exportWorkoutsCSV() {
   a.download = `noto-workouts-${format(new Date(), "yyyy-MM-dd")}.csv`;
   a.click();
   URL.revokeObjectURL(url);
-  toast.success("Export séances téléchargé !");
+  toast.success(i18n.t("settings.workoutsExported"));
 }
 
 /* ── CSV Export ── */
