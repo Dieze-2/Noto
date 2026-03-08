@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, Check, CheckCheck, X, UserCheck, UserX } from "lucide-react";
+import { Bell, Check, CheckCheck, X, UserCheck, UserX, Crown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   getCoachNotifications,
