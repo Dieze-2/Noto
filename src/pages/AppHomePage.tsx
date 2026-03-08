@@ -402,10 +402,8 @@ export default function AppHomePage() {
     <div className="max-w-xl mx-auto px-4 pt-8 pb-32">
       {/* ── Header with logo ── */}
       <header className="flex flex-col items-center mb-8">
-        <div className="w-24 h-24 relative rounded-full border border-border overflow-hidden mb-6 shadow-2xl">
-          <img src="./logo.png" alt="NOTO" className="w-full h-full object-cover scale-110"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-          <div className="absolute inset-0 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]" />
+        <div className="w-24 h-24 relative rounded-full border border-border overflow-hidden mb-6 shadow-2xl bg-background">
+          <img src={logo} alt="NOTO" className="w-full h-full object-contain p-3" />
         </div>
 
         {/* ── Date navigation ── */}
