@@ -287,6 +287,10 @@
     "cancellationRequested": "Cancellation request sent. An admin will review it.",
     "cancelledSuccess": "Subscription cancelled. Your coach role has been removed.",
     "stripeComingSoon": "Stripe payment coming soon.",
+    "trialTitle": "Free 30-day trial",
+    "trialDesc": "Try the coaching space for free for 30 days. No commitment, no credit card required.",
+    "requestTrial": "Request a free trial",
+    "trialRequested": "Trial request sent! An admin will review it.",
     "comingSoon": "Coming soon",
     "note": "All plans include unlimited access to all features. Only the number of athletes varies.",
     "classic": {

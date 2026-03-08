@@ -276,6 +276,10 @@
     "cancellationRequested": "Solicitud de cancelación enviada. Un administrador la revisará.",
     "cancelledSuccess": "Suscripción cancelada. Tu rol de coach ha sido retirado.",
     "stripeComingSoon": "El pago con Stripe estará disponible pronto.",
+    "trialTitle": "Prueba gratuita de 30 días",
+    "trialDesc": "Prueba el espacio de coaching gratis durante 30 días. Sin compromiso, sin tarjeta de crédito.",
+    "requestTrial": "Solicitar prueba gratuita",
+    "trialRequested": "¡Solicitud de prueba enviada! Un administrador la revisará.",
     "comingSoon": "Próximamente",
     "note": "Todos los planes incluyen acceso ilimitado a todas las funciones. Solo varía el número de atletas.",
     "classic": {
