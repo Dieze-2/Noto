@@ -21,12 +21,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 /* ── Types ── */
 type RangeKey = "3M" | "6M" | "ALL";
 
-const RANGE_LABELS: { key: RangeKey; label: string }[] = [
-  { key: "3M", label: "3 mois" },
-  { key: "6M", label: "6 mois" },
-  { key: "ALL", label: "Tout" },
-];
-
 /* ── Helpers ── */
 function toUnix(dateStr: string) {
   return Math.floor(parseISO(dateStr).getTime() / 1000);
