@@ -224,7 +224,7 @@ export default function DashboardPage() {
 
   /* Chart options (memoized to avoid re-creates) */
   const weightOpts = useMemo(() => buildWeightOpts(220), []);
-  const exOpts = useMemo(() => buildExerciseOpts(220, showTotal), [showTotal]);
+  const exOpts = useMemo(() => buildExerciseOpts(220), []);
 
   /* Stats */
   const weightStats = useMemo(() => {
