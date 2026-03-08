@@ -232,7 +232,30 @@ export default function CoachAthleteViewPage() {
     const trend = (arr: number[]) => { if (arr.length < 2) return 0; return arr[0] - arr[arr.length - 1]; };
     const thirtyDaysAgo = format(new Date(Date.now() - 30 * 86400000), "yyyy-MM-dd");
     const recentWorkouts = workoutHistory.filter((w) => w.date >= thirtyDaysAgo);
-    return { currentWeight: latest(weights), weightTrend: trend(weights), avgSteps: avg(stepsList), avgKcal: avg(kcalList), workoutCount: recentWorkouts.length, totalWorkouts: workoutHistory.length };
+
+    // Completion: count days with data in last 30
+    const daysWithWeight = last30.filter((m) => m.weight_g != null).length;
+    const daysWithSteps = last30.filter((m) => m.steps != null).length;
+    const daysWithKcal = last30.filter((m) => m.kcal != null).length;
+    const totalDays = Math.min(last30.length, 30);
+
+    // Training consistency: weeks with at least 1 session in last 4 weeks
+    const fourWeeksAgo = format(new Date(Date.now() - 28 * 86400000), "yyyy-MM-dd");
+    const last4WeeksWorkouts = workoutHistory.filter((w) => w.date >= fourWeeksAgo);
+    const weeksWithTraining = new Set(
+      last4WeeksWorkouts.map((w) => {
+        const d = parseISO(w.date);
+        return format(startOfWeek(d, { weekStartsOn: 1 }), "yyyy-MM-dd");
+      })
+    ).size;
+
+    return {
+      currentWeight: latest(weights), weightTrend: trend(weights),
+      avgSteps: avg(stepsList), avgKcal: avg(kcalList),
+      workoutCount: recentWorkouts.length, totalWorkouts: workoutHistory.length,
+      completion: { daysWithWeight, daysWithSteps, daysWithKcal, totalDays },
+      weeksWithTraining,
+    };
   }, [metrics, workoutHistory]);
 
   const weeklyRows = useMemo(() => computeWeeklyRows(metrics, workoutHistory), [metrics, workoutHistory]);
