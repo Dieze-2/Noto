@@ -284,6 +284,7 @@
     "currentPlan": "Forfait actuel",
     "changePlan": "Changer de forfait",
     "cancelSubscription": "Annuler mon abonnement",
+    "cancellationRequested": "Demande d'annulation envoyée. Un administrateur va l'examiner.",
     "cancelledSuccess": "Abonnement annulé. Votre rôle coach a été retiré.",
     "stripeComingSoon": "Le paiement Stripe sera bientôt disponible.",
     "comingSoon": "Bientôt disponible",
