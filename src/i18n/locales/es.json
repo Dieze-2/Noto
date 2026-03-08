@@ -134,7 +134,8 @@
     "coachRequestPending": "Solicitud en curso",
     "coachRequestPendingDesc": "Tu solicitud está siendo revisada por un administrador.",
     "coachRequestRejected": "Solicitud rechazada",
-    "coachRequestRejectedDesc": "Tu solicitud fue rechazada. Contacta a un administrador para más información."
+    "coachRequestRejectedDesc": "Tu solicitud fue rechazada. Contacta a un administrador para más información.",
+    "dismissRejection": "Reintentar"
   },
   "coach": {
     "title": "Panel del Coach",

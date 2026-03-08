@@ -139,7 +139,8 @@
     "coachRequestPending": "Request pending",
     "coachRequestPendingDesc": "Your request is being reviewed by an administrator.",
     "coachRequestRejected": "Request rejected",
-    "coachRequestRejectedDesc": "Your request was rejected. Contact an administrator for more information."
+    "coachRequestRejectedDesc": "Your request was rejected. Contact an administrator for more information.",
+    "dismissRejection": "Try again"
   },
   "coach": {
     "title": "Coach Dashboard",
