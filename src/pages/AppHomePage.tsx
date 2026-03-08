@@ -457,7 +457,7 @@ export default function AppHomePage() {
 
       {/* ── Metrics ── */}
       <div className="grid grid-cols-3 gap-3 mb-10">
-        <StatBubble icon={Footprints} label="Pas" value={metrics.steps}
+        <StatBubble icon={Footprints} label={t("today.steps")} value={metrics.steps}
           onChange={(v) => updateMetric("steps", v)}
           onBlur={() => flushMetricsForDate(dateISO).catch(() => {})}
           accent inputMode="numeric" />
