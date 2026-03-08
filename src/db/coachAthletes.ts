@@ -36,6 +36,8 @@ export async function inviteAthlete(email: string) {
     .select()
     .single();
   if (error) throw error;
+  // Sync athlete count with Stripe
+  syncAthleteQuantity().catch(() => {});
   return data;
 }
 
