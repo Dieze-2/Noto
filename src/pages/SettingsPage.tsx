@@ -18,6 +18,9 @@ import logo from "@/assets/logo.png";
 import { getDailyMetricsRange } from "@/db/dailyMetrics";
 import { getUserGoals, saveUserGoals } from "@/db/goals";
 import { getMyCoachId } from "@/db/coachAthletes";
+import { useRoles } from "@/auth/RoleProvider";
+import { getMyCoachRequest, submitCoachRequest, CoachRequest } from "@/db/coachRequests";
+import { createNotification } from "@/db/notifications";
 import { getProfile, displayName } from "@/db/profiles";
 
 /* ── Workouts Export ── */
