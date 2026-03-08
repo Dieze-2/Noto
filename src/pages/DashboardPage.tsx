@@ -44,6 +44,7 @@ function hsl(token: string) {
 /* ── Chart option builders ── */
 function buildWeightOpts(height: number): uPlot.Options {
   return {
+    width: 300,
     height,
     cursor: { show: true, drag: { x: false, y: false } },
     scales: {
