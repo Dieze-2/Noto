@@ -485,7 +485,7 @@ export default function AppHomePage() {
           <button onClick={() => { setMasterForm({ exercise_name: "", load_type: "KG", weight: "", reps: "" }); setShowSuggestions(false); setMasterOpen(true); }}
             className="w-full py-6 border-2 border-dashed border-border rounded-[2rem] flex flex-col items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
             <Plus size={24} />
-            <span className="text-[10px] font-black uppercase tracking-widest mt-2">Nouveau mouvement</span>
+            <span className="text-[10px] font-black uppercase tracking-widest mt-2">{t("today.newMovement")}</span>
           </button>
         </div>
       </div>
