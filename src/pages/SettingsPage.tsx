@@ -340,7 +340,7 @@ export default function SettingsPage() {
               <span className="text-sm font-bold text-foreground truncate ml-4">{user?.email ?? "—"}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Membre depuis</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("settings.memberSince")}</span>
               <span className="text-sm font-bold text-foreground">
                 {user?.created_at ? format(new Date(user.created_at), "dd/MM/yyyy") : "—"}
               </span>
