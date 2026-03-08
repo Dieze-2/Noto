@@ -491,7 +491,7 @@ export default function WeekPage() {
                                         <Pencil size={16} />
                                       </button>
                                       <button type="button"
-                                        onClick={async () => { if (!confirm("Supprimer ?")) return; await handleSwipeDeleteEvent(ev.id); }}
+                                        onClick={async () => { if (!confirm(t("week.deleteConfirm"))) return; await handleSwipeDeleteEvent(ev.id); }}
                                         className="text-destructive font-black text-[10px] uppercase px-2 py-2">
                                         {t("week.delete")}
                                       </button>
