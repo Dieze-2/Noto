@@ -16,7 +16,6 @@ import { supabase } from "@/lib/supabaseClient";
 import logo from "@/assets/logo.png";
 import { getDailyMetricsRange } from "@/db/dailyMetrics";
 import { getUserGoals, saveUserGoals } from "@/db/goals";
-import { getProfile, updateMyProfile, formatName } from "@/db/profiles";
 
 /* ── Workouts Export ── */
 async function exportWorkoutsCSV() {
@@ -244,12 +243,6 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changingPw, setChangingPw] = useState(false);
 
-  /* Profile name state */
-  const [profileFirstName, setProfileFirstName] = useState("");
-  const [profileLastName, setProfileLastName] = useState("");
-  const [savingProfile, setSavingProfile] = useState(false);
-  const [profileLoaded, setProfileLoaded] = useState(false);
-
   useEffect(() => {
     getUserGoals()
       .then((g) => {
@@ -261,17 +254,7 @@ export default function SettingsPage() {
         setGoalsLoaded(true);
       })
       .catch(() => setGoalsLoaded(true));
-
-    if (user) {
-      getProfile(user.id).then((p) => {
-        if (p) {
-          setProfileFirstName(p.first_name);
-          setProfileLastName(p.last_name);
-        }
-        setProfileLoaded(true);
-      }).catch(() => setProfileLoaded(true));
-    }
-  }, [user]);
+  }, []);
 
   const handleSaveGoals = async () => {
     setSavingGoals(true);
@@ -352,43 +335,6 @@ export default function SettingsPage() {
         {/* ── PROFIL ── */}
         <SettingsSection icon={User} title={t("settings.profile")} trailing={<img src={logo} alt="NOTO" className="w-8 h-8 object-contain opacity-50 rounded-lg" />}>
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1 block">{t("login.firstName")}</label>
-                <input
-                  type="text"
-                  value={profileFirstName}
-                  onChange={(e) => setProfileFirstName(e.target.value)}
-                  className="w-full glass rounded-xl px-3 py-2 text-sm font-bold text-foreground outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/40"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1 block">{t("login.lastName")}</label>
-                <input
-                  type="text"
-                  value={profileLastName}
-                  onChange={(e) => setProfileLastName(e.target.value)}
-                  className="w-full glass rounded-xl px-3 py-2 text-sm font-bold text-foreground outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/40"
-                />
-              </div>
-            </div>
-            <button
-              onClick={async () => {
-                setSavingProfile(true);
-                try {
-                  await updateMyProfile({ first_name: profileFirstName.trim(), last_name: profileLastName.trim() });
-                  toast.success(t("settings.profileSaved"));
-                } catch (e: any) {
-                  toast.error(e.message);
-                } finally {
-                  setSavingProfile(false);
-                }
-              }}
-              disabled={savingProfile}
-              className="w-full py-2 rounded-xl bg-primary/10 text-primary text-xs font-black uppercase tracking-wider hover:bg-primary/20 transition-colors disabled:opacity-50"
-            >
-              {savingProfile ? t("settings.saving") : t("settings.register")}
-            </button>
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("settings.email")}</span>
               <span className="text-sm font-bold text-foreground truncate ml-4">{user?.email ?? "—"}</span>

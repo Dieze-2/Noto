@@ -85,7 +85,6 @@
     "goalsSaved": "Objectifs sauvegardés !",
     "saving": "Sauvegarde…",
     "register": "Enregistrer",
-    "profileSaved": "Profil sauvegardé !",
     "password": "Mot de passe",
     "changePassword": "Changer le mot de passe",
     "newPassword": "Nouveau mot de passe",
@@ -191,8 +190,6 @@
     "resetEmailSent": "Un email de réinitialisation a été envoyé !",
     "sending": "Envoi…",
     "backToLogin": "Retour à la connexion",
-    "firstName": "Prénom",
-    "lastName": "Nom",
     "newPasswordLabel": "Choisis ton nouveau mot de passe",
     "passwordResetSuccess": "Mot de passe modifié ! Redirection…",
     "invalidResetLink": "Lien de réinitialisation invalide ou expiré."
