@@ -16,6 +16,7 @@ import {
   getEventsOverlappingRange, createEvent, updateEvent, deleteEvent,
   EventRow,
 } from "@/db/events";
+import { getUserGoals, UserGoals } from "@/db/goals";
 
 /* ── Constants ── */
 const EVENT_COLORS = [
@@ -74,6 +75,7 @@ export default function WeekPage() {
   const [currentWeekData, setCurrentWeekData] = useState<DailyMetrics[]>([]);
   const [prevWeekData, setPrevWeekData] = useState<DailyMetrics[]>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
+  const [goals, setGoals] = useState<UserGoals | null>(null);
 
   /* ── Drawer NOTE state ── */
   const [noteOpen, setNoteOpen] = useState(false);
@@ -117,6 +119,7 @@ export default function WeekPage() {
 
   useEffect(() => { refreshWeek().catch(() => {}); }, [startStr, endStr]);
   useEffect(() => { refreshAllEvents().catch(() => {}); }, []);
+  useEffect(() => { getUserGoals().then(setGoals).catch(() => {}); }, []);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -210,16 +213,56 @@ export default function WeekPage() {
           </div>
         </GlassCard>
 
-        <GlassCard className="p-6 text-center">
-          <div className="flex justify-around items-center h-full">
+        <GlassCard className="p-6">
+          <div className="space-y-4">
+            {/* Steps */}
             <div>
-              <Footprints size={18} className="text-metric-steps mx-auto mb-1" />
-              <p className="text-sm font-black text-foreground">{stats.steps || 0}</p>
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-1.5">
+                  <Footprints size={16} className="text-metric-steps" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Pas</span>
+                </div>
+                <span className="text-sm font-black text-foreground">
+                  {stats.steps.toLocaleString()}
+                  {goals?.target_steps ? (
+                    <span className="text-muted-foreground font-bold text-[10px] ml-1">/ {goals.target_steps.toLocaleString()}</span>
+                  ) : null}
+                </span>
+              </div>
+              <div className="h-2.5 rounded-full bg-muted overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full"
+                  style={{ backgroundColor: "hsl(var(--metric-steps))" }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${goals?.target_steps ? Math.min((stats.steps / goals.target_steps) * 100, 100) : 0}%` }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                />
+              </div>
             </div>
-            <div className="w-px h-8 bg-border" />
+
+            {/* Calories */}
             <div>
-              <Flame size={18} className="text-metric-kcal mx-auto mb-1" />
-              <p className="text-sm font-black text-foreground">{stats.kcal || 0}</p>
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-1.5">
+                  <Flame size={16} className="text-metric-kcal" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Calories</span>
+                </div>
+                <span className="text-sm font-black text-foreground">
+                  {stats.kcal.toLocaleString()}
+                  {goals?.target_kcal ? (
+                    <span className="text-muted-foreground font-bold text-[10px] ml-1">/ {goals.target_kcal.toLocaleString()}</span>
+                  ) : null}
+                </span>
+              </div>
+              <div className="h-2.5 rounded-full bg-muted overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full"
+                  style={{ backgroundColor: "hsl(var(--metric-kcal))" }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${goals?.target_kcal ? Math.min((stats.kcal / goals.target_kcal) * 100, 100) : 0}%` }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                />
+              </div>
             </div>
           </div>
         </GlassCard>
