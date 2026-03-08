@@ -470,6 +470,25 @@ export default function AppHomePage() {
           colorClass="text-metric-weight" inputMode="decimal" />
       </div>
 
+      {/* ── Coach-assigned sessions ── */}
+      <div className="mb-10">
+        <CoachSessionCard
+          loggedExerciseNames={masters.map((m) => m.exercise_name)}
+          onLogExercise={(name, sets, reps, rest, workType) => {
+            // Parse reps from the program format (e.g. "10" or "8-12")
+            const repsNum = reps.match(/\d+/)?.[0] ?? "";
+            setMasterForm({
+              exercise_name: name,
+              load_type: "KG",
+              weight: "",
+              reps: repsNum,
+            });
+            setShowSuggestions(false);
+            setMasterOpen(true);
+          }}
+        />
+      </div>
+
       {/* ── Workout section ── */}
       <div className="space-y-6">
         <h2 className="text-noto-title text-2xl text-foreground text-center">{t("today.myWorkout")}</h2>
