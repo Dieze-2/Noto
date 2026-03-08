@@ -191,7 +191,7 @@ export default function WeekPage() {
           <div className="text-center">
             <h1 className="text-noto-title text-3xl text-primary">Semaine</h1>
             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">
-              du {format(start, "d MMMM", { locale: fr })}
+              {t("week.from")} {format(start, "d MMMM", { locale: getDateLocale() })}
             </p>
           </div>
           <button onClick={() => setAnchorDate(addDays(anchorDate, 7))} className="p-2 text-muted-foreground hover:text-foreground">
