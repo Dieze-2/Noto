@@ -239,6 +239,11 @@ export default function CoachAthleteViewPage() {
       setWorkoutHistory(Array.from(byDate.values()));
     }
 
+    // Load coach note
+    const note = await getCoachNote(athleteId);
+    setNoteContent(note);
+    setNoteSaved(true);
+
     setLoading(false);
   };
 
