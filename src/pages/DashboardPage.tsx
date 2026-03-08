@@ -80,28 +80,7 @@ function buildWeightOpts(height: number): uPlot.Options {
   };
 }
 
-function buildExerciseOpts(height: number, showTotal: boolean): uPlot.Options {
-  const series: uPlot.Series[] = [
-    {},
-    {
-      label: "Charge (kg)",
-      stroke: "hsl(156,100%,50%)",
-      width: 2,
-      fill: "hsla(156,100%,50%,0.08)",
-      points: { size: 4, fill: "hsl(156,100%,50%)" },
-    },
-  ];
-
-  if (showTotal) {
-    series.push({
-      label: "Total (kg)",
-      stroke: "hsl(36,100%,55%)",
-      width: 2,
-      dash: [6, 4],
-      points: { size: 3, fill: "hsl(36,100%,55%)" },
-    });
-  }
-
+function buildExerciseOpts(height: number): uPlot.Options {
   return {
     width: 300,
     height,
@@ -128,7 +107,16 @@ function buildExerciseOpts(height: number, showTotal: boolean): uPlot.Options {
         size: 48,
       },
     ],
-    series,
+    series: [
+      {},
+      {
+        label: "e1RM (kg)",
+        stroke: "hsl(156,100%,50%)",
+        width: 2,
+        fill: "hsla(156,100%,50%,0.08)",
+        points: { size: 4, fill: "hsl(156,100%,50%)" },
+      },
+    ],
   };
 }
 
