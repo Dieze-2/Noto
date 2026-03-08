@@ -279,7 +279,7 @@ export default function SettingsPage() {
       return;
     }
     if (newPassword !== confirmPassword) {
-      toast.error("Les mots de passe ne correspondent pas");
+      toast.error(t("settings.passwordMismatch"));
       return;
     }
     setChangingPw(true);
