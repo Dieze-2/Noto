@@ -543,7 +543,7 @@ export default function AppHomePage() {
       </Drawer>
 
       {/* Edit Set */}
-      <Drawer open={editSetOpen} onClose={() => { setEditSetOpen(false); setEditSetTarget(null); }} title="Edit Set">
+      <Drawer open={editSetOpen} onClose={() => { setEditSetOpen(false); setEditSetTarget(null); }} title={t("today.editSet")}>
         <div className="glass rounded-[2rem] p-6 space-y-4">
           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">SET</p>
           <LoadTypeToggle value={editSetForm.load_type} onChange={(v) => setEditSetForm({ ...editSetForm, load_type: v })} />
