@@ -200,6 +200,19 @@
     "exercisesTracked": "exercices suivis",
     "detailedHistory": "Historique détaillé"
   },
+  "coachStats": {
+    "title": "Statistiques",
+    "activeAthletes": "Actifs (14j)",
+    "inactive": "inactifs",
+    "totalSessions30d": "Séances (30j)",
+    "avgFrequency": "Moy. / semaine",
+    "avgProgression": "Progression e1RM",
+    "perAthlete": "Détail par athlète",
+    "sessions": "séances",
+    "week": "sem",
+    "last": "Dernier",
+    "e1rmProgression": "progression e1RM"
+  },
   "program": {
     "title": "Programmes",
     "mySessions": "Mes séances",
