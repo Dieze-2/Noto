@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import { ClipboardList, ChevronDown, ChevronUp, CheckCircle2, Circle, Dumbbell } from "lucide-react";
 import GlassCard from "@/components/GlassCard";
 import { getMyPrograms, getProgramSessions, ProgramSessionWithExercises, ProgramExercise } from "@/db/programs";
-import { getMyCoachId } from "@/db/coachAthletes";
 
 interface CoachSessionCardProps {
   /** Names of exercises already logged today */
@@ -17,21 +16,15 @@ export default function CoachSessionCard({ loggedExerciseNames, onLogExercise }:
   const { t } = useTranslation();
   const [sessions, setSessions] = useState<ProgramSessionWithExercises[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hasCoach, setHasCoach] = useState(false);
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
     async function load() {
-      const coachId = await getMyCoachId();
-      if (!alive) return;
-      if (!coachId) { setLoading(false); return; }
-      setHasCoach(true);
-
       const programs = await getMyPrograms();
       if (!alive || programs.length === 0) { setLoading(false); return; }
 
-      // Load sessions for all programs assigned to this athlete
+      // Load sessions for all programs assigned to this user (athlete or self-coaching)
       const allSessions: ProgramSessionWithExercises[] = [];
       for (const p of programs) {
         const s = await getProgramSessions(p.id);
@@ -50,7 +43,7 @@ export default function CoachSessionCard({ loggedExerciseNames, onLogExercise }:
     [loggedExerciseNames]
   );
 
-  if (loading || !hasCoach || sessions.length === 0) return null;
+  if (loading || sessions.length === 0) return null;
 
   return (
     <div className="space-y-3">
