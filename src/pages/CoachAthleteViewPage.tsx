@@ -148,6 +148,7 @@ export default function CoachAthleteViewPage() {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [metricsView, setMetricsView] = useState<MetricsView>("week");
   const [metricsExpanded, setMetricsExpanded] = useState(false);
+  const [expandedWorkoutDate, setExpandedWorkoutDate] = useState<string | null>(null);
 
   /* ── Program/Sessions state ── */
   const [athleteProgram, setAthleteProgram] = useState<Program | null>(null);
