@@ -257,26 +257,31 @@ export default function CoachAthleteViewPage() {
     const kcalList = last30.filter((m) => m.kcal != null).map((m) => m.kcal!);
     const avg = (arr: number[]) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
     const latest = (arr: number[]) => arr.length > 0 ? arr[0] : null;
-    const trend = (arr: number[]) => { if (arr.length < 2) return 0; return arr[0] - arr[arr.length - 1]; };
     const thirtyDaysAgo = format(new Date(Date.now() - 30 * 86400000), "yyyy-MM-dd");
     const recentWorkouts = workoutHistory.filter((w) => w.date >= thirtyDaysAgo);
+
+    // Weight variation since first ever entry (metrics sorted desc: [0]=latest, [last]=oldest)
+    const allWeightsData = metrics.filter((m) => m.weight_g != null).map((m) => m.weight_g! / 1000);
+    const weightTrendSinceFirst = allWeightsData.length >= 2
+      ? allWeightsData[0] - allWeightsData[allWeightsData.length - 1]
+      : 0;
 
     const daysWithWeight = last30.filter((m) => m.weight_g != null).length;
     const daysWithSteps = last30.filter((m) => m.steps != null).length;
     const daysWithKcal = last30.filter((m) => m.kcal != null).length;
-    const totalDays = Math.min(last30.length, 30);
+    const totalDays = 30; // Fixed: always 30 calendar days
 
     const fourWeeksAgo = format(new Date(Date.now() - 28 * 86400000), "yyyy-MM-dd");
     const last4WeeksWorkouts = workoutHistory.filter((w) => w.date >= fourWeeksAgo);
-    const weeksWithTraining = new Set(
+    const weeksWithTraining = Math.min(new Set(
       last4WeeksWorkouts.map((w) => {
         const d = parseISO(w.date);
         return format(startOfWeek(d, { weekStartsOn: 1 }), "yyyy-MM-dd");
       })
-    ).size;
+    ).size, 4); // Cap at 4 weeks
 
     return {
-      currentWeight: latest(weights), weightTrend: trend(weights),
+      currentWeight: latest(weights), weightTrend: weightTrendSinceFirst,
       avgSteps: avg(stepsList), avgKcal: avg(kcalList),
       workoutCount: recentWorkouts.length, totalWorkouts: workoutHistory.length,
       completion: { daysWithWeight, daysWithSteps, daysWithKcal, totalDays },
