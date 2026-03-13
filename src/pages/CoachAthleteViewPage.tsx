@@ -13,6 +13,13 @@ import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addWeeks, add
 import { fr } from "date-fns/locale";
 
 import GlassCard from "@/components/GlassCard";
+import CoachNotificationBell from "@/components/CoachNotificationBell";
+import { supabase } from "@/lib/supabaseClient";
+import { useTranslation } from "react-i18next";
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addWeeks, addMonths, isBefore, parseISO } from "date-fns";
+import { fr } from "date-fns/locale";
+
+import GlassCard from "@/components/GlassCard";
 import { supabase } from "@/lib/supabaseClient";
 import { getProfile, displayName, Profile } from "@/db/profiles";
 import {
