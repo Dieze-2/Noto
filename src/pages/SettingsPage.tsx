@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   User, Target, LogOut, Download, Upload, Check, Weight,
   Footprints, Flame, X, Lock, ChevronRight, Database, Sun, Moon, Globe,
-  Shield, Crown, Loader2,
+  Shield, Crown, Loader2, Type,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
