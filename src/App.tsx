@@ -19,7 +19,7 @@ import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import PricingPage from "@/pages/PricingPage";
 import AdminDashboardPage from "@/pages/AdminDashboardPage";
 import NotFound from "@/pages/NotFound";
-import { Loader2 } from "lucide-react";
+import NotoLoader from "@/components/NotoLoader";
 
 const queryClient = new QueryClient();
 
