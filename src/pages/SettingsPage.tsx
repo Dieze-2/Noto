@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 import i18n from "@/i18n";
 
 import GlassCard from "@/components/GlassCard";
+import CoachNotificationBell from "@/components/CoachNotificationBell";
 import { useAuth } from "@/auth/AuthProvider";
 import { supabase } from "@/lib/supabaseClient";
 import logo from "@/assets/logo.png";
@@ -541,9 +542,12 @@ export default function SettingsPage() {
         animate={{ opacity: 1, y: 0 }}
         className="space-y-6"
       >
-        <h1 className="text-noto-title text-3xl text-primary text-center mb-6">
-          {t("settings.title")}
-        </h1>
+        <div className="flex items-center justify-center gap-3 mb-6">
+          <h1 className="text-noto-title text-3xl text-primary text-center">
+            {t("settings.title")}
+          </h1>
+          {isCoach && <CoachNotificationBell />}
+        </div>
 
         {/* ── PROFIL ── */}
         <SettingsSection icon={User} title={t("settings.profile")} trailing={<img src={logo} alt="NOTO" className="w-8 h-8 object-contain opacity-50 rounded-lg" />}>
