@@ -836,7 +836,11 @@ export default function CoachAthleteViewPage() {
                   {workoutHistory.slice(0, 15).map((w) => (
                     <div key={w.date}>
                       <button
-                        onClick={() => setExpandedWorkoutDate(expandedWorkoutDate === w.date ? null : w.date)}
+                        onClick={() => {
+                          const next = expandedWorkoutDate === w.date ? null : w.date;
+                          setExpandedWorkoutDate(next);
+                          if (next) loadWorkoutDetail(next);
+                        }}
                         className="w-full flex items-center gap-3 py-2.5 px-3 rounded-xl hover:bg-muted/50 transition-colors text-left"
                       >
                         <Calendar size={14} className="text-primary shrink-0" />
@@ -858,18 +862,34 @@ export default function CoachAthleteViewPage() {
                           animate={{ opacity: 1 }}
                           className="pl-8 pr-3 pb-2 space-y-1.5"
                         >
-                          {w.exercises.map((ex, i) => (
-                            <div key={`${ex.name}-${i}`} className="flex items-center gap-2 py-1.5 border-b border-border/20 last:border-0">
-                              <span className="text-xs font-bold text-foreground flex-1 truncate">{ex.name}</span>
-                              <span className="text-[10px] font-bold text-muted-foreground">
-                                {loadDisplay(ex.load_type, ex.load_g)} {ex.load_type !== "TEXT" && ex.load_type !== "PDC" ? "kg" : ""}
-                              </span>
-                              <span className="text-[10px] font-bold text-primary">
-                                {ex.reps} reps
-                              </span>
+                          {(workoutDetails[w.date]?.exercises ?? w.exercises.map(ex => ({ ...ex, sets: [] as WorkoutDetailSet[] }))).map((ex, i) => (
+                            <div key={`${ex.name}-${i}`} className="py-1.5 border-b border-border/20 last:border-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-foreground flex-1 truncate">{ex.name}</span>
+                                <span className="text-[10px] font-bold text-muted-foreground">
+                                  {loadDisplay(ex.load_type, ex.load_g)} {ex.load_type !== "TEXT" && ex.load_type !== "PDC" ? "kg" : ""}
+                                </span>
+                                <span className="text-[10px] font-bold text-primary">
+                                  {ex.reps} reps
+                                </span>
+                              </div>
+                              {ex.sets.length > 0 && (
+                                <div className="ml-4 mt-1 space-y-0.5">
+                                  {ex.sets.map((s, si) => (
+                                    <div key={si} className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                                      <span className="font-bold w-8">Set {si + 1}</span>
+                                      <span>{loadDisplay(s.load_type, s.load_g)} {s.load_type !== "TEXT" && s.load_type !== "PDC" ? "kg" : ""}</span>
+                                      <span className="text-primary font-bold">{s.reps} reps</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           ))}
                         </motion.div>
+                      )}
+                    </div>
+                  ))}
                       )}
                     </div>
                   ))}
