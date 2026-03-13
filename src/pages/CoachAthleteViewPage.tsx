@@ -890,9 +890,6 @@ export default function CoachAthleteViewPage() {
                       )}
                     </div>
                   ))}
-                      )}
-                    </div>
-                  ))}
                 </div>
               </GlassCard>
             )}
