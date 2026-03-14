@@ -194,8 +194,9 @@ export default function CoachStatsOverview({ athletes, profiles }: Props) {
       bestAthlete,
       worstAthlete,
       topExercises: exerciseProgressions.slice(0, 5),
+      avgAge,
     };
-  }, [recentWorkouts, allWorkouts, acceptedAthletes.length]);
+  }, [recentWorkouts, allWorkouts, acceptedAthletes.length, profiles]);
 
   if (acceptedAthletes.length === 0) return null;
 
