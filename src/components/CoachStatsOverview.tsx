@@ -242,11 +242,11 @@ export default function CoachStatsOverview({ athletes, profiles }: Props) {
 
         <GlassCard className="p-4 rounded-2xl text-center">
           <div className="flex items-center justify-center gap-1 mb-1">
-            <Calendar size={14} className="text-primary" />
+            <Users size={14} className="text-primary" />
           </div>
-          <div className="text-2xl font-black text-foreground">{stats.totalSessions}</div>
+          <div className="text-2xl font-black text-foreground">{stats.avgAge !== null ? `${stats.avgAge} ${t("coachStats.years")}` : "—"}</div>
           <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-            {t("coachStats.totalSessions30d")}
+            {t("coachStats.avgAge")}
           </div>
         </GlassCard>
 
