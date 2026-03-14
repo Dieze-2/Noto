@@ -126,10 +126,27 @@ export default function LoginPage() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-sm"
       >
-        <div className="mb-8 text-center flex flex-col items-center">
-          <img src={logo} alt="NOTO" className="w-24 h-24 mb-4 object-contain rounded-2xl" />
-          <h1 className="text-noto-title text-5xl text-primary">NOTO</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Track. Train. Transform.</p>
+        <div className="mb-8 text-center flex flex-col items-center gap-4">
+          <motion.img
+            src={logo}
+            alt="NOTO"
+            className="w-36 h-36 object-contain rounded-2xl"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          />
+          <NeonNotoLogo />
+          <motion.p
+            className="text-base font-bold text-primary tracking-[0.3em] uppercase"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 1.2 }}
+            style={{
+              textShadow: "0 0 20px hsla(156, 100%, 50%, 0.5), 0 0 40px hsla(156, 100%, 50%, 0.3)"
+            }}
+          >
+            Track. Train. Transform.
+          </motion.p>
         </div>
 
         <GlassCard className="p-6">
