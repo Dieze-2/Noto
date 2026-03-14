@@ -39,13 +39,30 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) setError(error.message);
     } else {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: siteBase },
+        options: {
+          emailRedirectTo: siteBase,
+          data: {
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+            date_of_birth: birthDate || null,
+          },
+        },
       });
       if (error) setError(error.message);
-      else setError(t("login.checkEmail"));
+      else {
+        // Update profile with name + birth date
+        if (data?.user) {
+          await supabase.from("profiles").update({
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+            date_of_birth: birthDate || null,
+          }).eq("id", data.user.id);
+        }
+        setError(t("login.checkEmail"));
+      }
     }
     setLoading(false);
   };
