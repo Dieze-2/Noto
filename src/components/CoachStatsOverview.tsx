@@ -90,6 +90,13 @@ export default function CoachStatsOverview({ athletes, profiles }: Props) {
       ? perAthlete.reduce((s, a) => s + a.sessionsLast30, 0) / perAthlete.length / (30 / 7)
       : 0;
 
+    // Average age of athletes
+    const ages = athleteIds
+      .map((id) => profiles[id]?.date_of_birth)
+      .filter((dob): dob is string => !!dob)
+      .map((dob) => differenceInYears(new Date(), parseISO(dob)));
+    const avgAge = ages.length > 0 ? Math.round(ages.reduce((a, b) => a + b, 0) / ages.length) : null;
+
     // --- Consistency: % of athletes who trained this week ---
     const trainedThisWeek = perAthlete.filter((a) =>
       a.recentDates.some((d: string) => d >= sevenDaysAgo)
