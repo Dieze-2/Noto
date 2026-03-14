@@ -6,6 +6,57 @@ import { motion } from "framer-motion";
 import logo from "@/assets/logo.png";
 import { useTranslation } from "react-i18next";
 
+/**
+ * Animated neon "NOTO" SVG component.
+ * Each letter is drawn with stroke-dashoffset animation.
+ */
+function NeonNotoLogo() {
+  const letters = [
+    // N
+    "M 10 80 L 10 20 L 50 80 L 50 20",
+    // O
+    "M 65 50 C 65 22 95 22 95 50 C 95 78 65 78 65 50 Z",
+    // T
+    "M 105 20 L 145 20 M 125 20 L 125 80",
+    // O
+    "M 155 50 C 155 22 185 22 185 50 C 185 78 155 78 155 50 Z",
+  ];
+
+  const strokeColor = "hsl(156, 100%, 50%)";
+  const glowFilter = `
+    drop-shadow(0 0 6px hsl(156, 100%, 50%))
+    drop-shadow(0 0 20px hsl(156, 100%, 50%))
+    drop-shadow(0 0 40px hsla(156, 100%, 50%, 0.5))
+    drop-shadow(0 0 80px hsla(156, 100%, 50%, 0.3))
+  `;
+
+  return (
+    <svg
+      viewBox="0 0 195 100"
+      className="w-48 h-auto"
+      style={{ filter: glowFilter }}
+    >
+      {letters.map((d, i) => (
+        <motion.path
+          key={i}
+          d={d}
+          fill="none"
+          stroke={strokeColor}
+          strokeWidth={4}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          initial={{ pathLength: 0, opacity: 0 }}
+          animate={{ pathLength: 1, opacity: 1 }}
+          transition={{
+            pathLength: { delay: i * 0.25, duration: 0.8, ease: "easeInOut" },
+            opacity: { delay: i * 0.25, duration: 0.1 },
+          }}
+        />
+      ))}
+    </svg>
+  );
+}
+
 export default function LoginPage() {
   const { t } = useTranslation();
   const [email, setEmail] = useState("");
@@ -75,10 +126,27 @@ export default function LoginPage() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-sm"
       >
-        <div className="mb-8 text-center flex flex-col items-center">
-          <img src={logo} alt="NOTO" className="w-24 h-24 mb-4 object-contain rounded-2xl" />
-          <h1 className="text-noto-title text-5xl text-primary">NOTO</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Track. Train. Transform.</p>
+        <div className="mb-8 text-center flex flex-col items-center gap-4">
+          <motion.img
+            src={logo}
+            alt="NOTO"
+            className="w-36 h-36 object-contain rounded-2xl"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          />
+          <NeonNotoLogo />
+          <motion.p
+            className="text-base font-bold text-primary tracking-[0.3em] uppercase"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 1.2 }}
+            style={{
+              textShadow: "0 0 20px hsla(156, 100%, 50%, 0.5), 0 0 40px hsla(156, 100%, 50%, 0.3)"
+            }}
+          >
+            Track. Train. Transform.
+          </motion.p>
         </div>
 
         <GlassCard className="p-6">
