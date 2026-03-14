@@ -83,20 +83,20 @@ function buildExOpts(height: number): uPlot.Options {
     scales: { x: { time: true }, y: { auto: true } },
     axes: [
       {
-        stroke: "hsla(220,6%,55%,0.5)",
-        grid: { stroke: "hsla(220,6%,22%,0.4)", width: 1 },
-        ticks: { stroke: "transparent" },
-        font: "11px Inter",
+        stroke: "hsl(0,0%,95%)",
+        grid: { stroke: "hsla(220,6%,55%,0.25)", width: 1 },
+        ticks: { stroke: "hsla(220,6%,55%,0.3)", width: 1 },
+        font: "12px Inter",
         values: (_u: uPlot, vals: number[]) =>
           vals.map((v) => format(new Date(v * 1000), "d MMM", { locale: getDateLocale() })),
       },
       {
-        stroke: "hsla(220,6%,55%,0.5)",
-        grid: { stroke: "hsla(220,6%,22%,0.4)", width: 1 },
-        ticks: { stroke: "transparent" },
-        font: "11px Inter",
+        stroke: "hsl(0,0%,95%)",
+        grid: { stroke: "hsla(220,6%,55%,0.25)", width: 1 },
+        ticks: { stroke: "hsla(220,6%,55%,0.3)", width: 1 },
+        font: "12px Inter",
         values: (_u: uPlot, vals: number[]) => vals.map((v) => v.toFixed(0)),
-        size: 48,
+        size: 50,
       },
     ],
     series: [
