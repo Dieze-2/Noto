@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   User, Target, LogOut, Download, Upload, Check, Weight,
   Footprints, Flame, X, Lock, ChevronRight, Database, Sun, Moon, Globe,
-  Shield, Crown, Loader2, Type,
-} from "lucide-react";
+  Shield, Crown, Loader2, Type } from
+"lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -27,16 +27,16 @@ import { getProfile, displayName } from "@/db/profiles";
 /* ── Workouts Export ── */
 async function exportWorkoutsCSV() {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) { toast.error(i18n.t("settings.notAuthenticated")); return; }
+  if (!user) {toast.error(i18n.t("settings.notAuthenticated"));return;}
   // Fetch workouts with exercises and sets via the flat view
-  const { data, error } = await supabase
-    .from("v_workout_exercises_flat")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("workout_date", { ascending: true });
+  const { data, error } = await supabase.
+  from("v_workout_exercises_flat").
+  select("*").
+  eq("user_id", user.id).
+  order("workout_date", { ascending: true });
 
-  if (error) { toast.error(i18n.t("settings.error") + " : " + error.message); return; }
-  if (!data?.length) { toast.error(i18n.t("settings.noWorkoutsToExport")); return; }
+  if (error) {toast.error(i18n.t("settings.error") + " : " + error.message);return;}
+  if (!data?.length) {toast.error(i18n.t("settings.noWorkoutsToExport"));return;}
 
   const header = "date,exercise_name,load_type,load_g,reps";
   const lines = data.map(
@@ -57,7 +57,7 @@ async function exportWorkoutsCSV() {
 /* ── CSV Export ── */
 async function exportDailyMetricsCSV() {
   const rows = await getDailyMetricsRange("2000-01-01", format(new Date(), "yyyy-MM-dd"));
-  if (!rows.length) { toast.error(i18n.t("settings.noDataToExport")); return; }
+  if (!rows.length) {toast.error(i18n.t("settings.noDataToExport"));return;}
   const header = "date,weight_g,steps,kcal,note";
   const lines = rows.map(
     (r) => `${r.date},${r.weight_g ?? ""},${r.steps ?? ""},${r.kcal ?? ""},"${(r.note ?? "").replace(/"/g, '""')}"`
@@ -79,8 +79,8 @@ function parseCSVLine(line: string): string[] {
   let current = "";
   let inQuotes = false;
   for (const ch of line) {
-    if (ch === '"') { inQuotes = !inQuotes; continue; }
-    if (ch === "," && !inQuotes) { parts.push(current.trim()); current = ""; continue; }
+    if (ch === '"') {inQuotes = !inQuotes;continue;}
+    if (ch === "," && !inQuotes) {parts.push(current.trim());current = "";continue;}
     current += ch;
   }
   parts.push(current.trim());
@@ -110,7 +110,7 @@ function isCoachSheetFormat(lines: string[]): boolean {
 }
 
 /** Parse the load column: "PDC" → { type: "PDC", g: 0 }, "PDC + 10" → { type: "PDC_PLUS", g: 10000 }, "17,5" → { type: "KG", g: 17500 } */
-function parseLoadField(s: string): { load_type: string; load_g: number } | null {
+function parseLoadField(s: string): {load_type: string;load_g: number;} | null {
   if (!s || !s.trim()) return null;
   const t = s.trim().toUpperCase();
   if (t === "PDC") return { load_type: "PDC", load_g: 0 };
@@ -131,13 +131,13 @@ async function importDailyMetricsCSV(file: File) {
   const text = await file.text();
   const rawLines = text.split("\n");
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) { toast.error(i18n.t("settings.notAuthenticated")); return; }
+  if (!user) {toast.error(i18n.t("settings.notAuthenticated"));return;}
 
   if (isCoachSheetFormat(rawLines)) {
     // ── Coach Google Sheet format ──
     // Find the first line with a valid date in col 1
-    const metricsRows: { user_id: string; date: string; weight_g: number | null; steps: number | null; kcal: number | null; note: string | null }[] = [];
-    const workoutRows: { date: string; exercise_name: string; load_type: string; load_g: number | null; reps: number }[] = [];
+    const metricsRows: {user_id: string;date: string;weight_g: number | null;steps: number | null;kcal: number | null;note: string | null;}[] = [];
+    const workoutRows: {date: string;exercise_name: string;load_type: string;load_g: number | null;reps: number;}[] = [];
 
     for (const rawLine of rawLines) {
       const cols = parseCSVLine(rawLine);
@@ -157,7 +157,7 @@ async function importDailyMetricsCSV(file: File) {
           weight_g: weightKg != null ? Math.round(weightKg * 1000) : null,
           steps: steps != null ? Math.round(steps) : null,
           kcal: kcal != null ? Math.round(kcal) : null,
-          note: comment,
+          note: comment
         });
       }
 
@@ -172,7 +172,7 @@ async function importDailyMetricsCSV(file: File) {
             exercise_name: exerciseName,
             load_type: load.load_type,
             load_g: load.load_g,
-            reps: Math.round(reps),
+            reps: Math.round(reps)
           });
         }
       }
@@ -182,7 +182,7 @@ async function importDailyMetricsCSV(file: File) {
     let metricsCount = 0;
     if (metricsRows.length > 0) {
       const { error } = await supabase.from("daily_metrics").upsert(metricsRows, { onConflict: "user_id,date" });
-      if (error) { toast.error(i18n.t("settings.importError") + " (metrics): " + error.message); return; }
+      if (error) {toast.error(i18n.t("settings.importError") + " (metrics): " + error.message);return;}
       metricsCount = metricsRows.length;
     }
 
@@ -198,31 +198,31 @@ async function importDailyMetricsCSV(file: File) {
 
       for (const [date, exercises] of byDate) {
         // Get or create workout
-        const { data: existing } = await supabase
-          .from("workouts")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("date", date)
-          .maybeSingle();
+        const { data: existing } = await supabase.
+        from("workouts").
+        select("id").
+        eq("user_id", user.id).
+        eq("date", date).
+        maybeSingle();
 
         let workoutId: string;
         if (existing) {
           workoutId = existing.id;
         } else {
-          const { data: created, error: wErr } = await supabase
-            .from("workouts")
-            .insert({ user_id: user.id, date, title: null, note: null })
-            .select("id")
-            .single();
+          const { data: created, error: wErr } = await supabase.
+          from("workouts").
+          insert({ user_id: user.id, date, title: null, note: null }).
+          select("id").
+          single();
           if (wErr || !created) continue;
           workoutId = created.id;
         }
 
         // Check existing exercises to avoid duplicates
-        const { data: existingExercises } = await supabase
-          .from("workout_exercises")
-          .select("exercise_name")
-          .eq("workout_id", workoutId);
+        const { data: existingExercises } = await supabase.
+        from("workout_exercises").
+        select("exercise_name").
+        eq("workout_id", workoutId);
         const existingNames = new Set((existingExercises ?? []).map((e: any) => e.exercise_name));
 
         for (let i = 0; i < exercises.length; i++) {
@@ -234,7 +234,7 @@ async function importDailyMetricsCSV(file: File) {
             load_type: ex.load_type,
             load_g: ex.load_g,
             reps: ex.reps,
-            sort_order: i,
+            sort_order: i
           });
           workoutCount++;
         }
@@ -245,7 +245,7 @@ async function importDailyMetricsCSV(file: File) {
   } else {
     // ── Standard format: date,weight_g,steps,kcal,note ──
     const lines = rawLines.filter((l) => l.trim());
-    if (lines.length < 2) { toast.error(i18n.t("settings.csvEmpty")); return; }
+    if (lines.length < 2) {toast.error(i18n.t("settings.csvEmpty"));return;}
     const rows = lines.slice(1).map((line) => {
       const parts = parseCSVLine(line);
       const [date, weight_g, steps, kcal, note] = parts;
@@ -254,11 +254,11 @@ async function importDailyMetricsCSV(file: File) {
         weight_g: weight_g ? Number(weight_g) : null,
         steps: steps ? Number(steps) : null,
         kcal: kcal ? Number(kcal) : null,
-        note: note || null,
+        note: note || null
       };
     });
     const { error } = await supabase.from("daily_metrics").upsert(rows, { onConflict: "user_id,date" });
-    if (error) { toast.error(i18n.t("settings.importError") + " : " + error.message); return; }
+    if (error) {toast.error(i18n.t("settings.importError") + " : " + error.message);return;}
     toast.success(i18n.t("settings.importSuccess", { count: rows.length }));
   }
 }
@@ -268,35 +268,35 @@ function SettingsDrawer({
   open,
   onClose,
   title,
-  children,
-}: {
-  open: boolean;
-  onClose: () => void;
-  title: string;
-  children: React.ReactNode;
-}) {
+  children
+
+
+
+
+
+}: {open: boolean;onClose: () => void;title: string;children: React.ReactNode;}) {
   useEffect(() => {
-    function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
+    function onKey(e: KeyboardEvent) {if (e.key === "Escape") onClose();}
     if (open) window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
   return (
     <AnimatePresence>
-      {open && (
-        <>
+      {open &&
+      <>
           <motion.button
-            type="button" aria-label="Fermer" onClick={onClose}
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-background/70 backdrop-blur-sm"
-          />
+          type="button" aria-label="Fermer" onClick={onClose}
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[60] bg-background/70 backdrop-blur-sm" />
+        
           <motion.div
-            drag="y" dragConstraints={{ top: 0, bottom: 0 }} dragElastic={0.08}
-            onDragEnd={(_, info) => { if (info.offset.y > 90 || info.velocity.y > 600) onClose(); }}
-            initial={{ y: 700 }} animate={{ y: 0 }} exit={{ y: 700 }}
-            transition={{ type: "spring", damping: 28, stiffness: 260 }}
-            className="fixed left-0 right-0 bottom-0 z-[70]"
-          >
+          drag="y" dragConstraints={{ top: 0, bottom: 0 }} dragElastic={0.08}
+          onDragEnd={(_, info) => {if (info.offset.y > 90 || info.velocity.y > 600) onClose();}}
+          initial={{ y: 700 }} animate={{ y: 0 }} exit={{ y: 700 }}
+          transition={{ type: "spring", damping: 28, stiffness: 260 }}
+          className="fixed left-0 right-0 bottom-0 z-[70]">
+          
             <div className="mx-auto max-w-xl">
               <div className="rounded-t-[2.5rem] border border-border glass shadow-[0_-30px_80px_rgba(0,0,0,0.75)]">
                 <div className="px-5 pt-4 pb-3 flex items-center justify-between relative">
@@ -313,9 +313,9 @@ function SettingsDrawer({
             </div>
           </motion.div>
         </>
-      )}
-    </AnimatePresence>
-  );
+      }
+    </AnimatePresence>);
+
 }
 
 /* ── Section Component ── */
@@ -323,13 +323,13 @@ function SettingsSection({
   icon: Icon,
   title,
   trailing,
-  children,
-}: {
-  icon: React.ElementType;
-  title: string;
-  trailing?: React.ReactNode;
-  children: React.ReactNode;
-}) {
+  children
+
+
+
+
+
+}: {icon: React.ElementType;title: string;trailing?: React.ReactNode;children: React.ReactNode;}) {
   return (
     <GlassCard className="p-5 rounded-3xl">
       <div className="flex items-center gap-2 mb-4">
@@ -338,8 +338,8 @@ function SettingsSection({
         {trailing}
       </div>
       {children}
-    </GlassCard>
-  );
+    </GlassCard>);
+
 }
 
 /* ── Setting row button ── */
@@ -348,20 +348,20 @@ function SettingRow({
   label,
   sublabel,
   onClick,
-  iconColor = "text-primary",
-}: {
-  icon: React.ElementType;
-  label: string;
-  sublabel?: string;
-  onClick: () => void;
-  iconColor?: string;
-}) {
+  iconColor = "text-primary"
+
+
+
+
+
+
+}: {icon: React.ElementType;label: string;sublabel?: string;onClick: () => void;iconColor?: string;}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="w-full flex items-center gap-3 p-4 rounded-2xl glass hover:bg-muted/50 transition-colors text-left"
-    >
+      className="w-full flex items-center gap-3 p-4 rounded-2xl glass hover:bg-muted/50 transition-colors text-left">
+      
       <div className={`w-10 h-10 rounded-xl bg-muted flex items-center justify-center ${iconColor}`}>
         <Icon size={18} />
       </div>
@@ -370,8 +370,8 @@ function SettingRow({
         {sublabel && <p className="text-[10px] text-muted-foreground font-bold">{sublabel}</p>}
       </div>
       <ChevronRight size={16} className="text-muted-foreground/40" />
-    </button>
-  );
+    </button>);
+
 }
 
 /* ══════════════════════════════
@@ -418,16 +418,16 @@ export default function SettingsPage() {
   const [changingPw, setChangingPw] = useState(false);
 
   useEffect(() => {
-    getUserGoals()
-      .then((g) => {
-        if (g) {
-          setTargetWeight(g.target_weight_g ? (g.target_weight_g / 1000).toString() : "");
-          setTargetSteps(g.target_steps?.toString() ?? "");
-          setTargetKcal(g.target_kcal?.toString() ?? "");
-        }
-        setGoalsLoaded(true);
-      })
-      .catch(() => setGoalsLoaded(true));
+    getUserGoals().
+    then((g) => {
+      if (g) {
+        setTargetWeight(g.target_weight_g ? (g.target_weight_g / 1000).toString() : "");
+        setTargetSteps(g.target_steps?.toString() ?? "");
+        setTargetKcal(g.target_kcal?.toString() ?? "");
+      }
+      setGoalsLoaded(true);
+    }).
+    catch(() => setGoalsLoaded(true));
 
     // Fetch coach name
     getMyCoachId().then(async (coachId) => {
@@ -448,7 +448,7 @@ export default function SettingsPage() {
       await saveUserGoals({
         target_weight_g: targetWeight ? Math.round(parseFloat(targetWeight) * 1000) : null,
         target_steps: targetSteps ? parseInt(targetSteps) : null,
-        target_kcal: targetKcal ? parseInt(targetKcal) : null,
+        target_kcal: targetKcal ? parseInt(targetKcal) : null
       });
       toast.success(t("settings.goalsSaved"));
       setGoalsOpen(false);
@@ -514,7 +514,7 @@ export default function SettingsPage() {
         type: "coach_request",
         athlete_email: user!.email ?? null,
         athlete_id: user!.id,
-        request_id: req.id,
+        request_id: req.id
       });
       toast.success(t("settings.coachRequestSent"));
     } catch (e: any) {
@@ -530,18 +530,18 @@ export default function SettingsPage() {
 
   /* Goals summary */
   const goalsSummary = [
-    targetWeight && `${targetWeight} kg`,
-    targetSteps && `${parseInt(targetSteps).toLocaleString()} ${t("settings.steps")}`,
-    targetKcal && `${parseInt(targetKcal).toLocaleString()} ${t("settings.kcal")}`,
-  ].filter(Boolean).join(" · ") || t("settings.goalsNotSet");
+  targetWeight && `${targetWeight} kg`,
+  targetSteps && `${parseInt(targetSteps).toLocaleString()} ${t("settings.steps")}`,
+  targetKcal && `${parseInt(targetKcal).toLocaleString()} ${t("settings.kcal")}`].
+  filter(Boolean).join(" · ") || t("settings.goalsNotSet");
 
   return (
-    <div className="mx-auto max-w-5xl px-4 pt-6 pb-32 lg:pb-8">
+    <div className="mx-auto max-w-5xl px-4 pt-6 pb-32 lg:pb-8 bg-primary-foreground">
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="space-y-6"
-      >
+        className="space-y-6">
+        
         <div className="flex items-center justify-center gap-3 mb-6">
           <h1 className="text-noto-title text-3xl text-primary text-center">
             {t("settings.title")}
@@ -562,15 +562,15 @@ export default function SettingsPage() {
                 {user?.created_at ? format(new Date(user.created_at), "dd/MM/yyyy") : "—"}
               </span>
             </div>
-            {coachName && (
-              <div className="flex items-center justify-between">
+            {coachName &&
+            <div className="flex items-center justify-between">
                 <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("settings.myCoach")}</span>
                 <span className="text-sm font-bold text-foreground flex items-center gap-1.5">
                   <Shield size={12} className="text-primary" />
                   {coachName}
                 </span>
               </div>
-            )}
+            }
           </div>
         </SettingsSection>
 
@@ -580,29 +580,29 @@ export default function SettingsPage() {
             icon={Target}
             label={t("settings.goals")}
             sublabel={goalsLoaded ? goalsSummary : t("settings.loading")}
-            onClick={() => setGoalsOpen(true)}
-          />
+            onClick={() => setGoalsOpen(true)} />
+          
           <SettingRow
             icon={Lock}
             label={t("settings.password")}
             sublabel={t("settings.changePassword")}
             onClick={() => setPasswordOpen(true)}
-            iconColor="text-metric-weight"
-          />
+            iconColor="text-metric-weight" />
+          
           <SettingRow
             icon={Database}
             label={t("settings.data")}
             sublabel={t("settings.dataSubtitle")}
             onClick={() => setDataOpen(true)}
-            iconColor="text-metric-kcal"
-          />
+            iconColor="text-metric-kcal" />
+          
 
           {/* Theme toggle — inline, no drawer */}
           <button
             type="button"
             onClick={toggleTheme}
-            className="w-full flex items-center gap-3 p-4 rounded-2xl glass hover:bg-muted/50 transition-colors text-left"
-          >
+            className="w-full flex items-center gap-3 p-4 rounded-2xl glass hover:bg-muted/50 transition-colors text-left">
+            
             <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-primary">
               {dark ? <Moon size={18} /> : <Sun size={18} />}
             </div>
@@ -614,8 +614,8 @@ export default function SettingsPage() {
               <motion.div
                 className="w-5 h-5 rounded-full bg-primary-foreground shadow"
                 animate={{ x: dark ? 20 : 0 }}
-                transition={{ type: "spring", stiffness: 500, damping: 30 }}
-              />
+                transition={{ type: "spring", stiffness: 500, damping: 30 }} />
+              
             </div>
           </button>
 
@@ -637,8 +637,8 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={cycleFontSize}
-                className="w-full flex items-center gap-3 p-4 rounded-2xl glass hover:bg-muted/50 transition-colors text-left"
-              >
+                className="w-full flex items-center gap-3 p-4 rounded-2xl glass hover:bg-muted/50 transition-colors text-left">
+                
                 <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-primary">
                   <Type size={18} />
                 </div>
@@ -647,14 +647,14 @@ export default function SettingsPage() {
                   <p className="text-[10px] text-muted-foreground font-bold">{t(`settings.fontSize_${stored}`)}</p>
                 </div>
                 <div className="flex gap-1 items-end">
-                  {sizes.map((s) => (
-                    <span key={s} className={`font-black transition-colors ${s === "small" ? "text-[11px]" : s === "normal" ? "text-[14px]" : "text-[18px]"} ${stored === s ? "text-primary" : "text-muted-foreground/30"}`}>
+                  {sizes.map((s) =>
+                  <span key={s} className={`font-black transition-colors ${s === "small" ? "text-[11px]" : s === "normal" ? "text-[14px]" : "text-[18px]"} ${stored === s ? "text-primary" : "text-muted-foreground/30"}`}>
                       A
                     </span>
-                  ))}
+                  )}
                 </div>
-              </button>
-            );
+              </button>);
+
           })()}
         </div>
 
@@ -669,8 +669,8 @@ export default function SettingsPage() {
               i18n.changeLanguage(next);
               localStorage.setItem("lang", next);
             }}
-            className="w-full flex items-center gap-3 p-4 rounded-2xl glass hover:bg-muted/50 transition-colors text-left"
-          >
+            className="w-full flex items-center gap-3 p-4 rounded-2xl glass hover:bg-muted/50 transition-colors text-left">
+            
             <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-primary">
               <Globe size={18} />
             </div>
@@ -681,20 +681,20 @@ export default function SettingsPage() {
               </p>
             </div>
             <div className="flex gap-1">
-              {(["fr", "en", "es"] as const).map((l) => (
-                <span key={l} className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${i18n.language === l ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+              {(["fr", "en", "es"] as const).map((l) =>
+              <span key={l} className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${i18n.language === l ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
                   {l}
                 </span>
-              ))}
+              )}
             </div>
           </button>
         </div>
 
         {/* ── DEVENIR COACH ── */}
-        {!isCoach && !rolesLoading && (
-          <div className="space-y-3">
-            {coachRequest?.status === "pending" ? (
-              <div className="w-full flex items-center gap-3 p-4 rounded-2xl glass text-left">
+        {!isCoach && !rolesLoading &&
+        <div className="space-y-3">
+            {coachRequest?.status === "pending" ?
+          <div className="w-full flex items-center gap-3 p-4 rounded-2xl glass text-left">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                   <Crown size={18} />
                 </div>
@@ -705,9 +705,9 @@ export default function SettingsPage() {
                 <span className="text-[10px] font-bold uppercase text-warning bg-warning/10 px-2 py-0.5 rounded-full">
                   {t("coach.pending")}
                 </span>
-              </div>
-            ) : coachRequest?.status === "rejected" ? (
-              <div className="w-full flex items-center gap-3 p-4 rounded-2xl glass text-left">
+              </div> :
+          coachRequest?.status === "rejected" ?
+          <div className="w-full flex items-center gap-3 p-4 rounded-2xl glass text-left">
                 <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center text-destructive">
                   <Crown size={18} />
                 </div>
@@ -716,18 +716,18 @@ export default function SettingsPage() {
                   <p className="text-[10px] text-muted-foreground font-bold">{t("settings.coachRequestRejectedDesc")}</p>
                 </div>
                 <button
-                  onClick={() => setCoachRequest(null)}
-                  className="text-[10px] font-black uppercase tracking-wider text-primary hover:text-primary/80 transition-colors px-3 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20"
-                >
+              onClick={() => setCoachRequest(null)}
+              className="text-[10px] font-black uppercase tracking-wider text-primary hover:text-primary/80 transition-colors px-3 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20">
+              
                   {t("settings.dismissRejection")}
                 </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => navigate("/pricing")}
-                className="w-full flex items-center gap-3 p-4 rounded-2xl glass hover:bg-muted/50 transition-colors text-left"
-              >
+              </div> :
+
+          <button
+            type="button"
+            onClick={() => navigate("/pricing")}
+            className="w-full flex items-center gap-3 p-4 rounded-2xl glass hover:bg-muted/50 transition-colors text-left">
+            
                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                   <Crown size={18} />
                 </div>
@@ -737,16 +737,16 @@ export default function SettingsPage() {
                 </div>
                 <ChevronRight size={16} className="text-muted-foreground/40" />
               </button>
-            )}
+          }
           </div>
-        )}
+        }
 
         {/* ── DÉCONNEXION ── */}
         <button
           onClick={handleLogout}
           disabled={loggingOut}
-          className="w-full flex items-center justify-center gap-2 py-4 rounded-3xl bg-destructive/10 text-destructive text-sm font-black uppercase tracking-wider hover:bg-destructive/20 transition-colors disabled:opacity-50"
-        >
+          className="w-full flex items-center justify-center gap-2 py-4 rounded-3xl bg-destructive/10 text-destructive text-sm font-black uppercase tracking-wider hover:bg-destructive/20 transition-colors disabled:opacity-50">
+          
           <LogOut size={18} />
           {loggingOut ? t("settings.loggingOut") : t("settings.logout")}
         </button>
@@ -762,8 +762,8 @@ export default function SettingsPage() {
             <input
               type="number" step="0.1" placeholder="Ex: 75.0"
               value={targetWeight} onChange={(e) => setTargetWeight(e.target.value)}
-              className="w-full glass rounded-2xl px-4 py-3 text-sm font-bold text-foreground outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/40"
-            />
+              className="w-full glass rounded-2xl px-4 py-3 text-sm font-bold text-foreground outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/40" />
+            
           </div>
           <div>
             <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">
@@ -772,8 +772,8 @@ export default function SettingsPage() {
             <input
               type="number" step="100" placeholder="Ex: 10000"
               value={targetSteps} onChange={(e) => setTargetSteps(e.target.value)}
-              className="w-full glass rounded-2xl px-4 py-3 text-sm font-bold text-foreground outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/40"
-            />
+              className="w-full glass rounded-2xl px-4 py-3 text-sm font-bold text-foreground outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/40" />
+            
           </div>
           <div>
             <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">
@@ -782,14 +782,14 @@ export default function SettingsPage() {
             <input
               type="number" step="50" placeholder="Ex: 2200"
               value={targetKcal} onChange={(e) => setTargetKcal(e.target.value)}
-              className="w-full glass rounded-2xl px-4 py-3 text-sm font-bold text-foreground outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/40"
-            />
+              className="w-full glass rounded-2xl px-4 py-3 text-sm font-bold text-foreground outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/40" />
+            
           </div>
           <button
             onClick={handleSaveGoals}
             disabled={savingGoals || !goalsLoaded}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-primary text-primary-foreground text-xs font-black uppercase tracking-wider hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-primary text-primary-foreground text-xs font-black uppercase tracking-wider hover:opacity-90 transition-opacity disabled:opacity-50">
+            
             <Check size={16} />
             {savingGoals ? t("settings.saving") : t("settings.register")}
           </button>
@@ -806,8 +806,8 @@ export default function SettingsPage() {
             <input
               type="password" placeholder={t("settings.minChars")}
               value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full glass rounded-2xl px-4 py-3 text-sm font-bold text-foreground outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/40"
-            />
+              className="w-full glass rounded-2xl px-4 py-3 text-sm font-bold text-foreground outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/40" />
+            
           </div>
           <div>
             <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">
@@ -816,14 +816,14 @@ export default function SettingsPage() {
             <input
               type="password" placeholder={t("settings.confirmPlaceholder")}
               value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full glass rounded-2xl px-4 py-3 text-sm font-bold text-foreground outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/40"
-            />
+              className="w-full glass rounded-2xl px-4 py-3 text-sm font-bold text-foreground outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/40" />
+            
           </div>
           <button
             onClick={handleChangePassword}
             disabled={changingPw || !newPassword}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-primary text-primary-foreground text-xs font-black uppercase tracking-wider hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-primary text-primary-foreground text-xs font-black uppercase tracking-wider hover:opacity-90 transition-opacity disabled:opacity-50">
+            
             <Check size={16} />
             {changingPw ? t("settings.changingPassword") : t("settings.changePassword")}
           </button>
@@ -839,16 +839,16 @@ export default function SettingsPage() {
             </p>
             <div className="grid grid-cols-2 gap-3">
               <button
-                onClick={() => { exportDailyMetricsCSV(); setDataOpen(false); }}
-                className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-primary/10 text-primary text-xs font-black uppercase tracking-wider hover:bg-primary/20 transition-colors"
-              >
+                onClick={() => {exportDailyMetricsCSV();setDataOpen(false);}}
+                className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-primary/10 text-primary text-xs font-black uppercase tracking-wider hover:bg-primary/20 transition-colors">
+                
                 <Download size={16} />
                 {t("settings.export")}
               </button>
               <button
-                onClick={() => { handleImport(); setDataOpen(false); }}
-                className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-muted text-muted-foreground text-xs font-black uppercase tracking-wider hover:text-foreground transition-colors"
-              >
+                onClick={() => {handleImport();setDataOpen(false);}}
+                className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-muted text-muted-foreground text-xs font-black uppercase tracking-wider hover:text-foreground transition-colors">
+                
                 <Upload size={16} />
                 {t("settings.import")}
               </button>
@@ -868,9 +868,9 @@ export default function SettingsPage() {
               {t("settings.workouts")}
             </p>
             <button
-              onClick={() => { exportWorkoutsCSV(); setDataOpen(false); }}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-primary/10 text-primary text-xs font-black uppercase tracking-wider hover:bg-primary/20 transition-colors"
-            >
+              onClick={() => {exportWorkoutsCSV();setDataOpen(false);}}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-primary/10 text-primary text-xs font-black uppercase tracking-wider hover:bg-primary/20 transition-colors">
+              
               <Download size={16} />
               {t("settings.exportWorkouts")}
             </button>
@@ -880,6 +880,6 @@ export default function SettingsPage() {
           </div>
         </div>
       </SettingsDrawer>
-    </div>
-  );
+    </div>);
+
 }
