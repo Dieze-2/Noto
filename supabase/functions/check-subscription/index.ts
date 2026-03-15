@@ -14,42 +14,68 @@ const PRODUCT_TO_PLAN: Record<string, string> = {
   prod_U6z7wSSDyqdiL6: "club",
 };
 
+function unsubscribedResponse() {
+  return new Response(JSON.stringify({ subscribed: false }), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    status: 200,
+  });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } }
-  );
-
   try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header");
-
-    const token = authHeader.replace("Bearer ", "");
-
-    // If the token is not a user JWT (e.g. it's the anon key after session expiry), return unsubscribed
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError || !userData?.user?.email) {
-      return new Response(JSON.stringify({ subscribed: false }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
+    if (!authHeader?.startsWith("Bearer ")) {
+      return unsubscribedResponse();
     }
-    const user = userData.user;
+
+    const token = authHeader.replace("Bearer ", "").trim();
+    if (!token || token === supabaseAnonKey) {
+      return unsubscribedResponse();
+    }
+
+    // Validate JWT safely (handles expired/anon tokens without crashing)
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false },
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims?.sub) {
+      return unsubscribedResponse();
+    }
+
+    const userId = claimsData.claims.sub;
+    let userEmail = typeof claimsData.claims.email === "string"
+      ? claimsData.claims.email
+      : null;
+
+    // Fallback if email is not present in claims
+    if (!userEmail) {
+      const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
+        auth: { persistSession: false },
+      });
+      const { data: adminUserData, error: adminUserError } = await adminClient.auth.admin.getUserById(userId);
+      if (adminUserError || !adminUserData?.user?.email) {
+        return unsubscribedResponse();
+      }
+      userEmail = adminUserData.user.email;
+    }
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
 
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
     if (customers.data.length === 0) {
-      return new Response(JSON.stringify({ subscribed: false }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return unsubscribedResponse();
     }
 
     const customerId = customers.data[0].id;
@@ -64,9 +90,7 @@ serve(async (req) => {
     );
 
     if (!sub) {
-      return new Response(JSON.stringify({ subscribed: false }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return unsubscribedResponse();
     }
 
     const productId = sub.items.data[0].price.product as string;
@@ -77,7 +101,9 @@ serve(async (req) => {
       if (sub.current_period_end) {
         subscriptionEnd = new Date(sub.current_period_end * 1000).toISOString();
       }
-    } catch (_) { /* ignore date conversion errors */ }
+    } catch (_) {
+      // ignore date conversion errors
+    }
 
     return new Response(
       JSON.stringify({
