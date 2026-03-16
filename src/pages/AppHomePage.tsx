@@ -15,7 +15,6 @@ import {
   getOrCreateWorkout, getWorkoutExercises, addWorkoutExercise,
   deleteWorkoutExercise, getExerciseSets, addExerciseSet,
   deleteExerciseSet, updateWorkoutExercise, updateExerciseSet,
-  listTrackedExercises,
   WorkoutExerciseRow, WorkoutExerciseSetRow,
 } from "@/db/workouts";
 import { listCatalogExercises, CatalogExercise } from "@/db/catalog";
@@ -263,7 +262,6 @@ export default function AppHomePage() {
   const [masters, setMasters] = useState<WorkoutExerciseRow[]>([]);
   const [setsByMaster, setSetsByMaster] = useState<Record<string, WorkoutExerciseSetRow[]>>({});
   const [catalog, setCatalog] = useState<CatalogExercise[]>([]);
-  const [userHistory, setUserHistory] = useState<string[]>([]);
   const [dayEvents, setDayEvents] = useState<EventRow[]>([]);
 
   /* ── Drawer states ── */
@@ -307,7 +305,6 @@ export default function AppHomePage() {
   useEffect(() => {
     let alive = true;
     listCatalogExercises().then((c) => alive && setCatalog(c)).catch(() => {});
-    listTrackedExercises().then((h) => alive && setUserHistory(h)).catch(() => {});
     return () => { alive = false; };
   }, []);
 
@@ -359,7 +356,7 @@ export default function AppHomePage() {
   };
   const onAddMaster = async () => {
     if (!workoutId) return;
-    const name = masterForm.exercise_name.trim().toUpperCase(); if (!name) return;
+    const name = masterForm.exercise_name.trim(); if (!name) return;
     const reps = toIntOrNull(masterForm.reps); if (reps == null) return;
     await addWorkoutExercise({ workout_id: workoutId, exercise_name: name, reps, load_g: toGramsOrNull(masterForm.weight), load_type: masterForm.load_type, sort_order: masters.length });
     const ex = await getWorkoutExercises(workoutId); setMasters(ex);
@@ -520,23 +517,17 @@ export default function AppHomePage() {
             className="w-full glass rounded-xl px-4 py-3 font-bold uppercase italic outline-none text-foreground focus:ring-1 focus:ring-primary"
             value={masterForm.exercise_name}
             onChange={(e) => { setMasterForm({ ...masterForm, exercise_name: e.target.value }); setShowSuggestions(true); }} />
-          {showSuggestions && masterForm.exercise_name.trim().length > 0 && (() => {
-            const q = masterForm.exercise_name.toLowerCase();
-            const catalogMatches = catalog.filter((c) => c.name.toLowerCase().includes(q)).map((c) => c.name);
-            const historyMatches = userHistory.filter((h) => h.toLowerCase().includes(q));
-            const merged = [...new Set([...historyMatches, ...catalogMatches])].slice(0, 8);
-            return merged.length > 0 ? (
-              <div className="max-h-48 overflow-auto space-y-2">
-                {merged.map((name) => (
-                  <button key={name} type="button"
-                    onClick={() => { setMasterForm({ ...masterForm, exercise_name: name }); setShowSuggestions(false); }}
-                    className="w-full text-left glass rounded-xl px-4 py-3 font-black uppercase italic text-xs text-muted-foreground hover:border-primary/40 border border-border">
-                    {name}
-                  </button>
-                ))}
-              </div>
-            ) : null;
-          })()}
+          {showSuggestions && masterForm.exercise_name.trim().length > 0 && (
+            <div className="max-h-48 overflow-auto space-y-2">
+              {catalog.filter((c) => c.name.toLowerCase().includes(masterForm.exercise_name.toLowerCase())).slice(0, 8).map((c) => (
+                <button key={c.id} type="button"
+                  onClick={() => { setMasterForm({ ...masterForm, exercise_name: c.name }); setShowSuggestions(false); }}
+                  className="w-full text-left glass rounded-xl px-4 py-3 font-black uppercase italic text-xs text-muted-foreground hover:border-primary/40 border border-border">
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          )}
           <LoadTypeToggle value={masterForm.load_type} onChange={(v) => setMasterForm({ ...masterForm, load_type: v })} />
           <DrawerInputRow weight={masterForm.weight} reps={masterForm.reps}
             onWeightChange={(v) => setMasterForm({ ...masterForm, weight: v })}
