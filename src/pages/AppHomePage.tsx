@@ -15,6 +15,7 @@ import {
   getOrCreateWorkout, getWorkoutExercises, addWorkoutExercise,
   deleteWorkoutExercise, getExerciseSets, addExerciseSet,
   deleteExerciseSet, updateWorkoutExercise, updateExerciseSet,
+  listTrackedExercises,
   WorkoutExerciseRow, WorkoutExerciseSetRow,
 } from "@/db/workouts";
 import { listCatalogExercises, CatalogExercise } from "@/db/catalog";
