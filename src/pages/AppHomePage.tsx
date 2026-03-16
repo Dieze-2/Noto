@@ -359,7 +359,7 @@ export default function AppHomePage() {
   };
   const onAddMaster = async () => {
     if (!workoutId) return;
-    const name = masterForm.exercise_name.trim(); if (!name) return;
+    const name = masterForm.exercise_name.trim().toUpperCase(); if (!name) return;
     const reps = toIntOrNull(masterForm.reps); if (reps == null) return;
     await addWorkoutExercise({ workout_id: workoutId, exercise_name: name, reps, load_g: toGramsOrNull(masterForm.weight), load_type: masterForm.load_type, sort_order: masters.length });
     const ex = await getWorkoutExercises(workoutId); setMasters(ex);
