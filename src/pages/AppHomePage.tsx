@@ -263,6 +263,7 @@ export default function AppHomePage() {
   const [masters, setMasters] = useState<WorkoutExerciseRow[]>([]);
   const [setsByMaster, setSetsByMaster] = useState<Record<string, WorkoutExerciseSetRow[]>>({});
   const [catalog, setCatalog] = useState<CatalogExercise[]>([]);
+  const [userHistory, setUserHistory] = useState<string[]>([]);
   const [dayEvents, setDayEvents] = useState<EventRow[]>([]);
 
   /* ── Drawer states ── */
