@@ -307,6 +307,7 @@ export default function AppHomePage() {
   useEffect(() => {
     let alive = true;
     listCatalogExercises().then((c) => alive && setCatalog(c)).catch(() => {});
+    listTrackedExercises().then((h) => alive && setUserHistory(h)).catch(() => {});
     return () => { alive = false; };
   }, []);
 
