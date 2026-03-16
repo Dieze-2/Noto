@@ -536,8 +536,7 @@ export default function AppHomePage() {
                 ))}
               </div>
             ) : null;
-          })()
-          )}
+          })()}
           <LoadTypeToggle value={masterForm.load_type} onChange={(v) => setMasterForm({ ...masterForm, load_type: v })} />
           <DrawerInputRow weight={masterForm.weight} reps={masterForm.reps}
             onWeightChange={(v) => setMasterForm({ ...masterForm, weight: v })}
