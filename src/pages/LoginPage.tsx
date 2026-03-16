@@ -215,7 +215,16 @@ export default function LoginPage() {
               <p className={`text-sm ${mode === "forgot" && error === t("login.resetEmailSent") ? "text-foreground" : "text-destructive"}`}>{error}</p>
             )}
 
-            <Button type="submit" disabled={loading} className="mt-2 font-bold">
+            <Button
+              type="submit"
+              disabled={
+                loading ||
+                !email.trim() ||
+                (mode !== "forgot" && !password.trim()) ||
+                (mode === "signup" && (!firstName.trim() || !lastName.trim() || !birthDate))
+              }
+              className="mt-2 font-bold"
+            >
               {mode === "forgot"
                 ? (loading ? t("login.sending") : t("login.resetPassword"))
                 : mode === "login"
