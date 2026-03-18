@@ -2,8 +2,19 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import {
-  Users, UserPlus, Mail, ChevronRight, Eye,
-  Loader2, Send, X, User, Crown, AlertTriangle, Trash2, Moon,
+  Users,
+  UserPlus,
+  Mail,
+  ChevronRight,
+  Eye,
+  Loader2,
+  Send,
+  X,
+  User,
+  Crown,
+  AlertTriangle,
+  Trash2,
+  Moon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -14,14 +25,9 @@ import GlassCard from "@/components/GlassCard";
 import CoachNotificationBell from "@/components/CoachNotificationBell";
 import CoachStatsOverview from "@/components/CoachStatsOverview";
 import { useRoles } from "@/auth/RoleProvider";
-import {
-  getCoachAthletes, inviteAthlete, removeAthlete, CoachAthlete,
-} from "@/db/coachAthletes";
+import { getCoachAthletes, inviteAthlete, removeAthlete, CoachAthlete } from "@/db/coachAthletes";
 import { getProfiles, displayName, Profile } from "@/db/profiles";
-import {
-  canInviteAthlete, PLAN_CONFIG, CoachPlan,
-  getCoachSubscription,
-} from "@/db/coachSubscriptions";
+import { canInviteAthlete, PLAN_CONFIG, CoachPlan, getCoachSubscription } from "@/db/coachSubscriptions";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function CoachDashboardPage() {
@@ -52,10 +58,7 @@ export default function CoachDashboardPage() {
 
   const refresh = async () => {
     setLoadingData(true);
-    const [a, inviteCheck] = await Promise.all([
-      getCoachAthletes(),
-      canInviteAthlete(),
-    ]);
+    const [a, inviteCheck] = await Promise.all([getCoachAthletes(), canInviteAthlete()]);
     setAthletes(a);
     setCanInvite(inviteCheck.allowed);
     setAthleteCount(inviteCheck.currentCount);
@@ -63,9 +66,7 @@ export default function CoachDashboardPage() {
     setCurrentPlan(inviteCheck.plan);
 
     // Fetch profiles + last workout dates for accepted athletes
-    const athleteIds = a
-      .filter((x) => x.status === "accepted" && x.athlete_id)
-      .map((x) => x.athlete_id!);
+    const athleteIds = a.filter((x) => x.status === "accepted" && x.athlete_id).map((x) => x.athlete_id!);
     const [profileList, workoutsRes] = await Promise.all([
       getProfiles(athleteIds),
       athleteIds.length > 0
@@ -77,7 +78,9 @@ export default function CoachDashboardPage() {
         : Promise.resolve({ data: [] }),
     ]);
     const map: Record<string, Profile> = {};
-    profileList.forEach((p) => { map[p.id] = p; });
+    profileList.forEach((p) => {
+      map[p.id] = p;
+    });
     setProfiles(map);
 
     // Build last workout map
@@ -90,11 +93,15 @@ export default function CoachDashboardPage() {
     setLoadingData(false);
   };
 
-  useEffect(() => { if (isCoach) refresh(); }, [isCoach]);
+  useEffect(() => {
+    if (isCoach) refresh();
+  }, [isCoach]);
 
   // Refresh data when page gains focus (fixes stale status/notifications)
   useEffect(() => {
-    const handler = () => { if (document.visibilityState === "visible" && isCoach) refresh(); };
+    const handler = () => {
+      if (document.visibilityState === "visible" && isCoach) refresh();
+    };
     document.addEventListener("visibilitychange", handler);
     return () => document.removeEventListener("visibilitychange", handler);
   }, [isCoach]);
@@ -165,9 +172,7 @@ export default function CoachDashboardPage() {
     <div className="mx-auto max-w-5xl px-4 pt-6 pb-32 lg:pb-8">
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
         <div className="flex items-center justify-center gap-3 mb-6">
-          <h1 className="text-noto-title text-3xl text-primary text-center">
-            {t("coach.title")}
-          </h1>
+          <h1 className="text-noto-title text-3xl text-primary text-center">{t("coach.title")}</h1>
           <CoachNotificationBell />
         </div>
 
@@ -227,9 +232,7 @@ export default function CoachDashboardPage() {
               <p className="text-xs font-black uppercase tracking-wider text-foreground">
                 {t("subscription.limitReached")}
               </p>
-              <p className="text-[10px] text-muted-foreground font-bold">
-                {t("subscription.upgradeHint")}
-              </p>
+              <p className="text-[10px] text-muted-foreground font-bold">{t("subscription.upgradeHint")}</p>
             </div>
             <button
               onClick={() => navigate("/pricing")}
@@ -239,32 +242,6 @@ export default function CoachDashboardPage() {
             </button>
           </motion.div>
         )}
-
-        {/* ── Stats Overview ── */}
-        <CoachStatsOverview athletes={athletes} profiles={profiles} />
-
-        {/* ── Invite button ── */}
-        <button
-          onClick={() => {
-            if (!canInvite) {
-              toast.error(t("subscription.limitReached"));
-              return;
-            }
-            setInviteOpen(true);
-          }}
-          className={`w-full flex items-center gap-3 p-4 rounded-2xl glass hover:bg-muted/50 transition-colors text-left ${
-            !canInvite ? "opacity-50" : ""
-          }`}
-        >
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-            <UserPlus size={18} />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-black uppercase tracking-wider text-foreground">{t("coach.inviteAthlete")}</p>
-            <p className="text-[10px] text-muted-foreground font-bold">{t("coach.inviteDesc")}</p>
-          </div>
-          <ChevronRight size={16} className="text-muted-foreground/40" />
-        </button>
 
         {/* ── My own profile (coach as athlete) ── */}
         {user && (
@@ -313,16 +290,18 @@ export default function CoachDashboardPage() {
                       onClick={() => navigate(`/coach/athlete/${a.athlete_id}`)}
                       className="flex-1 flex items-center gap-3 p-3 rounded-xl glass hover:bg-muted/50 transition-colors text-left"
                     >
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isInactive ? "bg-[hsl(36,100%,55%)]/15 text-[hsl(36,100%,55%)]" : "bg-primary/10 text-primary"}`}>
+                      <div
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center ${isInactive ? "bg-[hsl(36,100%,55%)]/15 text-[hsl(36,100%,55%)]" : "bg-primary/10 text-primary"}`}
+                      >
                         {isInactive ? <Moon size={14} className="text-[hsl(36,100%,55%)]" /> : <Eye size={14} />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <span className="text-sm font-bold text-foreground truncate block">
-                          {name}
-                        </span>
+                        <span className="text-sm font-bold text-foreground truncate block">{name}</span>
                         {isInactive && (
                           <span className="text-[10px] font-bold text-[hsl(36,100%,55%)]">
-                            {daysSince != null ? t("coach.alertInactive", { days: daysSince }) : t("coach.alertNoWorkout")}
+                            {daysSince != null
+                              ? t("coach.alertInactive", { days: daysSince })
+                              : t("coach.alertNoWorkout")}
                           </span>
                         )}
                       </div>
@@ -367,17 +346,49 @@ export default function CoachDashboardPage() {
         </GlassCard>
       </motion.div>
 
+      {/* ── Invite button ── */}
+      <button
+        onClick={() => {
+          if (!canInvite) {
+            toast.error(t("subscription.limitReached"));
+            return;
+          }
+          setInviteOpen(true);
+        }}
+        className={`w-full flex items-center gap-3 p-4 rounded-2xl glass hover:bg-muted/50 transition-colors text-left ${
+          !canInvite ? "opacity-50" : ""
+        }`}
+      >
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+          <UserPlus size={18} />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-black uppercase tracking-wider text-foreground">{t("coach.inviteAthlete")}</p>
+          <p className="text-[10px] text-muted-foreground font-bold">{t("coach.inviteDesc")}</p>
+        </div>
+        <ChevronRight size={16} className="text-muted-foreground/40" />
+      </button>
+
+      {/* ── Stats Overview ── */}
+      <CoachStatsOverview athletes={athletes} profiles={profiles} />
+
       {/* ═══ Invite drawer ═══ */}
       <AnimatePresence>
         {inviteOpen && (
           <>
             <motion.button
-              type="button" aria-label="Close" onClick={() => setInviteOpen(false)}
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              type="button"
+              aria-label="Close"
+              onClick={() => setInviteOpen(false)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               className="fixed inset-0 z-[60] bg-background/70 backdrop-blur-sm"
             />
             <motion.div
-              initial={{ y: 400 }} animate={{ y: 0 }} exit={{ y: 400 }}
+              initial={{ y: 400 }}
+              animate={{ y: 0 }}
+              exit={{ y: 400 }}
               transition={{ type: "spring", damping: 28, stiffness: 260 }}
               className="fixed left-0 right-0 bottom-0 z-[70]"
             >
@@ -388,7 +399,11 @@ export default function CoachDashboardPage() {
                     <h2 className="text-sm font-black uppercase italic tracking-widest text-muted-foreground">
                       {t("coach.inviteAthlete")}
                     </h2>
-                    <button type="button" onClick={() => setInviteOpen(false)} className="p-2 text-muted-foreground hover:text-foreground">
+                    <button
+                      type="button"
+                      onClick={() => setInviteOpen(false)}
+                      className="p-2 text-muted-foreground hover:text-foreground"
+                    >
                       <X size={18} />
                     </button>
                   </div>
@@ -405,8 +420,10 @@ export default function CoachDashboardPage() {
                         <Mail size={12} /> {t("coach.athleteEmail")}
                       </label>
                       <input
-                        type="email" placeholder="athlete@email.com"
-                        value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)}
+                        type="email"
+                        placeholder="athlete@email.com"
+                        value={inviteEmail}
+                        onChange={(e) => setInviteEmail(e.target.value)}
                         className="w-full glass rounded-2xl px-4 py-3 text-sm font-bold text-foreground outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/40"
                       />
                     </div>
@@ -431,12 +448,18 @@ export default function CoachDashboardPage() {
         {removeTarget && (
           <>
             <motion.button
-              type="button" aria-label="Close" onClick={() => setRemoveTarget(null)}
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              type="button"
+              aria-label="Close"
+              onClick={() => setRemoveTarget(null)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               className="fixed inset-0 z-[60] bg-background/70 backdrop-blur-sm"
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
               className="fixed inset-0 z-[70] flex items-center justify-center px-4"
             >
               <div className="w-full max-w-sm rounded-3xl border border-border glass shadow-xl p-6 space-y-4">
@@ -451,7 +474,12 @@ export default function CoachDashboardPage() {
                 <p className="text-xs text-muted-foreground font-bold">
                   {removeTarget.status === "pending"
                     ? t("coach.cancelInviteConfirm", { email: removeTarget.invite_email })
-                    : t("coach.removeAthleteConfirm", { name: displayName(removeTarget.athlete_id ? profiles[removeTarget.athlete_id] : null, removeTarget.invite_email ?? undefined) })}
+                    : t("coach.removeAthleteConfirm", {
+                        name: displayName(
+                          removeTarget.athlete_id ? profiles[removeTarget.athlete_id] : null,
+                          removeTarget.invite_email ?? undefined,
+                        ),
+                      })}
                 </p>
                 <div className="flex gap-3">
                   <button
