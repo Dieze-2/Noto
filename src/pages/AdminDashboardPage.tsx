@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Shield, Loader2, XCircle, UserCheck, Play, Users, Clock, BarChart3, AlertTriangle } from "lucide-react";
+import { Shield, Loader2, XCircle, UserCheck, Play, Users, Clock, BarChart3, AlertTriangle, UserPlus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -29,6 +29,7 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
+  const [userPeriod, setUserPeriod] = useState<"7d" | "30d">("7d");
 
   const [trialEmail, setTrialEmail] = useState("");
   const [grantingTrial, setGrantingTrial] = useState(false);
@@ -161,6 +162,47 @@ export default function AdminDashboardPage() {
           </div> :
         stats &&
         <>
+            {/* User Stats */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Users size={16} className="text-primary" />
+                <h2 className="text-sm font-black uppercase tracking-widest text-foreground">
+                  {t("admin.userStats")}
+                </h2>
+                <div className="ml-auto flex rounded-xl bg-secondary/60 p-0.5">
+                  {(["7d", "30d"] as const).map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setUserPeriod(p)}
+                      className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors ${
+                        userPeriod === p
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {p === "7d" ? t("admin.last7d") : t("admin.last30d")}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <GlassCard className="p-4 rounded-2xl text-center">
+                  <div className="text-2xl font-black text-foreground">{stats.userStats.totalUsers}</div>
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t("admin.totalUsers")}</div>
+                </GlassCard>
+                <GlassCard className="p-4 rounded-2xl text-center">
+                  <div className="flex items-center justify-center gap-1.5">
+                    <UserPlus size={16} className="text-primary" />
+                    <span className="text-2xl font-black text-primary">
+                      {userPeriod === "7d" ? stats.userStats.newUsers7d : stats.userStats.newUsers30d}
+                    </span>
+                  </div>
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t("admin.newUsers")}</div>
+                </GlassCard>
+              </div>
+            </div>
+
+            {/* Coach Stats Overview */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <BarChart3 size={16} className="text-primary" />

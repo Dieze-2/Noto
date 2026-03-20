@@ -13,12 +13,19 @@ export interface CoachRow {
   email: string;
 }
 
+export interface UserStats {
+  totalUsers: number;
+  newUsers7d: number;
+  newUsers30d: number;
+}
+
 export interface AdminStats {
   totalCoaches: number;
   activeTrials: number;
   expiringTrials: CoachRow[];
   coaches: CoachRow[];
   planBreakdown: Record<CoachPlan, number>;
+  userStats: UserStats;
 }
 
 /** Fetch all coach subscriptions with enriched data (admin only) */
@@ -81,12 +88,33 @@ export async function getAdminStats(): Promise<AdminStats> {
   const planBreakdown: Record<CoachPlan, number> = { classic: 0, pro: 0, club: 0 };
   coaches.forEach((c) => { planBreakdown[c.plan]++; });
 
+  const userStats = await getUserStats();
+
   return {
     totalCoaches: coaches.length,
     activeTrials,
     expiringTrials,
     coaches,
     planBreakdown,
+    userStats,
+  };
+}
+
+async function getUserStats(): Promise<UserStats> {
+  const now = new Date();
+  const d7 = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const d30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+  const [totalRes, new7Res, new30Res] = await Promise.all([
+    supabase.from("profiles").select("id", { count: "exact", head: true }),
+    supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", d7),
+    supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", d30),
+  ]);
+
+  return {
+    totalUsers: totalRes.count ?? 0,
+    newUsers7d: new7Res.count ?? 0,
+    newUsers30d: new30Res.count ?? 0,
   };
 }
 
@@ -97,5 +125,6 @@ function emptyStats(): AdminStats {
     expiringTrials: [],
     coaches: [],
     planBreakdown: { classic: 0, pro: 0, club: 0 },
+    userStats: { totalUsers: 0, newUsers7d: 0, newUsers30d: 0 },
   };
 }

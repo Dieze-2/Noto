@@ -361,7 +361,12 @@
       "name": "Club",
       "tagline": "Pour les structures",
       "extra": "+ {{price}}€/mois par athlète au-delà de 50",
-      "features": ["Athlètes illimités", "Tout le forfait Pro", "Accompagnement dédié", "Facturation personnalisée"]
+      "features": [
+        "Athlètes illimités",
+        "Tout le forfait Pro",
+        "Accompagnement dédié",
+        "Facturation personnalisée"
+      ]
     }
   },
   "notifications": {
@@ -412,7 +417,12 @@
     "expiringTrials": "Essais expirant sous 7 jours",
     "noExpiringTrials": "Aucun essai n'expire prochainement",
     "trialEndsOn": "Fin le {{date}}",
-    "noCoaches": "Aucun coach inscrit"
+    "noCoaches": "Aucun coach inscrit",
+    "userStats": "Utilisateurs",
+    "totalUsers": "Utilisateurs totaux",
+    "newUsers": "Nouveaux inscrits",
+    "last7d": "7 jours",
+    "last30d": "30 jours"
   },
   "pdf": {
     "bilanTitle": "Bilan Athlète",
