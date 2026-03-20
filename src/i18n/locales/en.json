@@ -381,7 +381,12 @@
     "trialEmailPlaceholder": "User email…",
     "startTrial": "Start",
     "trialGranted": "30-day coach trial granted!",
-    "userNotFound": "No user found with this email."
+    "userNotFound": "No user found with this email.",
+    "userStats": "Users",
+    "totalUsers": "Total users",
+    "newUsers": "New signups",
+    "last7d": "7 days",
+    "last30d": "30 days"
   },
   "pdf": {
     "bilanTitle": "Athlete Report",

@@ -355,7 +355,12 @@
     "trialEmailPlaceholder": "Email del usuario…",
     "startTrial": "Iniciar",
     "trialGranted": "¡Prueba de 30 días concedida!",
-    "userNotFound": "No se encontró ningún usuario con este email."
+    "userNotFound": "No se encontró ningún usuario con este email.",
+    "userStats": "Usuarios",
+    "totalUsers": "Usuarios totales",
+    "newUsers": "Nuevos registros",
+    "last7d": "7 días",
+    "last30d": "30 días"
   },
   "pdf": {
     "bilanTitle": "Informe del atleta",
