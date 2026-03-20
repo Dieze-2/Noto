@@ -353,16 +353,16 @@ export default function AdminDashboardPage() {
           </>
         }
 
-        {/* Cancellation Requests */}
+        {/* Cancellation Requests + Departing Coaches */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <XCircle size={16} className="text-destructive" />
             <h2 className="text-sm font-black uppercase tracking-widest text-foreground">
               {t("admin.cancellationRequests")}
             </h2>
-            {cancellations.length > 0 &&
+            {(cancellations.length + (stats?.departingCoaches.length ?? 0)) > 0 &&
             <span className="text-[10px] font-bold bg-destructive text-destructive-foreground px-2 py-0.5 rounded-full">
-                {cancellations.length}
+                {cancellations.length + (stats?.departingCoaches.length ?? 0)}
               </span>
             }
           </div>
@@ -371,12 +371,13 @@ export default function AdminDashboardPage() {
           <div className="flex justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div> :
-          cancellations.length === 0 ?
+          (cancellations.length === 0 && (stats?.departingCoaches.length ?? 0) === 0) ?
           <GlassCard className="p-8 rounded-2xl text-center">
-              <p className="text-sm font-bold text-muted-foreground">{t("admin.noCancellations", "Aucune demande de résiliation en attente")}</p>
+              <p className="text-sm font-bold text-muted-foreground">{t("admin.noCancellations")}</p>
             </GlassCard> :
 
           <div className="space-y-3">
+              {/* Pending cancellation requests */}
               {cancellations.map((c, i) =>
             <motion.div key={c.coach_id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
                   <GlassCard className="p-4 rounded-2xl">
@@ -395,6 +396,28 @@ export default function AdminDashboardPage() {
                         {actionId === c.coach_id ? <Loader2 size={12} className="animate-spin" /> : <UserCheck size={12} />}
                         {t("admin.approveCancellation")}
                       </button>
+                    </div>
+                  </GlassCard>
+                </motion.div>
+            )}
+
+              {/* Departing coaches (cancel_at set) */}
+              {stats?.departingCoaches.map((c, i) =>
+            <motion.div key={c.coach_id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: (cancellations.length + i) * 0.05 }}>
+                  <GlassCard className="p-4 rounded-2xl">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center text-destructive font-black text-sm">
+                        <LogOut size={16} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-black text-foreground truncate">{c.profileName}</p>
+                        <p className="text-[10px] text-muted-foreground font-bold">
+                          {t("admin.planLabel", { plan: c.plan.toUpperCase() })} · {t("admin.leavesOn", { date: format(new Date(c.cancel_at!), "dd MMM yyyy", { locale: fr }) })}
+                        </p>
+                      </div>
+                      <span className="text-[10px] font-black px-2 py-1 rounded-lg bg-destructive/10 text-destructive">
+                        {t("admin.departing")}
+                      </span>
                     </div>
                   </GlassCard>
                 </motion.div>
