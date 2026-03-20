@@ -86,6 +86,10 @@ export async function getAdminStats(): Promise<AdminStats> {
     (c) => c.trial_end && new Date(c.trial_end) > now && new Date(c.trial_end) <= in7Days
   );
 
+  const departingCoaches = coaches.filter(
+    (c) => c.cancel_at && new Date(c.cancel_at) > now
+  );
+
   const planBreakdown: Record<CoachPlan, number> = { classic: 0, pro: 0, club: 0 };
   coaches.forEach((c) => { planBreakdown[c.plan]++; });
 
@@ -95,6 +99,7 @@ export async function getAdminStats(): Promise<AdminStats> {
     totalCoaches: coaches.length,
     activeTrials,
     expiringTrials,
+    departingCoaches,
     coaches,
     planBreakdown,
     userStats,
@@ -124,6 +129,7 @@ function emptyStats(): AdminStats {
     totalCoaches: 0,
     activeTrials: 0,
     expiringTrials: [],
+    departingCoaches: [],
     coaches: [],
     planBreakdown: { classic: 0, pro: 0, club: 0 },
     userStats: { totalUsers: 0, newUsers7d: 0, newUsers30d: 0 },
