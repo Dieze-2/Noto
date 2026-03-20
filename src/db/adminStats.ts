@@ -23,6 +23,7 @@ export interface AdminStats {
   totalCoaches: number;
   activeTrials: number;
   expiringTrials: CoachRow[];
+  departingCoaches: CoachRow[];
   coaches: CoachRow[];
   planBreakdown: Record<CoachPlan, number>;
   userStats: UserStats;
