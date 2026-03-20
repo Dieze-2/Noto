@@ -120,6 +120,7 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const getCoachStatus = (c: CoachRow): {label: string;className: string;} => {
     const now = new Date();
     if (c.pending_cancellation) {
       return { label: t("admin.pendingCancel"), className: "bg-destructive/10 text-destructive" };
