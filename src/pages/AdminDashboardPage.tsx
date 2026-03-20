@@ -104,7 +104,22 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const getCoachStatus = (c: CoachRow): {label: string;className: string;} => {
+  const handleExtendTrial = async (coachId: string) => {
+    const dateStr = extendDates[coachId];
+    if (!dateStr) return;
+    setExtendingTrialId(coachId);
+    try {
+      await extendCoachTrial(coachId, new Date(dateStr + "T23:59:59"));
+      toast.success(t("admin.trialExtended"));
+      setExtendDates((prev) => { const n = { ...prev }; delete n[coachId]; return n; });
+      fetchData();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setExtendingTrialId(null);
+    }
+  };
+
     const now = new Date();
     if (c.pending_cancellation) {
       return { label: t("admin.pendingCancel"), className: "bg-destructive/10 text-destructive" };
