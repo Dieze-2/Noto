@@ -265,7 +265,7 @@ export default function AdminDashboardPage() {
                 </div>
                 <div className="space-y-2">
                   {stats.expiringTrials.map((c) =>
-              <GlassCard key={c.coach_id} className="p-3 rounded-2xl">
+              <GlassCard key={c.coach_id} className="p-3 rounded-2xl space-y-2">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-600 font-black text-xs">
                           {c.profileName.charAt(0).toUpperCase()}
@@ -277,6 +277,24 @@ export default function AdminDashboardPage() {
                           </p>
                         </div>
                         <Clock size={14} className="text-orange-500" />
+                      </div>
+                      {/* Extend trial */}
+                      <div className="flex items-center gap-2 pl-11">
+                        <CalendarClock size={12} className="text-muted-foreground shrink-0" />
+                        <input
+                          type="date"
+                          value={extendDates[c.coach_id] ?? ""}
+                          min={format(new Date(), "yyyy-MM-dd")}
+                          onChange={(e) => setExtendDates((prev) => ({ ...prev, [c.coach_id]: e.target.value }))}
+                          className="glass rounded-lg px-2 py-1 text-[11px] font-bold text-foreground outline-none focus:ring-1 focus:ring-primary"
+                        />
+                        <button
+                          onClick={() => handleExtendTrial(c.coach_id)}
+                          disabled={!extendDates[c.coach_id] || extendingTrialId === c.coach_id}
+                          className="px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-[10px] font-black uppercase tracking-wider hover:bg-primary/20 transition-colors disabled:opacity-50"
+                        >
+                          {extendingTrialId === c.coach_id ? <Loader2 size={10} className="animate-spin" /> : t("admin.extendTrial")}
+                        </button>
                       </div>
                     </GlassCard>
               )}
