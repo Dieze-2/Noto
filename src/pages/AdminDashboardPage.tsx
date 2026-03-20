@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Shield, Loader2, XCircle, UserCheck, Play, Users, Clock, BarChart3, AlertTriangle, UserPlus } from "lucide-react";
+import { Shield, Loader2, XCircle, UserCheck, Play, Users, Clock, BarChart3, AlertTriangle, UserPlus, CalendarClock, LogOut } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import GlassCard from "@/components/GlassCard";
 import { useRoles } from "@/auth/RoleProvider";
-import { grantCoachTrial, getPendingCancellations, approveCancellation, CoachPlan, PLAN_CONFIG } from "@/db/coachSubscriptions";
+import { grantCoachTrial, extendCoachTrial, getPendingCancellations, approveCancellation, CoachPlan, PLAN_CONFIG } from "@/db/coachSubscriptions";
 import { createNotification } from "@/db/notifications";
 import { getProfile, displayName } from "@/db/profiles";
 import { getAdminStats, AdminStats, CoachRow } from "@/db/adminStats";
@@ -33,6 +33,8 @@ export default function AdminDashboardPage() {
 
   const [trialEmail, setTrialEmail] = useState("");
   const [grantingTrial, setGrantingTrial] = useState(false);
+  const [extendingTrialId, setExtendingTrialId] = useState<string | null>(null);
+  const [extendDates, setExtendDates] = useState<Record<string, string>>({});
 
   const fetchData = async () => {
     setLoading(true);
@@ -99,6 +101,22 @@ export default function AdminDashboardPage() {
       toast.error(e.message);
     } finally {
       setGrantingTrial(false);
+    }
+  };
+
+  const handleExtendTrial = async (coachId: string) => {
+    const dateStr = extendDates[coachId];
+    if (!dateStr) return;
+    setExtendingTrialId(coachId);
+    try {
+      await extendCoachTrial(coachId, new Date(dateStr + "T23:59:59"));
+      toast.success(t("admin.trialExtended"));
+      setExtendDates((prev) => { const n = { ...prev }; delete n[coachId]; return n; });
+      fetchData();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setExtendingTrialId(null);
     }
   };
 
@@ -247,7 +265,7 @@ export default function AdminDashboardPage() {
                 </div>
                 <div className="space-y-2">
                   {stats.expiringTrials.map((c) =>
-              <GlassCard key={c.coach_id} className="p-3 rounded-2xl">
+              <GlassCard key={c.coach_id} className="p-3 rounded-2xl space-y-2">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-600 font-black text-xs">
                           {c.profileName.charAt(0).toUpperCase()}
@@ -259,6 +277,24 @@ export default function AdminDashboardPage() {
                           </p>
                         </div>
                         <Clock size={14} className="text-orange-500" />
+                      </div>
+                      {/* Extend trial */}
+                      <div className="flex items-center gap-2 pl-11">
+                        <CalendarClock size={12} className="text-muted-foreground shrink-0" />
+                        <input
+                          type="date"
+                          value={extendDates[c.coach_id] ?? ""}
+                          min={format(new Date(), "yyyy-MM-dd")}
+                          onChange={(e) => setExtendDates((prev) => ({ ...prev, [c.coach_id]: e.target.value }))}
+                          className="glass rounded-lg px-2 py-1 text-[11px] font-bold text-foreground outline-none focus:ring-1 focus:ring-primary"
+                        />
+                        <button
+                          onClick={() => handleExtendTrial(c.coach_id)}
+                          disabled={!extendDates[c.coach_id] || extendingTrialId === c.coach_id}
+                          className="px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-[10px] font-black uppercase tracking-wider hover:bg-primary/20 transition-colors disabled:opacity-50"
+                        >
+                          {extendingTrialId === c.coach_id ? <Loader2 size={10} className="animate-spin" /> : t("admin.extendTrial")}
+                        </button>
                       </div>
                     </GlassCard>
               )}
@@ -317,16 +353,16 @@ export default function AdminDashboardPage() {
           </>
         }
 
-        {/* Cancellation Requests */}
+        {/* Cancellation Requests + Departing Coaches */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <XCircle size={16} className="text-destructive" />
             <h2 className="text-sm font-black uppercase tracking-widest text-foreground">
               {t("admin.cancellationRequests")}
             </h2>
-            {cancellations.length > 0 &&
+            {(cancellations.length + (stats?.departingCoaches.length ?? 0)) > 0 &&
             <span className="text-[10px] font-bold bg-destructive text-destructive-foreground px-2 py-0.5 rounded-full">
-                {cancellations.length}
+                {cancellations.length + (stats?.departingCoaches.length ?? 0)}
               </span>
             }
           </div>
@@ -335,12 +371,13 @@ export default function AdminDashboardPage() {
           <div className="flex justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div> :
-          cancellations.length === 0 ?
+          (cancellations.length === 0 && (stats?.departingCoaches.length ?? 0) === 0) ?
           <GlassCard className="p-8 rounded-2xl text-center">
-              <p className="text-sm font-bold text-muted-foreground">{t("admin.noCancellations", "Aucune demande de résiliation en attente")}</p>
+              <p className="text-sm font-bold text-muted-foreground">{t("admin.noCancellations")}</p>
             </GlassCard> :
 
           <div className="space-y-3">
+              {/* Pending cancellation requests */}
               {cancellations.map((c, i) =>
             <motion.div key={c.coach_id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
                   <GlassCard className="p-4 rounded-2xl">
@@ -359,6 +396,28 @@ export default function AdminDashboardPage() {
                         {actionId === c.coach_id ? <Loader2 size={12} className="animate-spin" /> : <UserCheck size={12} />}
                         {t("admin.approveCancellation")}
                       </button>
+                    </div>
+                  </GlassCard>
+                </motion.div>
+            )}
+
+              {/* Departing coaches (cancel_at set) */}
+              {stats?.departingCoaches.map((c, i) =>
+            <motion.div key={c.coach_id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: (cancellations.length + i) * 0.05 }}>
+                  <GlassCard className="p-4 rounded-2xl">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center text-destructive font-black text-sm">
+                        <LogOut size={16} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-black text-foreground truncate">{c.profileName}</p>
+                        <p className="text-[10px] text-muted-foreground font-bold">
+                          {t("admin.planLabel", { plan: c.plan.toUpperCase() })} · {t("admin.leavesOn", { date: format(new Date(c.cancel_at!), "dd MMM yyyy", { locale: fr }) })}
+                        </p>
+                      </div>
+                      <span className="text-[10px] font-black px-2 py-1 rounded-lg bg-destructive/10 text-destructive">
+                        {t("admin.departing")}
+                      </span>
                     </div>
                   </GlassCard>
                 </motion.div>

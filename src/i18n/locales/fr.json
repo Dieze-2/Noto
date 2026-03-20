@@ -422,7 +422,12 @@
     "totalUsers": "Utilisateurs totaux",
     "newUsers": "Nouveaux inscrits",
     "last7d": "7 jours",
-    "last30d": "30 jours"
+    "last30d": "30 jours",
+    "extendTrial": "Prolonger",
+    "trialExtended": "Période d'essai prolongée !",
+    "departing": "Départ prévu",
+    "leavesOn": "Quitte le {{date}}",
+    "noCancellations": "Aucune demande de résiliation en attente"
   },
   "pdf": {
     "bilanTitle": "Bilan Athlète",

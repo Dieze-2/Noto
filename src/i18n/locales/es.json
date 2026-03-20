@@ -360,7 +360,12 @@
     "totalUsers": "Usuarios totales",
     "newUsers": "Nuevos registros",
     "last7d": "7 días",
-    "last30d": "30 días"
+    "last30d": "30 días",
+    "extendTrial": "Extender",
+    "trialExtended": "¡Prueba extendida!",
+    "departing": "Salida prevista",
+    "leavesOn": "Sale el {{date}}",
+    "noCancellations": "No hay solicitudes de cancelación pendientes"
   },
   "pdf": {
     "bilanTitle": "Informe del atleta",

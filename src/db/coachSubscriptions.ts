@@ -108,6 +108,15 @@ export async function grantCoachTrial(userId: string): Promise<void> {
   if (error) throw error;
 }
 
+/** Admin: extend a coach's trial to a specific date */
+export async function extendCoachTrial(coachId: string, newTrialEnd: Date): Promise<void> {
+  const { error } = await supabase
+    .from("coach_subscriptions")
+    .update({ trial_end: newTrialEnd.toISOString() })
+    .eq("coach_id", coachId);
+  if (error) throw error;
+}
+
 /** Check if the current user is eligible for a free trial */
 export async function isTrialEligible(): Promise<boolean> {
   const { data: { user } } = await supabase.auth.getUser();
