@@ -279,10 +279,20 @@ export default function CoachAthleteViewPage() {
       setWorkoutHistory(Array.from(byDate.values()));
     }
 
-    // Load coach note
-    const note = await getCoachNote(athleteId);
+    // Load coach note + PR dismiss + visit tracking
+    const [note, dismissed, lastVisit] = await Promise.all([
+      getCoachNote(athleteId),
+      getPRDismissedAt(athleteId),
+      getCoachLastVisit(athleteId),
+    ]);
     setNoteContent(note);
     setNoteSaved(true);
+    setPrDismissedAt(dismissed);
+    setCoachLastVisit(lastVisit);
+    setPrDismissed(false);
+
+    // Record this visit (after reading the previous one)
+    recordCoachVisit(athleteId);
 
     setLoading(false);
   };
