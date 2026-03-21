@@ -202,3 +202,10 @@ export async function deleteExercise(exerciseId: string) {
     .eq("id", exerciseId);
   if (error) throw error;
 }
+
+export async function reorderExercises(exercises: { id: string; sort_order: number }[]) {
+  const promises = exercises.map((e) =>
+    supabase.from("program_exercises").update({ sort_order: e.sort_order }).eq("id", e.id)
+  );
+  await Promise.all(promises);
+}

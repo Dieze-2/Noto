@@ -21,7 +21,7 @@ import {
   Program, ProgramSessionWithExercises, ProgramExercise,
   getProgramSessions, createSession, updateSession, deleteSession,
   reorderSessions, addExercise, updateExercise, deleteExercise,
-  updateProgramTitle,
+  updateProgramTitle, reorderExercises,
 } from "@/db/programs";
 import { listCatalogExercises, CatalogExercise } from "@/db/catalog";
 
@@ -47,6 +47,25 @@ function SortableSession({ id, children }: { id: string; children: React.ReactNo
       <div className="flex items-start gap-1">
         <button {...attributes} {...listeners} className="pt-4 text-muted-foreground/40 hover:text-muted-foreground cursor-grab active:cursor-grabbing touch-none">
           <GripVertical size={16} />
+        </button>
+        <div className="flex-1 min-w-0">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Sortable exercise wrapper ── */
+function SortableExercise({ id, children }: { id: string; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={isDragging ? "opacity-50" : ""}
+    >
+      <div className="flex items-start gap-1">
+        <button {...attributes} {...listeners} className="pt-3 text-muted-foreground/30 hover:text-muted-foreground cursor-grab active:cursor-grabbing touch-none">
+          <GripVertical size={14} />
         </button>
         <div className="flex-1 min-w-0">{children}</div>
       </div>
@@ -252,7 +271,10 @@ export default function ProgramEditor({ program, onBack, hideTitle = false }: {
   const [title, setTitle] = useState(program.title);
   const [pickerSessionId, setPickerSessionId] = useState<string | null>(null);
 
-  const sensors = useSensors(
+  const sessionSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+  const exerciseSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
 
@@ -283,7 +305,7 @@ export default function ProgramEditor({ program, onBack, hideTitle = false }: {
     try { await deleteSession(sessionId); } catch (e: any) { toast.error(e.message); }
   };
 
-  const handleDragEnd = async (event: DragEndEvent) => {
+  const handleSessionDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const oldIndex = sessions.findIndex((s) => s.id === active.id);
@@ -296,6 +318,20 @@ export default function ProgramEditor({ program, onBack, hideTitle = false }: {
   };
 
   /* ── Exercise actions ── */
+  const handleExerciseDragEnd = async (sessionId: string, event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const session = sessions.find((s) => s.id === sessionId);
+    if (!session) return;
+    const oldIndex = session.exercises.findIndex((ex) => ex.id === active.id);
+    const newIndex = session.exercises.findIndex((ex) => ex.id === over.id);
+    const reordered = arrayMove(session.exercises, oldIndex, newIndex);
+    const withOrder = reordered.map((ex, i) => ({ ...ex, sort_order: i }));
+    setSessions(sessions.map((s) => s.id === sessionId ? { ...s, exercises: withOrder } : s));
+    try { await reorderExercises(withOrder.map((ex) => ({ id: ex.id, sort_order: ex.sort_order }))); }
+    catch (e: any) { toast.error(e.message); }
+  };
+
   const handleAddExercise = async (sessionId: string, catalogEx: CatalogExercise) => {
     setPickerSessionId(null);
     const session = sessions.find((s) => s.id === sessionId);
@@ -372,7 +408,7 @@ export default function ProgramEditor({ program, onBack, hideTitle = false }: {
       )}
 
       {/* Sessions (sortable) */}
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sessionSensors} collisionDetection={closestCenter} onDragEnd={handleSessionDragEnd}>
         <SortableContext items={sessions.map((s) => s.id)} strategy={verticalListSortingStrategy}>
           {sessions.map((session) => (
             <SortableSession key={session.id} id={session.id}>
@@ -390,15 +426,20 @@ export default function ProgramEditor({ program, onBack, hideTitle = false }: {
                   </button>
                 </div>
 
-                {/* Exercises */}
-                {session.exercises.map((ex) => (
-                  <ExerciseRow
-                    key={ex.id}
-                    exercise={ex}
-                    onUpdate={handleUpdateExercise}
-                    onDelete={handleDeleteExercise}
-                  />
-                ))}
+                {/* Exercises (sortable) */}
+                <DndContext sensors={exerciseSensors} collisionDetection={closestCenter} onDragEnd={(e) => handleExerciseDragEnd(session.id, e)}>
+                  <SortableContext items={session.exercises.map((ex) => ex.id)} strategy={verticalListSortingStrategy}>
+                    {session.exercises.map((ex) => (
+                      <SortableExercise key={ex.id} id={ex.id}>
+                        <ExerciseRow
+                          exercise={ex}
+                          onUpdate={handleUpdateExercise}
+                          onDelete={handleDeleteExercise}
+                        />
+                      </SortableExercise>
+                    ))}
+                  </SortableContext>
+                </DndContext>
 
                 {/* Add exercise */}
                 <button
