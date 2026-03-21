@@ -571,13 +571,19 @@ export default function CoachAthleteViewPage() {
     }
 
     // 3. PR truly beaten this week (compared to all history before this week)
-    if (prsBeatenThisWeek.length > 0) {
+    // Filter: only show PRs logged after the last dismiss AND after the coach's previous visit
+    const cutoff = [prDismissedAt, coachLastVisit].filter(Boolean).sort().pop() ?? null;
+    const filteredPRs = cutoff
+      ? prsBeatenThisWeek.filter((p) => p.date > cutoff.slice(0, 10))
+      : prsBeatenThisWeek;
+
+    if (filteredPRs.length > 0 && !prDismissed) {
       result.push({
         type: "pr",
         icon: Trophy,
         color: "text-[hsl(156,100%,50%)]",
         bgColor: "border-[hsl(156,100%,50%)]/30 bg-[hsl(156,100%,50%)]/10",
-        message: t("coach.alertPR", { count: prsBeatenThisWeek.length, exercise: prsBeatenThisWeek.map(p => p.name).join(", ") }),
+        message: t("coach.alertPR", { count: filteredPRs.length, exercise: filteredPRs.map(p => p.name).join(", ") }),
       });
     }
 
