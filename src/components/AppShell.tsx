@@ -81,7 +81,7 @@ export default function AppShell({ children }: AppShellProps) {
       </div>
 
       {/* ── Mobile bottom nav ── */}
-      <nav className="lg:hidden fixed inset-x-0 bottom-4 z-50 mx-auto w-[92%] max-w-md items-center justify-around rounded-2xl glass px-2 flex flex-row border-none py-[24px] my-[12px]">
+      <nav className="lg:hidden fixed inset-x-0 z-50 mx-auto w-[92%] max-w-md items-center justify-around rounded-2xl glass px-2 flex flex-row border-none py-[24px]" style={{ bottom: 'max(1rem, env(safe-area-inset-bottom, 1rem))' }}>
         {visibleItems.map((item) => {
           const active =
           location.pathname === item.path ||
