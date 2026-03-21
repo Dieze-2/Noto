@@ -6,7 +6,7 @@ import {
   TrendingUp, TrendingDown, Minus, Dumbbell,
   ClipboardList, Plus, ChevronRight, ChevronDown, ChevronUp,
   Calendar, Trash2, CheckCircle2, AlertTriangle, Trophy, Moon,
-  FileDown, StickyNote, Save,
+  FileDown, StickyNote, Save, X,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addWeeks, addMonths, isBefore, parseISO } from "date-fns";
@@ -26,6 +26,7 @@ import CoachExerciseDashboard from "@/components/CoachExerciseDashboard";
 import { toast } from "sonner";
 import { generateAthletePDF } from "@/lib/generateAthletePDF";
 import { getCoachNote, saveCoachNote } from "@/db/coachNotes";
+import { dismissPRBanner, getPRDismissedAt, recordCoachVisit, getCoachLastVisit } from "@/db/prDismissals";
 
 interface DailyMetric {
   date: string;
@@ -195,6 +196,11 @@ export default function CoachAthleteViewPage() {
   const [noteSaving, setNoteSaving] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  /* ── PR dismiss & coach visit tracking ── */
+  const [prDismissedAt, setPrDismissedAt] = useState<string | null>(null);
+  const [coachLastVisit, setCoachLastVisit] = useState<string | null>(null);
+  const [prDismissed, setPrDismissed] = useState(false);
+
   const handleNoteChange = useCallback((value: string) => {
     setNoteContent(value);
     setNoteSaved(false);
@@ -273,10 +279,20 @@ export default function CoachAthleteViewPage() {
       setWorkoutHistory(Array.from(byDate.values()));
     }
 
-    // Load coach note
-    const note = await getCoachNote(athleteId);
+    // Load coach note + PR dismiss + visit tracking
+    const [note, dismissed, lastVisit] = await Promise.all([
+      getCoachNote(athleteId),
+      getPRDismissedAt(athleteId),
+      getCoachLastVisit(athleteId),
+    ]);
     setNoteContent(note);
     setNoteSaved(true);
+    setPrDismissedAt(dismissed);
+    setCoachLastVisit(lastVisit);
+    setPrDismissed(false);
+
+    // Record this visit (after reading the previous one)
+    recordCoachVisit(athleteId);
 
     setLoading(false);
   };
@@ -555,18 +571,24 @@ export default function CoachAthleteViewPage() {
     }
 
     // 3. PR truly beaten this week (compared to all history before this week)
-    if (prsBeatenThisWeek.length > 0) {
+    // Filter: only show PRs logged after the last dismiss AND after the coach's previous visit
+    const cutoff = [prDismissedAt, coachLastVisit].filter(Boolean).sort().pop() ?? null;
+    const filteredPRs = cutoff
+      ? prsBeatenThisWeek.filter((p) => p.date > cutoff.slice(0, 10))
+      : prsBeatenThisWeek;
+
+    if (filteredPRs.length > 0 && !prDismissed) {
       result.push({
         type: "pr",
         icon: Trophy,
         color: "text-[hsl(156,100%,50%)]",
         bgColor: "border-[hsl(156,100%,50%)]/30 bg-[hsl(156,100%,50%)]/10",
-        message: t("coach.alertPR", { count: prsBeatenThisWeek.length, exercise: prsBeatenThisWeek.map(p => p.name).join(", ") }),
+        message: t("coach.alertPR", { count: filteredPRs.length, exercise: filteredPRs.map(p => p.name).join(", ") }),
       });
     }
 
     return result;
-  }, [workoutHistory, metrics, prsBeatenThisWeek, t]);
+  }, [workoutHistory, metrics, prsBeatenThisWeek, prDismissedAt, coachLastVisit, prDismissed, t]);
 
   const weeklyRows = useMemo(() => computeWeeklyRows(metrics, workoutHistory), [metrics, workoutHistory]);
   const monthlyRows = useMemo(() => computeMonthlyRows(metrics, workoutHistory), [metrics, workoutHistory]);
@@ -716,18 +738,37 @@ export default function CoachAthleteViewPage() {
               <div className="space-y-2">
                 {alerts.map((alert, i) => {
                   const Icon = alert.icon;
+                  const isPR = alert.type === "pr";
                   return (
                     <motion.div
                       key={alert.type}
                       initial={{ opacity: 0, y: -8 }}
-                      animate={{ opacity: 1, y: 0 }}
+                      animate={{ opacity: 1, x: 0, y: 0 }}
+                      exit={{ opacity: 0, x: -300 }}
                       transition={{ delay: i * 0.1 }}
-                      className={`flex items-center gap-3 p-3 rounded-2xl border ${alert.bgColor}`}
+                      drag={isPR ? "x" : false}
+                      dragConstraints={{ left: 0, right: 0 }}
+                      dragElastic={0.3}
+                      onDragEnd={(_e, info) => {
+                        if (isPR && (info.offset.x < -100 || info.velocity.x < -500)) {
+                          setPrDismissed(true);
+                          if (athleteId) dismissPRBanner(athleteId);
+                        }
+                      }}
+                      className={`flex items-center gap-3 p-3 rounded-2xl border ${alert.bgColor} ${isPR ? "cursor-grab active:cursor-grabbing touch-pan-y" : ""}`}
                     >
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${alert.color} bg-background/50`}>
                         <Icon size={16} />
                       </div>
                       <p className="text-xs font-bold text-foreground flex-1">{alert.message}</p>
+                      {isPR && (
+                        <button
+                          onClick={() => { setPrDismissed(true); if (athleteId) dismissPRBanner(athleteId); }}
+                          className="p-1 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors shrink-0"
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
                     </motion.div>
                   );
                 })}
