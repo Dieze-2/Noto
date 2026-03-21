@@ -26,6 +26,7 @@ import CoachExerciseDashboard from "@/components/CoachExerciseDashboard";
 import { toast } from "sonner";
 import { generateAthletePDF } from "@/lib/generateAthletePDF";
 import { getCoachNote, saveCoachNote } from "@/db/coachNotes";
+import { dismissPRBanner, getPRDismissedAt, recordCoachVisit, getCoachLastVisit } from "@/db/prDismissals";
 
 interface DailyMetric {
   date: string;
@@ -194,6 +195,11 @@ export default function CoachAthleteViewPage() {
   const [noteSaved, setNoteSaved] = useState(true);
   const [noteSaving, setNoteSaving] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /* ── PR dismiss & coach visit tracking ── */
+  const [prDismissedAt, setPrDismissedAt] = useState<string | null>(null);
+  const [coachLastVisit, setCoachLastVisit] = useState<string | null>(null);
+  const [prDismissed, setPrDismissed] = useState(false);
 
   const handleNoteChange = useCallback((value: string) => {
     setNoteContent(value);
