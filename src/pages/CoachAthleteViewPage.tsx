@@ -6,7 +6,7 @@ import {
   TrendingUp, TrendingDown, Minus, Dumbbell,
   ClipboardList, Plus, ChevronRight, ChevronDown, ChevronUp,
   Calendar, Trash2, CheckCircle2, AlertTriangle, Trophy, Moon,
-  FileDown, StickyNote, Save, X,
+  FileDown, StickyNote, Save, X as XIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addWeeks, addMonths, isBefore, parseISO } from "date-fns";
@@ -766,7 +766,7 @@ export default function CoachAthleteViewPage() {
                           onClick={() => { setPrDismissed(true); if (athleteId) dismissPRBanner(athleteId); }}
                           className="p-1 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors shrink-0"
                         >
-                          <X size={14} />
+                          <XIcon size={14} />
                         </button>
                       )}
                     </motion.div>
