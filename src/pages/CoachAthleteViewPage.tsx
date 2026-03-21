@@ -738,18 +738,37 @@ export default function CoachAthleteViewPage() {
               <div className="space-y-2">
                 {alerts.map((alert, i) => {
                   const Icon = alert.icon;
+                  const isPR = alert.type === "pr";
                   return (
                     <motion.div
                       key={alert.type}
                       initial={{ opacity: 0, y: -8 }}
-                      animate={{ opacity: 1, y: 0 }}
+                      animate={{ opacity: 1, x: 0, y: 0 }}
+                      exit={{ opacity: 0, x: -300 }}
                       transition={{ delay: i * 0.1 }}
-                      className={`flex items-center gap-3 p-3 rounded-2xl border ${alert.bgColor}`}
+                      drag={isPR ? "x" : false}
+                      dragConstraints={{ left: 0, right: 0 }}
+                      dragElastic={0.3}
+                      onDragEnd={(_e, info) => {
+                        if (isPR && (info.offset.x < -100 || info.velocity.x < -500)) {
+                          setPrDismissed(true);
+                          if (athleteId) dismissPRBanner(athleteId);
+                        }
+                      }}
+                      className={`flex items-center gap-3 p-3 rounded-2xl border ${alert.bgColor} ${isPR ? "cursor-grab active:cursor-grabbing touch-pan-y" : ""}`}
                     >
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${alert.color} bg-background/50`}>
                         <Icon size={16} />
                       </div>
                       <p className="text-xs font-bold text-foreground flex-1">{alert.message}</p>
+                      {isPR && (
+                        <button
+                          onClick={() => { setPrDismissed(true); if (athleteId) dismissPRBanner(athleteId); }}
+                          className="p-1 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors shrink-0"
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
                     </motion.div>
                   );
                 })}
