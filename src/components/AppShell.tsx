@@ -77,11 +77,11 @@ export default function AppShell({ children }: AppShellProps) {
 
       <div className="flex-1 flex flex-col lg:ml-20">
         <InvitationBanner />
-        <main className="flex-1 overflow-y-auto pb-24 lg:pb-8 bg-primary-foreground">{children}</main>
+        <main className="flex-1 overflow-y-auto lg:pb-8 bg-primary-foreground" style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))' }}>{children}</main>
       </div>
 
       {/* ── Mobile bottom nav ── */}
-      <nav className="lg:hidden fixed inset-x-0 bottom-4 z-50 mx-auto w-[92%] max-w-md items-center justify-around rounded-2xl glass px-2 flex flex-row border-none py-[24px] my-[12px]">
+      <nav className="lg:hidden fixed inset-x-0 z-50 mx-auto w-[92%] max-w-md items-center justify-around rounded-2xl glass px-2 flex flex-row border-none py-[24px]" style={{ bottom: 'max(1rem, env(safe-area-inset-bottom, 1rem))' }}>
         {visibleItems.map((item) => {
           const active =
           location.pathname === item.path ||
