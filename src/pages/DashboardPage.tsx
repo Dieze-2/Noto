@@ -14,6 +14,7 @@ import ChartFullscreen, { ChartExpandButton } from "@/components/ChartFullscreen
 import { getDailyMetricsRange, getFirstWeightDate, DailyMetrics } from "@/db/dailyMetrics";
 import {
   listTrackedExercises,
+  getLastLoggedExercise,
   getFirstExerciseDate,
   getExerciseMasterHistory,
 } from "@/db/workouts";
@@ -156,11 +157,14 @@ export default function DashboardPage() {
   /* Fullscreen state */
   const [fullscreenChart, setFullscreenChart] = useState<"weight" | "exercise" | null>(null);
 
-  /* Load exercise list */
+  /* Load exercise list + default to last logged exercise */
   useEffect(() => {
-    listTrackedExercises().then((list) => {
+    Promise.all([listTrackedExercises(), getLastLoggedExercise()]).then(([list, lastLogged]) => {
       setExercises(list);
-      if (list.length > 0 && !selectedExercise) setSelectedExercise(list[0]);
+      if (list.length > 0 && !selectedExercise) {
+        const defaultEx = lastLogged && list.includes(lastLogged) ? lastLogged : list[0];
+        setSelectedExercise(defaultEx);
+      }
       setLoadingEx(false);
     });
   }, []);

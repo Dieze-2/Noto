@@ -175,6 +175,22 @@ export async function listTrackedExercises(): Promise<string[]> {
   return unique.sort();
 }
 
+export async function getLastLoggedExercise(): Promise<string | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .from("v_workout_exercises_flat")
+    .select("exercise_name, workout_date")
+    .eq("user_id", user.id)
+    .order("workout_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.exercise_name ?? null;
+}
+
 export async function getFirstExerciseDate(exerciseName: string): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
