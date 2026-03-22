@@ -11,6 +11,7 @@ export interface CoachAthlete {
   status: "pending" | "accepted" | "rejected";
   created_at: string;
   accepted_at: string | null;
+  contract_date: string | null;
 }
 
 /** Coach: get list of athletes (accepted + pending) */
