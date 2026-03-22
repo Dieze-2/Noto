@@ -78,7 +78,7 @@ export async function addWorkoutExercise(payload: {
 }): Promise<WorkoutExerciseRow> {
   const { data, error } = await supabase
     .from("workout_exercises")
-    .insert(payload)
+    .insert({ ...payload, exercise_name: payload.exercise_name.toUpperCase() })
     .select()
     .single();
 
