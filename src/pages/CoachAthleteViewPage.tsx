@@ -600,6 +600,28 @@ export default function CoachAthleteViewPage() {
       });
     }
 
+    // 4. Contract date approaching (within 30 days) or passed
+    if (contractDate) {
+      const daysUntil = differenceInDays(contractDate, new Date());
+      if (daysUntil < 0) {
+        result.push({
+          type: "contract",
+          icon: CalendarClock,
+          color: "text-destructive",
+          bgColor: "border-destructive/30 bg-destructive/10",
+          message: t("coach.alertContractExpired", { date: format(contractDate, "dd/MM/yyyy"), days: Math.abs(daysUntil) }),
+        });
+      } else if (daysUntil <= 30) {
+        result.push({
+          type: "contract",
+          icon: CalendarClock,
+          color: "text-[hsl(36,100%,55%)]",
+          bgColor: "border-[hsl(36,100%,55%)]/30 bg-[hsl(36,100%,55%)]/10",
+          message: t("coach.alertContractSoon", { date: format(contractDate, "dd/MM/yyyy"), days: daysUntil }),
+        });
+      }
+    }
+
     return result;
   }, [workoutHistory, metrics, prsBeatenThisWeek, prDismissedAt, coachLastVisit, prDismissed, t]);
 
