@@ -11,6 +11,7 @@ export interface CoachAthlete {
   status: "pending" | "accepted" | "rejected";
   created_at: string;
   accepted_at: string | null;
+  contract_date: string | null;
 }
 
 /** Coach: get list of athletes (accepted + pending) */
@@ -160,4 +161,28 @@ export async function getMyCoachId(): Promise<string | null> {
     .maybeSingle();
   if (error) { console.error("getMyCoachId:", error); return null; }
   return data?.coach_id ?? null;
+}
+
+/** Coach: update contract date for an athlete relation */
+export async function updateContractDate(relationId: string, contractDate: string | null) {
+  const { error } = await supabase
+    .from("coach_athletes")
+    .update({ contract_date: contractDate })
+    .eq("id", relationId);
+  if (error) throw error;
+}
+
+/** Get coach_athletes row for a specific athlete (from coach perspective) */
+export async function getCoachAthleteRelation(athleteId: string): Promise<CoachAthlete | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data, error } = await supabase
+    .from("coach_athletes")
+    .select("*")
+    .eq("coach_id", user.id)
+    .eq("athlete_id", athleteId)
+    .eq("status", "accepted")
+    .maybeSingle();
+  if (error) { console.error("getCoachAthleteRelation:", error); return null; }
+  return data;
 }
