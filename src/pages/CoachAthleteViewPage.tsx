@@ -1206,6 +1206,88 @@ export default function CoachAthleteViewPage() {
               </GlassCard>
             )}
 
+            {/* ── Contract Date ── */}
+            <GlassCard className="p-5 rounded-3xl space-y-3">
+              <div className="flex items-center gap-2">
+                <CalendarClock size={16} className="text-primary" />
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex-1">
+                  {t("coach.contractDate", "Échéance contrat")}
+                </h3>
+              </div>
+              <div className="flex items-center gap-3">
+                <Popover open={contractPopoverOpen} onOpenChange={setContractPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <button
+                      className={cn(
+                        "flex-1 flex items-center gap-2 py-2.5 px-3 rounded-xl border border-border/50 bg-muted/30 text-left text-sm transition-colors hover:bg-muted/50",
+                        !contractDate && "text-muted-foreground"
+                      )}
+                    >
+                      <Calendar size={14} className="text-primary shrink-0" />
+                      {contractDate
+                        ? format(contractDate, "dd MMMM yyyy", { locale: fr })
+                        : t("coach.contractDatePlaceholder", "Définir une date d'échéance")}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={contractDate}
+                      onSelect={async (date) => {
+                        setContractDate(date ?? undefined);
+                        setContractPopoverOpen(false);
+                        if (coachAthleteRelation) {
+                          try {
+                            await updateContractDate(
+                              coachAthleteRelation.id,
+                              date ? format(date, "yyyy-MM-dd") : null
+                            );
+                            toast.success(t("coach.contractDateSaved", "Échéance enregistrée"));
+                          } catch (e: any) {
+                            toast.error(e.message);
+                          }
+                        }
+                      }}
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+                {contractDate && (
+                  <button
+                    onClick={async () => {
+                      setContractDate(undefined);
+                      if (coachAthleteRelation) {
+                        try {
+                          await updateContractDate(coachAthleteRelation.id, null);
+                          toast.success(t("coach.contractDateCleared", "Échéance supprimée"));
+                        } catch (e: any) {
+                          toast.error(e.message);
+                        }
+                      }
+                    }}
+                    className="p-2 rounded-lg text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    <XIcon size={14} />
+                  </button>
+                )}
+              </div>
+              {contractDate && (() => {
+                const days = differenceInDays(contractDate, new Date());
+                return (
+                  <p className={cn(
+                    "text-[10px] font-bold",
+                    days < 0 ? "text-destructive" : days <= 30 ? "text-[hsl(36,100%,55%)]" : "text-muted-foreground"
+                  )}>
+                    {days < 0
+                      ? t("coach.contractExpiredAgo", { days: Math.abs(days) })
+                      : days === 0
+                        ? t("coach.contractToday", "Échéance aujourd'hui")
+                        : t("coach.contractDaysLeft", { days })}
+                  </p>
+                );
+              })()}
+            </GlassCard>
+
             {/* ── Coach Private Notes ── */}
             <GlassCard className="p-5 rounded-3xl space-y-3">
               <div className="flex items-center gap-2">
