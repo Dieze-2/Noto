@@ -7,7 +7,6 @@ import {
   ClipboardList, Plus, ChevronRight, ChevronDown, ChevronUp,
   Calendar, Trash2, CheckCircle2, AlertTriangle, Trophy, Moon,
   FileDown, StickyNote, Save, X as XIcon, CalendarClock,
-  FileDown, StickyNote, Save, X as XIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addWeeks, addMonths, isBefore, parseISO } from "date-fns";
