@@ -289,17 +289,20 @@ export default function CoachAthleteViewPage() {
       setWorkoutHistory(Array.from(byDate.values()));
     }
 
-    // Load coach note + PR dismiss + visit tracking
-    const [note, dismissed, lastVisit] = await Promise.all([
+    // Load coach note + PR dismiss + visit tracking + relation
+    const [note, dismissed, lastVisit, relation] = await Promise.all([
       getCoachNote(athleteId),
       getPRDismissedAt(athleteId),
       getCoachLastVisit(athleteId),
+      getCoachAthleteRelation(athleteId),
     ]);
     setNoteContent(note);
     setNoteSaved(true);
     setPrDismissedAt(dismissed);
     setCoachLastVisit(lastVisit);
     setPrDismissed(false);
+    setCoachAthleteRelation(relation);
+    setContractDate(relation?.contract_date ? parseISO(relation.contract_date) : undefined);
 
     // Record this visit (after reading the previous one)
     recordCoachVisit(athleteId);
