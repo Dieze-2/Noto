@@ -206,6 +206,11 @@ export default function CoachAthleteViewPage() {
   const [coachLastVisit, setCoachLastVisit] = useState<string | null>(null);
   const [prDismissed, setPrDismissed] = useState(false);
 
+  /* ── Contract date state ── */
+  const [coachAthleteRelation, setCoachAthleteRelation] = useState<CoachAthlete | null>(null);
+  const [contractDate, setContractDate] = useState<Date | undefined>(undefined);
+  const [contractPopoverOpen, setContractPopoverOpen] = useState(false);
+
   const handleNoteChange = useCallback((value: string) => {
     setNoteContent(value);
     setNoteSaved(false);
