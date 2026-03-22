@@ -6,6 +6,7 @@ import {
   TrendingUp, TrendingDown, Minus, Dumbbell,
   ClipboardList, Plus, ChevronRight, ChevronDown, ChevronUp,
   Calendar, Trash2, CheckCircle2, AlertTriangle, Trophy, Moon,
+  FileDown, StickyNote, Save, X as XIcon, CalendarClock,
   FileDown, StickyNote, Save, X as XIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -27,6 +28,11 @@ import { toast } from "sonner";
 import { generateAthletePDF } from "@/lib/generateAthletePDF";
 import { getCoachNote, saveCoachNote } from "@/db/coachNotes";
 import { dismissPRBanner, getPRDismissedAt, recordCoachVisit, getCoachLastVisit } from "@/db/prDismissals";
+import { getCoachAthleteRelation, updateContractDate, CoachAthlete } from "@/db/coachAthletes";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { differenceInDays } from "date-fns";
 
 interface DailyMetric {
   date: string;
