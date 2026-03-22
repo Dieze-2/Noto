@@ -169,7 +169,7 @@ async function importDailyMetricsCSV(file: File) {
         if (load && reps != null) {
           workoutRows.push({
             date: dateStr,
-            exercise_name: exerciseName,
+            exercise_name: exerciseName.toUpperCase(),
             load_type: load.load_type,
             load_g: load.load_g,
             reps: Math.round(reps)
@@ -230,7 +230,7 @@ async function importDailyMetricsCSV(file: File) {
           if (existingNames.has(ex.exercise_name)) continue;
           await supabase.from("workout_exercises").insert({
             workout_id: workoutId,
-            exercise_name: ex.exercise_name,
+            exercise_name: ex.exercise_name.toUpperCase(),
             load_type: ex.load_type,
             load_g: ex.load_g,
             reps: ex.reps,
