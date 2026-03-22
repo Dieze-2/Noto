@@ -544,7 +544,7 @@ export default function CoachAthleteViewPage() {
 
   /* ── Coach alerts (client-side) ── */
   const alerts = useMemo(() => {
-    const result: { type: "inactive" | "weightLoss" | "pr"; icon: typeof AlertTriangle; color: string; bgColor: string; message: string }[] = [];
+    const result: { type: "inactive" | "weightLoss" | "pr" | "contract"; icon: typeof AlertTriangle; color: string; bgColor: string; message: string }[] = [];
     const today = format(new Date(), "yyyy-MM-dd");
     const sevenDaysAgo = format(new Date(Date.now() - 7 * 86400000), "yyyy-MM-dd");
 
