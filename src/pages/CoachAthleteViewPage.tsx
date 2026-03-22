@@ -623,7 +623,7 @@ export default function CoachAthleteViewPage() {
     }
 
     return result;
-  }, [workoutHistory, metrics, prsBeatenThisWeek, prDismissedAt, coachLastVisit, prDismissed, t]);
+  }, [workoutHistory, metrics, prsBeatenThisWeek, prDismissedAt, coachLastVisit, prDismissed, contractDate, t]);
 
   const weeklyRows = useMemo(() => computeWeeklyRows(metrics, workoutHistory), [metrics, workoutHistory]);
   const monthlyRows = useMemo(() => computeMonthlyRows(metrics, workoutHistory), [metrics, workoutHistory]);
