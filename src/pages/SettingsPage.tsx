@@ -393,6 +393,7 @@ export default function SettingsPage() {
   const [goalsOpen, setGoalsOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [dataOpen, setDataOpen] = useState(false);
+  const [tutorialOpen, setTutorialOpen] = useState(false);
 
   /* Theme */
   const [dark, setDark] = useState(() => !document.documentElement.classList.contains("light"));
