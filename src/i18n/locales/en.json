@@ -404,5 +404,27 @@
     "exercisesDone": "done",
     "log": "Log",
     "rest": "Rest"
+  },
+  "tutorial": {
+    "title": "Discover the app",
+    "todayTitle": "Today",
+    "todayDesc": "Log your daily workout: add exercises, set your reps and loads, and track your steps, calories and weight.",
+    "weekTitle": "Week",
+    "weekDesc": "View your full week: training history, daily metrics and custom event calendar.",
+    "dashboardTitle": "Dashboard",
+    "dashboardDesc": "Analyze your progress with detailed charts: weight trends, loads per exercise, volumes and personal records (e1RM).",
+    "programTitle": "Programs",
+    "programDesc": "View sessions created by your coach: exercises, sets, reps and notes. Follow your structured program.",
+    "catalogTitle": "Catalog",
+    "catalogDesc": "Browse all your recorded exercises. Access notes and videos to improve your technique.",
+    "coachTitle": "Coach Space",
+    "coachDesc": "Manage your athletes, create custom programs, track their progress and receive activity alerts.",
+    "settingsTitle": "Settings",
+    "settingsDesc": "Customize your goals, change your password, import/export data, and choose your theme and language.",
+    "prev": "Previous",
+    "next": "Next",
+    "done": "Let's go!",
+    "launchTutorial": "Tutorial",
+    "launchTutorialDesc": "Review the discovery guide"
   }
 }

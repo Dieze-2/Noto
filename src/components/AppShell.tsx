@@ -10,10 +10,11 @@ import {
   Shield } from
 "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ReactNode } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useRoles } from "@/auth/RoleProvider";
 import InvitationBanner from "@/components/InvitationBanner";
+import OnboardingTutorial from "@/components/OnboardingTutorial";
 
 interface NavItem {
   path: string;
@@ -43,6 +44,16 @@ export default function AppShell({ children }: AppShellProps) {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { isCoach, isAdmin } = useRoles();
+
+  const [tutorialOpen, setTutorialOpen] = useState(false);
+
+  useEffect(() => {
+    const seen = localStorage.getItem("noto_tutorial_seen");
+    if (!seen) {
+      setTutorialOpen(true);
+      localStorage.setItem("noto_tutorial_seen", "1");
+    }
+  }, []);
 
   const visibleItems = NAV_ICONS.filter((item) => {
     if (item.coachOnly && !isCoach) return false;
@@ -101,6 +112,8 @@ export default function AppShell({ children }: AppShellProps) {
 
         })}
       </nav>
+
+      <OnboardingTutorial open={tutorialOpen} onClose={() => setTutorialOpen(false)} />
     </div>);
 
 }

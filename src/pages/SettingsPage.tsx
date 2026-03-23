@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   User, Target, LogOut, Download, Upload, Check, Weight,
   Footprints, Flame, X, Lock, ChevronRight, Database, Sun, Moon, Globe,
-  Shield, Crown, Loader2, Type } from
+  Shield, Crown, Loader2, Type, HelpCircle } from
 "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -23,6 +23,7 @@ import { useRoles } from "@/auth/RoleProvider";
 import { getMyCoachRequest, submitCoachRequest, CoachRequest } from "@/db/coachRequests";
 import { createNotification } from "@/db/notifications";
 import { getProfile, displayName } from "@/db/profiles";
+import OnboardingTutorial from "@/components/OnboardingTutorial";
 
 /* ── Workouts Export ── */
 async function exportWorkoutsCSV() {
@@ -392,6 +393,7 @@ export default function SettingsPage() {
   const [goalsOpen, setGoalsOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [dataOpen, setDataOpen] = useState(false);
+  const [tutorialOpen, setTutorialOpen] = useState(false);
 
   /* Theme */
   const [dark, setDark] = useState(() => !document.documentElement.classList.contains("light"));
@@ -690,7 +692,24 @@ export default function SettingsPage() {
           </button>
         </div>
 
-        {/* ── DEVENIR COACH ── */}
+        {/* ── TUTORIEL ── */}
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={() => setTutorialOpen(true)}
+            className="w-full flex items-center gap-3 p-4 rounded-2xl glass hover:bg-muted/50 transition-colors text-left"
+          >
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+              <HelpCircle size={18} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-black uppercase tracking-wider text-foreground">{t("tutorial.launchTutorial")}</p>
+              <p className="text-[10px] text-muted-foreground font-bold">{t("tutorial.launchTutorialDesc")}</p>
+            </div>
+            <ChevronRight size={16} className="text-muted-foreground/40" />
+          </button>
+        </div>
+
         {!isCoach && !rolesLoading &&
         <div className="space-y-3">
             {coachRequest?.status === "pending" ?
@@ -880,6 +899,8 @@ export default function SettingsPage() {
           </div>
         </div>
       </SettingsDrawer>
+
+      <OnboardingTutorial open={tutorialOpen} onClose={() => setTutorialOpen(false)} />
     </div>);
 
 }
