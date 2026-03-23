@@ -449,5 +449,27 @@
     "exercisesDone": "fait(s)",
     "log": "Logger",
     "rest": "Repos"
+  },
+  "tutorial": {
+    "title": "Découvrir l'application",
+    "todayTitle": "Aujourd'hui",
+    "todayDesc": "Enregistrez votre séance du jour : ajoutez des exercices, définissez vos séries et charges, et suivez vos pas, calories et poids quotidiens.",
+    "weekTitle": "Semaine",
+    "weekDesc": "Visualisez votre semaine complète : historique d'entraînements, métriques quotidiennes et calendrier d'événements personnalisé.",
+    "dashboardTitle": "Statistiques",
+    "dashboardDesc": "Analysez votre progression avec des graphiques détaillés : évolution du poids, charges par exercice, volumes et records personnels (e1RM).",
+    "programTitle": "Programmes",
+    "programDesc": "Consultez les séances créées par votre coach : exercices, séries, répétitions et notes. Suivez votre programme structuré.",
+    "catalogTitle": "Catalogue",
+    "catalogDesc": "Parcourez la liste de tous vos exercices enregistrés. Accédez aux notes et vidéos associées pour perfectionner votre technique.",
+    "coachTitle": "Espace Coach",
+    "coachDesc": "Gérez vos athlètes, créez des programmes personnalisés, suivez leurs progrès et recevez des alertes sur leur activité.",
+    "settingsTitle": "Paramètres",
+    "settingsDesc": "Personnalisez vos objectifs, changez votre mot de passe, importez/exportez vos données, et choisissez votre thème et langue.",
+    "prev": "Précédent",
+    "next": "Suivant",
+    "done": "C'est parti !",
+    "launchTutorial": "Tutoriel",
+    "launchTutorialDesc": "Revoir le guide de découverte"
   }
 }
