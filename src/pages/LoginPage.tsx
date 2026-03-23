@@ -5,6 +5,14 @@ import GlassCard from "@/components/GlassCard";
 import { motion } from "framer-motion";
 import logo from "@/assets/logo.png";
 import { useTranslation } from "react-i18next";
+import { Globe } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 /**
  * Animated neon "NOTO" SVG component.
@@ -58,7 +66,7 @@ function NeonNotoLogo() {
 }
 
 export default function LoginPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -118,8 +126,35 @@ export default function LoginPage() {
     setLoading(false);
   };
 
+  const langs = [
+    { code: "fr", label: "Français" },
+    { code: "en", label: "English" },
+    { code: "es", label: "Español" },
+  ];
+
+  const handleLangChange = (lng: string) => {
+    i18n.changeLanguage(lng);
+    localStorage.setItem("lang", lng);
+  };
+
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
+    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4 relative">
+      {/* Language switcher */}
+      <div className="absolute top-4 right-4 z-10">
+        <Select value={i18n.language} onValueChange={handleLangChange}>
+          <SelectTrigger className="w-auto gap-2 bg-muted/50 border-border">
+            <Globe className="h-4 w-4 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {langs.map((l) => (
+              <SelectItem key={l.code} value={l.code}>
+                {l.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
