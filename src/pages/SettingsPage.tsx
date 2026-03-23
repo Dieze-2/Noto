@@ -899,6 +899,8 @@ export default function SettingsPage() {
           </div>
         </div>
       </SettingsDrawer>
+
+      <OnboardingTutorial open={tutorialOpen} onClose={() => setTutorialOpen(false)} />
     </div>);
 
 }
