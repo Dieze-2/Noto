@@ -5,6 +5,14 @@ import GlassCard from "@/components/GlassCard";
 import { motion } from "framer-motion";
 import logo from "@/assets/logo.png";
 import { useTranslation } from "react-i18next";
+import { Globe } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 /**
  * Animated neon "NOTO" SVG component.
