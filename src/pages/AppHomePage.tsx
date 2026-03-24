@@ -306,7 +306,11 @@ export default function AppHomePage() {
 
   useEffect(() => {
     let alive = true;
-    listCatalogExercises().then((c) => alive && setCatalog(c)).catch(() => {});
+    Promise.all([listCatalogExercises(), listTrackedExercises()]).then(([c, t]) => {
+      if (!alive) return;
+      setCatalog(c);
+      setPersonalExercises(t);
+    }).catch(() => {});
     return () => { alive = false; };
   }, []);
 
