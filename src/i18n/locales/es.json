@@ -58,6 +58,11 @@
     "totalMax": "Total máx",
     "progression": "Progresión",
     "sessions": "Sesiones",
+    "record": "Récord",
+    "volumeMax": "Vol. máx",
+    "volumeExplanation": "La progresión se basa en el volumen: carga total × reps. Para ejercicios al peso corporal, la carga total incluye tu peso.",
+    "e1rmMax": "e1RM máx",
+    "e1rmExplanation": "La progresión se basa en el 1RM estimado (fórmula de Epley): carga total × (1 + reps / 30). Para ejercicios al peso corporal, la carga incluye tu peso. Esto normaliza el rendimiento independientemente del número de reps.",
     "range3M": "3 meses",
     "range6M": "6 meses",
     "rangeAll": "Todo",
@@ -124,6 +129,8 @@
     "importError": "Error de importación",
     "importSuccess": "¡{{count}} filas importadas!",
     "csvEmpty": "Archivo CSV vacío o inválido",
+    "csvFormatCoach": "También soporta el formato Google Sheet coach (JOURNAL DE BORD)",
+    "importCoachSuccess": "¡Importación exitosa! {{metrics}} métricas + {{workouts}} ejercicios importados.",
     "steps": "pasos",
     "kcal": "kcal",
     "myCoach": "Mi coach",
@@ -143,6 +150,8 @@
   },
   "coach": {
     "title": "Panel del Coach",
+    "myProfile": "Mi perfil",
+    "myProfileDesc": "Ver mis estadísticas, entrenamientos y sesiones",
     "notCoach": "Acceso solo para coachs",
     "notCoachDesc": "Contacte a un administrador para obtener el rol de coach.",
     "inviteAthlete": "Invitar un atleta",
@@ -191,7 +200,24 @@
     "view_month": "Mes",
     "weeklyView": "Vista semanal",
     "monthlyView": "Vista mensual",
-    "period": "Período"
+    "period": "Período",
+    "backToExercises": "Volver a ejercicios",
+    "searchExercise": "Buscar ejercicio…",
+    "exercisesTracked": "ejercicios seguidos",
+    "detailedHistory": "Historial detallado",
+    "trainingFrequency": "Frecuencia de entrenamiento",
+    "perWeek": "sem",
+    "muscleGroups": "Distribución muscular",
+    "personalRecords": "Récords personales (e1RM)",
+    "alertInactive": "Inactivo desde hace {{days}} días",
+    "alertNoWorkout": "Sin entrenamientos registrados",
+    "alertWeightLoss": "Pérdida de peso rápida: -{{kg}} kg esta semana",
+    "alertPR": "🏆 {{count}} PR(s) batido(s) esta semana ({{exercise}})",
+    "privateNotes": "Notas privadas",
+    "notesPlaceholder": "Escribe tus notas privadas sobre este atleta…",
+    "notesSaving": "Guardando…",
+    "notesSaved": "Guardado",
+    "notesUnsaved": "Sin guardar"
   },
   "program": {
     "title": "Programas",
@@ -372,6 +398,21 @@
     "generatedOn": "Generado el",
     "export": "Exportar PDF",
     "downloaded": "¡PDF descargado!"
+  },
+  "coachSession": {
+    "title": "Sesiones del coach",
+    "exercisesDone": "hecho(s)",
+    "log": "Registrar",
+    "rest": "Descanso"
+  },
+  "workTypes": {
+    "Pyramide inversée": "Pirámide invertida",
+    "X Reps": "X Reps",
+    "Sensations": "Sensaciones",
+    "Dropset": "Dropset",
+    "Séries classiques": "Series clásicas",
+    "Superset": "Superset",
+    "Rest-pause": "Rest-pause"
   },
   "tutorial": {
     "title": "Descubrir la aplicación",

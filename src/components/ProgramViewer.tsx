@@ -57,7 +57,7 @@ function SessionCard({ session, colorIndex }: {
                   <td className="text-center px-2 py-2.5 font-bold text-foreground">{ex.sets || "—"}</td>
                   <td className="text-center px-2 py-2.5 font-bold text-foreground">{ex.reps || "—"}</td>
                   <td className="text-center px-2 py-2.5 font-bold text-foreground">{ex.rest || "—"}</td>
-                  <td className="text-center px-2 py-2.5 font-bold text-foreground">{ex.work_type || "—"}</td>
+                  <td className="text-center px-2 py-2.5 font-bold text-foreground">{ex.work_type ? t(`workTypes.${ex.work_type}`, ex.work_type) : "—"}</td>
                 </tr>
               ))}
             </tbody>

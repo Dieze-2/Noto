@@ -157,7 +157,7 @@ function ExerciseRow({ exercise, isDone, onLog }: { exercise: ProgramExercise; i
         <p className="text-[10px] text-muted-foreground font-bold">
           {exercise.sets && `${exercise.sets}×`}{exercise.reps}
           {exercise.rest && ` · ${t("coachSession.rest")} ${exercise.rest}`}
-          {exercise.work_type && exercise.work_type !== "Normal" && ` · ${exercise.work_type}`}
+          {exercise.work_type && exercise.work_type !== "Normal" && ` · ${t(`workTypes.${exercise.work_type}`, exercise.work_type)}`}
         </p>
         {exercise.note && (
           <p className="text-[9px] text-muted-foreground/70 italic mt-0.5 truncate">{exercise.note}</p>
