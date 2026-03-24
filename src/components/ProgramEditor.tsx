@@ -218,7 +218,7 @@ function ExerciseRow({ exercise, onUpdate, onDelete }: {
             className={inputClass + " bg-transparent"}
           >
             <option value="">—</option>
-            {WORK_TYPES.map((wt) => <option key={wt} value={wt}>{wt}</option>)}
+            {WORK_TYPES.map((wt) => <option key={wt} value={wt}>{t(`workTypes.${wt}`, wt)}</option>)}
             <option value="__custom__">{t("program.customType")}</option>
           </select>
           {(isCustomWorkType || (!WORK_TYPES.includes(exercise.work_type) && exercise.work_type === "")) && (
