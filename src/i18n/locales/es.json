@@ -129,6 +129,8 @@
     "importError": "Error de importación",
     "importSuccess": "¡{{count}} filas importadas!",
     "csvEmpty": "Archivo CSV vacío o inválido",
+    "csvFormatCoach": "También soporta el formato Google Sheet coach (JOURNAL DE BORD)",
+    "importCoachSuccess": "¡Importación exitosa! {{metrics}} métricas + {{workouts}} ejercicios importados.",
     "steps": "pasos",
     "kcal": "kcal",
     "myCoach": "Mi coach",
