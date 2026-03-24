@@ -373,6 +373,21 @@
     "export": "Exportar PDF",
     "downloaded": "¡PDF descargado!"
   },
+  "coachSession": {
+    "title": "Sesiones del coach",
+    "exercisesDone": "hecho(s)",
+    "log": "Registrar",
+    "rest": "Descanso"
+  },
+  "workTypes": {
+    "Pyramide inversée": "Pirámide invertida",
+    "X Reps": "X Reps",
+    "Sensations": "Sensaciones",
+    "Dropset": "Dropset",
+    "Séries classiques": "Series clásicas",
+    "Superset": "Superset",
+    "Rest-pause": "Rest-pause"
+  },
   "tutorial": {
     "title": "Descubrir la aplicación",
     "todayTitle": "Hoy",

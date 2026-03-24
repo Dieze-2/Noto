@@ -450,6 +450,15 @@
     "log": "Logger",
     "rest": "Repos"
   },
+  "workTypes": {
+    "Pyramide inversée": "Pyramide inversée",
+    "X Reps": "X Reps",
+    "Sensations": "Sensations",
+    "Dropset": "Dropset",
+    "Séries classiques": "Séries classiques",
+    "Superset": "Superset",
+    "Rest-pause": "Rest-pause"
+  },
   "tutorial": {
     "title": "Découvrir l'application",
     "todayTitle": "Aujourd'hui",

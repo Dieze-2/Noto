@@ -405,6 +405,15 @@
     "log": "Log",
     "rest": "Rest"
   },
+  "workTypes": {
+    "Pyramide inversée": "Reverse pyramid",
+    "X Reps": "X Reps",
+    "Sensations": "Sensations",
+    "Dropset": "Dropset",
+    "Séries classiques": "Classic sets",
+    "Superset": "Superset",
+    "Rest-pause": "Rest-pause"
+  },
   "tutorial": {
     "title": "Discover the app",
     "todayTitle": "Today",
