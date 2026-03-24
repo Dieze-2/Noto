@@ -15,6 +15,7 @@ import {
   getOrCreateWorkout, getWorkoutExercises, addWorkoutExercise,
   deleteWorkoutExercise, getExerciseSets, addExerciseSet,
   deleteExerciseSet, updateWorkoutExercise, updateExerciseSet,
+  listTrackedExercises,
   WorkoutExerciseRow, WorkoutExerciseSetRow,
 } from "@/db/workouts";
 import { listCatalogExercises, CatalogExercise } from "@/db/catalog";
@@ -262,6 +263,7 @@ export default function AppHomePage() {
   const [masters, setMasters] = useState<WorkoutExerciseRow[]>([]);
   const [setsByMaster, setSetsByMaster] = useState<Record<string, WorkoutExerciseSetRow[]>>({});
   const [catalog, setCatalog] = useState<CatalogExercise[]>([]);
+  const [personalExercises, setPersonalExercises] = useState<string[]>([]);
   const [dayEvents, setDayEvents] = useState<EventRow[]>([]);
 
   /* ── Drawer states ── */
@@ -304,7 +306,11 @@ export default function AppHomePage() {
 
   useEffect(() => {
     let alive = true;
-    listCatalogExercises().then((c) => alive && setCatalog(c)).catch(() => {});
+    Promise.all([listCatalogExercises(), listTrackedExercises()]).then(([c, t]) => {
+      if (!alive) return;
+      setCatalog(c);
+      setPersonalExercises(t);
+    }).catch(() => {});
     return () => { alive = false; };
   }, []);
 
@@ -519,13 +525,19 @@ export default function AppHomePage() {
             onChange={(e) => { setMasterForm({ ...masterForm, exercise_name: e.target.value }); setShowSuggestions(true); }} />
           {showSuggestions && masterForm.exercise_name.trim().length > 0 && (
             <div className="max-h-48 overflow-auto space-y-2">
-              {catalog.filter((c) => c.name.toLowerCase().includes(masterForm.exercise_name.toLowerCase())).slice(0, 8).map((c) => (
-                <button key={c.id} type="button"
-                  onClick={() => { setMasterForm({ ...masterForm, exercise_name: c.name }); setShowSuggestions(false); }}
-                  className="w-full text-left glass rounded-xl px-4 py-3 font-black uppercase italic text-xs text-muted-foreground hover:border-primary/40 border border-border">
-                  {c.name}
-                </button>
-              ))}
+              {(() => {
+                const q = masterForm.exercise_name.toLowerCase();
+                const catalogNames = catalog.filter((c) => c.name.toLowerCase().includes(q)).map((c) => c.name);
+                const personalNames = personalExercises.filter((n) => n.toLowerCase().includes(q) && !catalogNames.includes(n));
+                const merged = [...catalogNames, ...personalNames].slice(0, 10);
+                return merged.map((name) => (
+                  <button key={name} type="button"
+                    onClick={() => { setMasterForm({ ...masterForm, exercise_name: name }); setShowSuggestions(false); }}
+                    className="w-full text-left glass rounded-xl px-4 py-3 font-black uppercase italic text-xs text-muted-foreground hover:border-primary/40 border border-border">
+                    {name}
+                  </button>
+                ));
+              })()}
             </div>
           )}
           <LoadTypeToggle value={masterForm.load_type} onChange={(v) => setMasterForm({ ...masterForm, load_type: v })} />
