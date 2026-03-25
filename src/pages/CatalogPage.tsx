@@ -6,8 +6,14 @@ import { listCatalogExercises, CatalogExercise } from "@/db/catalog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "react-i18next";
 
+function getLocalizedNote(ex: CatalogExercise, lang: string): string | null {
+  if (lang === "en" && ex.note_en) return ex.note_en;
+  if (lang === "es" && ex.note_es) return ex.note_es;
+  return ex.note;
+}
+
 export default function CatalogPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [allExercises, setAllExercises] = useState<CatalogExercise[]>([]);
   const [filtered, setFiltered] = useState<CatalogExercise[]>([]);
   const [search, setSearch] = useState("");
@@ -58,6 +64,7 @@ export default function CatalogPage() {
             <AnimatePresence mode="popLayout">
               {filtered.map((ex) => {
               const isExpanded = expandedId === ex.id;
+              const localNote = getLocalizedNote(ex, i18n.language);
               return (
                 <motion.div
                   key={ex.id}
@@ -72,7 +79,7 @@ export default function CatalogPage() {
                           {ex.name}
                         </h3>
                         <div className="flex gap-2">
-                          {ex.note &&
+                          {localNote &&
                         <button
                           type="button"
                           onClick={() => setExpandedId(isExpanded ? null : ex.id)}
@@ -100,7 +107,7 @@ export default function CatalogPage() {
                         </div>
                       </div>
                       <AnimatePresence>
-                        {isExpanded && ex.note &&
+                        {isExpanded && localNote &&
                       <motion.div
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
@@ -109,7 +116,7 @@ export default function CatalogPage() {
                         className="overflow-hidden">
                         
                             <div className="px-5 pb-5 text-xs text-muted-foreground leading-relaxed">
-                              {ex.note}
+                              {localNote}
                             </div>
                           </motion.div>
                       }
