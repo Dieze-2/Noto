@@ -64,6 +64,7 @@ export default function CatalogPage() {
             <AnimatePresence mode="popLayout">
               {filtered.map((ex) => {
               const isExpanded = expandedId === ex.id;
+              const localNote = getLocalizedNote(ex, i18n.language);
               return (
                 <motion.div
                   key={ex.id}
@@ -78,7 +79,7 @@ export default function CatalogPage() {
                           {ex.name}
                         </h3>
                         <div className="flex gap-2">
-                          {ex.note &&
+                          {localNote &&
                         <button
                           type="button"
                           onClick={() => setExpandedId(isExpanded ? null : ex.id)}
@@ -106,7 +107,7 @@ export default function CatalogPage() {
                         </div>
                       </div>
                       <AnimatePresence>
-                        {isExpanded && ex.note &&
+                        {isExpanded && localNote &&
                       <motion.div
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
@@ -115,7 +116,7 @@ export default function CatalogPage() {
                         className="overflow-hidden">
                         
                             <div className="px-5 pb-5 text-xs text-muted-foreground leading-relaxed">
-                              {ex.note}
+                              {localNote}
                             </div>
                           </motion.div>
                       }
