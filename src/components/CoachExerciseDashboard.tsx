@@ -376,31 +376,68 @@ export default function CoachExerciseDashboard({ athleteId }: Props) {
             </div>
           )}
 
-          {/* Detailed history table */}
-          {detailData.length > 0 && (
-            <div className="mt-4">
-              <h3 className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-2">
-                {t("coach.detailedHistory")}
-              </h3>
-              <div className="max-h-60 overflow-y-auto space-y-1">
-                {[...detailData].reverse().map((d, i) => {
-                  const e1rm = computeE1RM(d, weightData);
-                  return (
-                    <div key={i} className="flex items-center gap-3 py-1.5 border-b border-border/20 last:border-0">
-                      <span className="text-[10px] font-black text-muted-foreground w-14">
-                        {format(parseISO(d.workout_date), "dd/MM")}
-                      </span>
-                      <span className="text-xs font-bold text-foreground flex-1">
-                        {d.load_type === "PDC" ? "PDC" : d.load_type === "PDC_PLUS" ? `PDC+${(d.load_g ?? 0) / 1000}` : `${(d.load_g ?? 0) / 1000} kg`}
-                        {" × "}{d.reps} reps
-                      </span>
-                      <span className="text-xs font-black text-primary">e1RM {e1rm.toFixed(1)} kg</span>
-                    </div>
-                  );
-                })}
+          {/* Compact records table */}
+          {detailData.length > 0 && (() => {
+            // Group entries by date and aggregate
+            const byDate = new Map<string, ExerciseEntry[]>();
+            detailData.forEach((d) => {
+              if (!byDate.has(d.workout_date)) byDate.set(d.workout_date, []);
+              byDate.get(d.workout_date)!.push(d);
+            });
+            const rows = Array.from(byDate.entries())
+              .map(([date, entries]) => {
+                const loads = entries.map((e) => {
+                  const l = (e.load_g ?? 0) / 1000;
+                  const isPDC = e.load_type === "PDC" || e.load_type === "PDC_PLUS";
+                  return isPDC ? l + getBodyweightForDate(weightData, date) : l;
+                });
+                const maxLoad = Math.max(...loads);
+                const maxReps = Math.max(...entries.map((e) => e.reps));
+                const totalVolume = entries.reduce((sum, e) => {
+                  const l = (e.load_g ?? 0) / 1000;
+                  const isPDC = e.load_type === "PDC" || e.load_type === "PDC_PLUS";
+                  const totalL = isPDC ? l + getBodyweightForDate(weightData, date) : l;
+                  return sum + totalL * e.reps;
+                }, 0);
+                const maxE1RM = Math.max(...entries.map((e) => computeE1RM(e, weightData)));
+                return { date, maxLoad, maxReps, totalVolume, maxE1RM, sets: entries.length };
+              })
+              .sort((a, b) => b.date.localeCompare(a.date));
+
+            return (
+              <div className="mt-4">
+                <h3 className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-2">
+                  {t("coach.detailedHistory")}
+                </h3>
+                <div className="overflow-x-auto rounded-xl border border-border/30">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-border/30 bg-muted/50">
+                        <th className="px-3 py-2 text-left font-black uppercase tracking-widest text-[9px] text-muted-foreground">Date</th>
+                        <th className="px-3 py-2 text-right font-black uppercase tracking-widest text-[9px] text-muted-foreground">Sets</th>
+                        <th className="px-3 py-2 text-right font-black uppercase tracking-widest text-[9px] text-muted-foreground">{t("dashboard.charge")}</th>
+                        <th className="px-3 py-2 text-right font-black uppercase tracking-widest text-[9px] text-muted-foreground">{t("dashboard.repsMax")}</th>
+                        <th className="px-3 py-2 text-right font-black uppercase tracking-widest text-[9px] text-muted-foreground">Vol.</th>
+                        <th className="px-3 py-2 text-right font-black uppercase tracking-widest text-[9px] text-muted-foreground">e1RM</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((r, i) => (
+                        <tr key={r.date} className={`border-b border-border/10 last:border-0 ${i % 2 === 0 ? "" : "bg-muted/20"}`}>
+                          <td className="px-3 py-2 font-bold text-muted-foreground">{format(parseISO(r.date), "dd/MM/yy")}</td>
+                          <td className="px-3 py-2 text-right font-bold text-foreground">{r.sets}</td>
+                          <td className="px-3 py-2 text-right font-bold text-foreground">{r.maxLoad.toFixed(1)}<span className="text-muted-foreground ml-0.5">kg</span></td>
+                          <td className="px-3 py-2 text-right font-bold text-foreground">{r.maxReps}</td>
+                          <td className="px-3 py-2 text-right font-bold text-foreground">{r.totalVolume.toFixed(0)}<span className="text-muted-foreground ml-0.5">kg</span></td>
+                          <td className="px-3 py-2 text-right font-black text-primary">{r.maxE1RM.toFixed(1)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </GlassCard>
 
         <ChartFullscreen
