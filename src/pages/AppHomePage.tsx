@@ -214,7 +214,31 @@ export default function AppHomePage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const dateISO = useMemo(() => getISODateFromParams(searchParams.get("date")), [searchParams]);
+
+  /* If there's no explicit ?date= param, recompute "today" on every render
+     so that resuming the app after midnight picks up the new day. */
+  const dateISO = useMemo(() => {
+    const param = searchParams.get("date");
+    if (param && isValid(parseISO(param))) return param;
+    return format(new Date(), "yyyy-MM-dd");
+  }, [searchParams]);
+
+  /* Force re-evaluate when the app comes back to the foreground (mobile resume) */
+  const [, forceUpdate] = useState(0);
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        const param = searchParams.get("date");
+        if (!param) {
+          // No explicit date → user is on "today", re-check if the day changed
+          forceUpdate((n) => n + 1);
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, [searchParams]);
+
   const currentDate = useMemo(() => parseISO(dateISO), [dateISO]);
 
   /* ── Metrics state + debounce ── */
