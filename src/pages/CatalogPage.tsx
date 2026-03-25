@@ -6,8 +6,14 @@ import { listCatalogExercises, CatalogExercise } from "@/db/catalog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "react-i18next";
 
+function getLocalizedNote(ex: CatalogExercise, lang: string): string | null {
+  if (lang === "en" && ex.note_en) return ex.note_en;
+  if (lang === "es" && ex.note_es) return ex.note_es;
+  return ex.note;
+}
+
 export default function CatalogPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [allExercises, setAllExercises] = useState<CatalogExercise[]>([]);
   const [filtered, setFiltered] = useState<CatalogExercise[]>([]);
   const [search, setSearch] = useState("");

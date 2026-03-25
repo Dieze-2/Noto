@@ -5,6 +5,8 @@ export type CatalogExercise = {
   name: string;
   youtube_url: string | null;
   note: string | null;
+  note_en: string | null;
+  note_es: string | null;
   created_at: string;
 };
 
