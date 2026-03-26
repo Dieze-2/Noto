@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Shield, Loader2, XCircle, UserCheck, Play, Users, Clock, BarChart3, AlertTriangle, UserPlus, CalendarClock, LogOut } from "lucide-react";
+import { Shield, Loader2, XCircle, UserCheck, Play, Users, Clock, BarChart3, AlertTriangle, UserPlus, CalendarClock, LogOut, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -344,11 +344,13 @@ export default function AdminDashboardPage() {
                         <TableHead className="text-[10px] font-black uppercase tracking-wider">{t("admin.plan")}</TableHead>
                         <TableHead className="text-[10px] font-black uppercase tracking-wider text-center">{t("admin.athletes")}</TableHead>
                         <TableHead className="text-[10px] font-black uppercase tracking-wider">{t("admin.status")}</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-wider">{t("admin.actions")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {stats.coaches.map((c) => {
                     const status = getCoachStatus(c);
+                    const isActiveTrial = c.trial_end && new Date(c.trial_end) > new Date();
                     return (
                       <TableRow key={c.coach_id}>
                             <TableCell className="font-bold text-sm">{c.profileName}</TableCell>
@@ -362,6 +364,33 @@ export default function AdminDashboardPage() {
                               <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${status.className}`}>
                                 {status.label}
                               </span>
+                            </TableCell>
+                            <TableCell>
+                              {isActiveTrial && (
+                                <div className="flex items-center gap-1.5">
+                                  <input
+                                    type="date"
+                                    value={extendDates[c.coach_id] ?? ""}
+                                    min={format(new Date(), "yyyy-MM-dd")}
+                                    onChange={(e) => setExtendDates((prev) => ({ ...prev, [c.coach_id]: e.target.value }))}
+                                    className="glass rounded-lg px-1.5 py-0.5 text-[10px] font-bold text-foreground outline-none focus:ring-1 focus:ring-primary w-28"
+                                  />
+                                  <button
+                                    onClick={() => handleExtendTrial(c.coach_id)}
+                                    disabled={!extendDates[c.coach_id] || extendingTrialId === c.coach_id}
+                                    className="px-2 py-1 rounded-lg bg-primary/10 text-primary text-[10px] font-black uppercase tracking-wider hover:bg-primary/20 transition-colors disabled:opacity-50"
+                                  >
+                                    {extendingTrialId === c.coach_id ? <Loader2 size={10} className="animate-spin" /> : <CalendarClock size={10} />}
+                                  </button>
+                                  <button
+                                    onClick={() => handleRevokeTrial(c.coach_id)}
+                                    disabled={revokingTrialId === c.coach_id}
+                                    className="px-2 py-1 rounded-lg bg-destructive/10 text-destructive text-[10px] font-black uppercase tracking-wider hover:bg-destructive/20 transition-colors disabled:opacity-50"
+                                  >
+                                    {revokingTrialId === c.coach_id ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
+                                  </button>
+                                </div>
+                              )}
                             </TableCell>
                           </TableRow>);
 
