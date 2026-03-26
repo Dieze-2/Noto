@@ -330,10 +330,8 @@ export default function AppHomePage() {
   }
 
   /* ── Load data ── */
-  useEffect(() => {
-    const param = searchParams.get("date");
-    if (!param || !isValid(parseISO(param))) setSearchParams({ date: dateISO }, { replace: true });
-  }, []);
+  /* Note: We no longer force ?date= into URL on mount.
+     This lets the visibility-change handler detect "no explicit date = user is on today". */
 
   useEffect(() => {
     let alive = true;
