@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Shield, Loader2, XCircle, UserCheck, Play, Users, Clock, BarChart3, AlertTriangle, UserPlus, CalendarClock, LogOut } from "lucide-react";
+import { Shield, Loader2, XCircle, UserCheck, Play, Users, Clock, BarChart3, AlertTriangle, UserPlus, CalendarClock, LogOut, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { format } from "date-fns";
