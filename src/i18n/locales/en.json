@@ -389,6 +389,8 @@
     "last30d": "30 days",
     "extendTrial": "Extend",
     "trialExtended": "Trial extended!",
+    "revokeTrial": "Revoke",
+    "trialRevoked": "Trial revoked!",
     "departing": "Departing",
     "leavesOn": "Leaves on {{date}}",
     "noCancellations": "No pending cancellation requests"
