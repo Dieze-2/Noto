@@ -309,6 +309,13 @@ export default function AdminDashboardPage() {
                         >
                           {extendingTrialId === c.coach_id ? <Loader2 size={10} className="animate-spin" /> : t("admin.extendTrial")}
                         </button>
+                        <button
+                          onClick={() => handleRevokeTrial(c.coach_id)}
+                          disabled={revokingTrialId === c.coach_id}
+                          className="px-2.5 py-1 rounded-lg bg-destructive/10 text-destructive text-[10px] font-black uppercase tracking-wider hover:bg-destructive/20 transition-colors disabled:opacity-50"
+                        >
+                          {revokingTrialId === c.coach_id ? <Loader2 size={10} className="animate-spin" /> : t("admin.revokeTrial")}
+                        </button>
                       </div>
                     </GlassCard>
               )}
