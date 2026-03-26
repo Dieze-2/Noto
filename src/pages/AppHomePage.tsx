@@ -228,10 +228,14 @@ export default function AppHomePage() {
   useEffect(() => {
     const onVisibilityChange = () => {
       if (document.visibilityState === "visible") {
+        const today = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}-${String(new Date().getDate()).padStart(2, "0")}`;
         const param = searchParams.get("date");
         if (!param) {
           // No explicit date → user is on "today", re-check if the day changed
           forceUpdate((n) => n + 1);
+        } else if (param !== today) {
+          // Explicit date that is no longer today → user left app overnight, reset to today
+          setSearchParams({ date: today }, { replace: true });
         }
       }
     };
@@ -326,10 +330,8 @@ export default function AppHomePage() {
   }
 
   /* ── Load data ── */
-  useEffect(() => {
-    const param = searchParams.get("date");
-    if (!param || !isValid(parseISO(param))) setSearchParams({ date: dateISO }, { replace: true });
-  }, []);
+  /* Note: We no longer force ?date= into URL on mount.
+     This lets the visibility-change handler detect "no explicit date = user is on today". */
 
   useEffect(() => {
     let alive = true;
