@@ -247,6 +247,7 @@ export default function AppHomePage() {
   const pendingRef = useRef(metrics);
   const inFlightRef = useRef<Promise<any> | null>(null);
   const dateRef = useRef(dateISO);
+  const metricsLoadedRef = useRef(false); // Guard: no flush until DB data is loaded
   useEffect(() => { dateRef.current = dateISO; }, [dateISO]);
 
   function cancelDebounce() {
@@ -256,6 +257,7 @@ export default function AppHomePage() {
     return { date, steps: toIntOrNull(m.steps), kcal: toIntOrNull(m.kcal), weight_g: toGramsOrNull(m.weight), note: null as string | null };
   }
   async function flushMetricsForDate(date: string) {
+    if (!metricsLoadedRef.current) return; // Don't flush before data is loaded
     cancelDebounce();
     const payload = buildPayload(date, pendingRef.current);
     if (inFlightRef.current) { try { await inFlightRef.current; } catch {} }
@@ -264,6 +266,7 @@ export default function AppHomePage() {
   }
   function scheduleFlush(next: typeof metrics) {
     pendingRef.current = next; cancelDebounce();
+    if (!metricsLoadedRef.current) return; // Don't schedule flush before data is loaded
     const captured = dateISO;
     debounceTimerRef.current = window.setTimeout(() => {
       if (dateRef.current !== captured) return;
@@ -341,6 +344,7 @@ export default function AppHomePage() {
   useEffect(() => {
     let alive = true;
     cancelDebounce();
+    metricsLoadedRef.current = false; // Reset guard when date changes
     async function load() {
       const [m, workout, evs] = await Promise.all([
         getDailyMetricsByDate(dateISO),
@@ -354,6 +358,7 @@ export default function AppHomePage() {
         weight: m?.weight_g != null ? String(m.weight_g / 1000) : "",
       };
       setMetrics(next); pendingRef.current = next;
+      metricsLoadedRef.current = true; // Data loaded, flush is now safe
       setDayEvents(evs ?? []);
       setWorkoutId(workout.id);
       const ex = await getWorkoutExercises(workout.id);
