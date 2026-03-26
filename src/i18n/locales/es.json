@@ -389,6 +389,8 @@
     "last30d": "30 días",
     "extendTrial": "Extender",
     "trialExtended": "¡Prueba extendida!",
+    "revokeTrial": "Revocar",
+    "trialRevoked": "¡Prueba revocada!",
     "departing": "Salida prevista",
     "leavesOn": "Sale el {{date}}",
     "noCancellations": "No hay solicitudes de cancelación pendientes"

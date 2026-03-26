@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import GlassCard from "@/components/GlassCard";
 import { useRoles } from "@/auth/RoleProvider";
-import { grantCoachTrial, extendCoachTrial, getPendingCancellations, approveCancellation, CoachPlan, PLAN_CONFIG } from "@/db/coachSubscriptions";
+import { grantCoachTrial, extendCoachTrial, cancelCoachSubscription, getPendingCancellations, approveCancellation, CoachPlan, PLAN_CONFIG } from "@/db/coachSubscriptions";
 import { createNotification } from "@/db/notifications";
 import { getProfile, displayName } from "@/db/profiles";
 import { getAdminStats, AdminStats, CoachRow } from "@/db/adminStats";
@@ -35,6 +35,7 @@ export default function AdminDashboardPage() {
   const [grantingTrial, setGrantingTrial] = useState(false);
   const [extendingTrialId, setExtendingTrialId] = useState<string | null>(null);
   const [extendDates, setExtendDates] = useState<Record<string, string>>({});
+  const [revokingTrialId, setRevokingTrialId] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -117,6 +118,19 @@ export default function AdminDashboardPage() {
       toast.error(e.message);
     } finally {
       setExtendingTrialId(null);
+    }
+  };
+
+  const handleRevokeTrial = async (coachId: string) => {
+    setRevokingTrialId(coachId);
+    try {
+      await cancelCoachSubscription(coachId);
+      toast.success(t("admin.trialRevoked"));
+      fetchData();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setRevokingTrialId(null);
     }
   };
 
@@ -294,6 +308,13 @@ export default function AdminDashboardPage() {
                           className="px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-[10px] font-black uppercase tracking-wider hover:bg-primary/20 transition-colors disabled:opacity-50"
                         >
                           {extendingTrialId === c.coach_id ? <Loader2 size={10} className="animate-spin" /> : t("admin.extendTrial")}
+                        </button>
+                        <button
+                          onClick={() => handleRevokeTrial(c.coach_id)}
+                          disabled={revokingTrialId === c.coach_id}
+                          className="px-2.5 py-1 rounded-lg bg-destructive/10 text-destructive text-[10px] font-black uppercase tracking-wider hover:bg-destructive/20 transition-colors disabled:opacity-50"
+                        >
+                          {revokingTrialId === c.coach_id ? <Loader2 size={10} className="animate-spin" /> : t("admin.revokeTrial")}
                         </button>
                       </div>
                     </GlassCard>

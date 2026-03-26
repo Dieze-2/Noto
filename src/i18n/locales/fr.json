@@ -434,6 +434,8 @@
     "last30d": "30 jours",
     "extendTrial": "Prolonger",
     "trialExtended": "Période d'essai prolongée !",
+    "revokeTrial": "Supprimer",
+    "trialRevoked": "Période d'essai supprimée !",
     "departing": "Départ prévu",
     "leavesOn": "Quitte le {{date}}",
     "noCancellations": "Aucune demande de résiliation en attente"
