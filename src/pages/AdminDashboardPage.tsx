@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import GlassCard from "@/components/GlassCard";
 import { useRoles } from "@/auth/RoleProvider";
-import { grantCoachTrial, extendCoachTrial, getPendingCancellations, approveCancellation, CoachPlan, PLAN_CONFIG } from "@/db/coachSubscriptions";
+import { grantCoachTrial, extendCoachTrial, cancelCoachSubscription, getPendingCancellations, approveCancellation, CoachPlan, PLAN_CONFIG } from "@/db/coachSubscriptions";
 import { createNotification } from "@/db/notifications";
 import { getProfile, displayName } from "@/db/profiles";
 import { getAdminStats, AdminStats, CoachRow } from "@/db/adminStats";
@@ -35,6 +35,7 @@ export default function AdminDashboardPage() {
   const [grantingTrial, setGrantingTrial] = useState(false);
   const [extendingTrialId, setExtendingTrialId] = useState<string | null>(null);
   const [extendDates, setExtendDates] = useState<Record<string, string>>({});
+  const [revokingTrialId, setRevokingTrialId] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
