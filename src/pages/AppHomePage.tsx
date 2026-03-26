@@ -344,6 +344,7 @@ export default function AppHomePage() {
   useEffect(() => {
     let alive = true;
     cancelDebounce();
+    metricsLoadedRef.current = false; // Reset guard when date changes
     async function load() {
       const [m, workout, evs] = await Promise.all([
         getDailyMetricsByDate(dateISO),
@@ -357,6 +358,7 @@ export default function AppHomePage() {
         weight: m?.weight_g != null ? String(m.weight_g / 1000) : "",
       };
       setMetrics(next); pendingRef.current = next;
+      metricsLoadedRef.current = true; // Data loaded, flush is now safe
       setDayEvents(evs ?? []);
       setWorkoutId(workout.id);
       const ex = await getWorkoutExercises(workout.id);
