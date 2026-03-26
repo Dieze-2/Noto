@@ -121,6 +121,19 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleRevokeTrial = async (coachId: string) => {
+    setRevokingTrialId(coachId);
+    try {
+      await cancelCoachSubscription(coachId);
+      toast.success(t("admin.trialRevoked"));
+      fetchData();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setRevokingTrialId(null);
+    }
+  };
+
   const getCoachStatus = (c: CoachRow): {label: string;className: string;} => {
     const now = new Date();
     if (c.pending_cancellation) {
