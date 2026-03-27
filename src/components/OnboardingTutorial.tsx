@@ -45,7 +45,7 @@ export default function OnboardingTutorial({ open, onClose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) handleClose(); }}>
-      <DialogContent className="max-w-sm rounded-3xl p-0 overflow-hidden border-none gap-0">
+      <DialogContent className="max-w-sm rounded-3xl p-0 overflow-hidden border-none gap-0 [&>button.absolute]:hidden">
         <DialogTitle className="sr-only">{t("tutorial.title")}</DialogTitle>
         <DialogDescription className="sr-only">{t("tutorial.title")}</DialogDescription>
 
