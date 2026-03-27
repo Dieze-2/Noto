@@ -1309,8 +1309,7 @@ export default function CoachAthleteViewPage() {
               />
             </GlassCard>
           </>
-
-              ].map(({ label, count, total, color }) => {
+        ) : activeTab === "training" ? (
                 const pct = total > 0 ? Math.round((count / total) * 100) : 0;
                 return (
                   <div key={label} className="space-y-1">
