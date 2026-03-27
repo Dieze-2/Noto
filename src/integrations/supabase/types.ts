@@ -274,30 +274,66 @@ export type Database = {
       }
       exercise_catalog: {
         Row: {
+          body_region: string | null
           created_at: string
+          difficulty_level: string | null
+          grip: string | null
           id: string
+          movement_pattern_1: string | null
+          movement_pattern_2: string | null
+          movement_pattern_3: string | null
           name: string
           note: string | null
           note_en: string | null
           note_es: string | null
+          primary_equipment: string | null
+          prime_mover_muscle: string | null
+          secondary_equipment: string | null
+          secondary_muscle: string | null
+          target_muscle_group: string | null
+          tertiary_muscle: string | null
           youtube_url: string | null
         }
         Insert: {
+          body_region?: string | null
           created_at?: string
+          difficulty_level?: string | null
+          grip?: string | null
           id?: string
+          movement_pattern_1?: string | null
+          movement_pattern_2?: string | null
+          movement_pattern_3?: string | null
           name: string
           note?: string | null
           note_en?: string | null
           note_es?: string | null
+          primary_equipment?: string | null
+          prime_mover_muscle?: string | null
+          secondary_equipment?: string | null
+          secondary_muscle?: string | null
+          target_muscle_group?: string | null
+          tertiary_muscle?: string | null
           youtube_url?: string | null
         }
         Update: {
+          body_region?: string | null
           created_at?: string
+          difficulty_level?: string | null
+          grip?: string | null
           id?: string
+          movement_pattern_1?: string | null
+          movement_pattern_2?: string | null
+          movement_pattern_3?: string | null
           name?: string
           note?: string | null
           note_en?: string | null
           note_es?: string | null
+          primary_equipment?: string | null
+          prime_mover_muscle?: string | null
+          secondary_equipment?: string | null
+          secondary_muscle?: string | null
+          target_muscle_group?: string | null
+          tertiary_muscle?: string | null
           youtube_url?: string | null
         }
         Relationships: []
