@@ -1308,9 +1308,8 @@ export default function CoachAthleteViewPage() {
                 className="w-full min-h-[120px] bg-muted/30 border border-border/50 rounded-xl p-3 text-sm text-foreground placeholder:text-muted-foreground/50 resize-y focus:outline-none focus:ring-1 focus:ring-primary/30"
               />
             </GlassCard>
-                { label: t("dashboard.weight"), count: stats.completion.daysWithWeight, total: stats.completion.totalDays, color: "bg-[hsl(var(--metric-weight))]" },
-                { label: t("coach.avgSteps"), count: stats.completion.daysWithSteps, total: stats.completion.totalDays, color: "bg-[hsl(var(--metric-steps))]" },
-                { label: t("coach.avgKcal"), count: stats.completion.daysWithKcal, total: stats.completion.totalDays, color: "bg-[hsl(var(--metric-kcal))]" },
+          </>
+
               ].map(({ label, count, total, color }) => {
                 const pct = total > 0 ? Math.round((count / total) * 100) : 0;
                 return (
