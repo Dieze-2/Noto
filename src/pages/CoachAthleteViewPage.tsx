@@ -900,7 +900,7 @@ export default function CoachAthleteViewPage() {
                       </thead>
                       <tbody>
                         {visibleMetrics.map((m, i) => {
-                          const hasWorkout = workouts.some((w) => w.date === m.date);
+                          const hasWorkout = workoutHistory.some((w) => w.date === m.date);
                           return (
                             <tr key={m.date} className={i % 2 === 0 ? "" : "bg-muted/20"}>
                               <td className="px-2 py-2 font-bold text-foreground whitespace-nowrap">{format(new Date(m.date), "dd/MM")}</td>
