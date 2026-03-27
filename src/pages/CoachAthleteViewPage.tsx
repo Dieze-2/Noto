@@ -1308,15 +1308,6 @@ export default function CoachAthleteViewPage() {
                 className="w-full min-h-[120px] bg-muted/30 border border-border/50 rounded-xl p-3 text-sm text-foreground placeholder:text-muted-foreground/50 resize-y focus:outline-none focus:ring-1 focus:ring-primary/30"
               />
             </GlassCard>
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                  {t("coach.completionTitle")}
-                </h3>
-                <span className="text-[10px] font-bold text-muted-foreground ml-auto">
-                  {t("coach.last30days")}
-                </span>
-              </div>
-
-              {[
                 { label: t("dashboard.weight"), count: stats.completion.daysWithWeight, total: stats.completion.totalDays, color: "bg-[hsl(var(--metric-weight))]" },
                 { label: t("coach.avgSteps"), count: stats.completion.daysWithSteps, total: stats.completion.totalDays, color: "bg-[hsl(var(--metric-steps))]" },
                 { label: t("coach.avgKcal"), count: stats.completion.daysWithKcal, total: stats.completion.totalDays, color: "bg-[hsl(var(--metric-kcal))]" },
