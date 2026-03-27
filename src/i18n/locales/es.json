@@ -76,7 +76,9 @@
     "noResult": "Ningún ejercicio encontrado",
     "empty": "Catálogo vacío",
     "seeNote": "Nota",
-    "seeVideo": "Ver vídeo"
+    "seeVideo": "Ver vídeo",
+    "exerciseCount_one": "{{count}} ejercicio",
+    "exerciseCount_other": "{{count}} ejercicios"
   },
   "settings": {
     "title": "Ajustes",

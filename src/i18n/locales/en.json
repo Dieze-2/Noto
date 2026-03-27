@@ -76,7 +76,9 @@
     "noResult": "No exercise found",
     "empty": "Empty catalog",
     "seeNote": "Note",
-    "seeVideo": "See video"
+    "seeVideo": "See video",
+    "exerciseCount_one": "{{count}} exercise",
+    "exerciseCount_other": "{{count}} exercises"
   },
   "settings": {
     "title": "Settings",
