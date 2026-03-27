@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Trash2, Save, GripVertical, ChevronDown, ChevronUp,
-  Loader2, Dumbbell, Search, X,
+  Loader2, Dumbbell, Search, X, Filter,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
