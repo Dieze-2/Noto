@@ -96,6 +96,13 @@ export default function CatalogPage() {
               className="overflow-hidden mb-4"
             >
               <div className="space-y-2 pb-2">
+                {bodyRegions.length > 0 && (
+                  <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground shrink-0">{t("exercisePicker.filterBodyRegion")}</span>
+                    <FilterChip label={t("exercisePicker.allFilters")} active={!filterBodyRegion} onClick={() => setFilterBodyRegion(null)} />
+                    {bodyRegions.map(v => <FilterChip key={v} label={v} active={filterBodyRegion === v} onClick={() => setFilterBodyRegion(filterBodyRegion === v ? null : v)} />)}
+                  </div>
+                )}
                 {muscleGroups.length > 0 && (
                   <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
                     <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground shrink-0">{t("exercisePicker.filterMuscle")}</span>
@@ -108,13 +115,6 @@ export default function CatalogPage() {
                     <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground shrink-0">{t("exercisePicker.filterEquipment")}</span>
                     <FilterChip label={t("exercisePicker.allFilters")} active={!filterEquipment} onClick={() => setFilterEquipment(null)} />
                     {equipments.map(v => <FilterChip key={v} label={v} active={filterEquipment === v} onClick={() => setFilterEquipment(filterEquipment === v ? null : v)} />)}
-                  </div>
-                )}
-                {bodyRegions.length > 0 && (
-                  <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground shrink-0">{t("exercisePicker.filterBodyRegion")}</span>
-                    <FilterChip label={t("exercisePicker.allFilters")} active={!filterBodyRegion} onClick={() => setFilterBodyRegion(null)} />
-                    {bodyRegions.map(v => <FilterChip key={v} label={v} active={filterBodyRegion === v} onClick={() => setFilterBodyRegion(filterBodyRegion === v ? null : v)} />)}
                   </div>
                 )}
                 {difficulties.length > 0 && (
@@ -130,7 +130,7 @@ export default function CatalogPage() {
         </AnimatePresence>
 
         <p className="text-xs text-muted-foreground mb-4 font-bold">
-          {filtered.length} {t("catalog.exerciseCount", { count: filtered.length })}
+          {t("catalog.exerciseCount", { count: filtered.length })}
         </p>
 
         {loading ? (
