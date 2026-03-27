@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Play, Filter } from "lucide-react";
+import { Search, Play, Filter, X } from "lucide-react";
 import GlassCard from "@/components/GlassCard";
 import { listCatalogExercises, CatalogExercise } from "@/db/catalog";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,22 +12,6 @@ function getLocalizedNote(ex: CatalogExercise, lang: string): string | null {
   return ex.note;
 }
 
-function FilterChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border transition-colors ${
-        active
-          ? "bg-primary text-primary-foreground border-primary"
-          : "bg-muted text-muted-foreground border-border hover:border-primary/30"
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
-
 export default function CatalogPage() {
   const { t, i18n } = useTranslation();
   const [allExercises, setAllExercises] = useState<CatalogExercise[]>([]);
@@ -36,9 +20,7 @@ export default function CatalogPage() {
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [filterMuscle, setFilterMuscle] = useState<string | null>(null);
-  const [filterEquipment, setFilterEquipment] = useState<string | null>(null);
   const [filterBodyRegion, setFilterBodyRegion] = useState<string | null>(null);
-  const [filterDifficulty, setFilterDifficulty] = useState<string | null>(null);
 
   useEffect(() => {
     listCatalogExercises()
@@ -47,22 +29,23 @@ export default function CatalogPage() {
   }, []);
 
   const muscleGroups = useMemo(() => [...new Set(allExercises.map(e => e.target_muscle_group).filter(Boolean))].sort() as string[], [allExercises]);
-  const equipments = useMemo(() => [...new Set(allExercises.map(e => e.primary_equipment).filter(Boolean))].sort() as string[], [allExercises]);
   const bodyRegions = useMemo(() => [...new Set(allExercises.map(e => e.body_region).filter(Boolean))].sort() as string[], [allExercises]);
-  const difficulties = useMemo(() => [...new Set(allExercises.map(e => e.difficulty_level).filter(Boolean))].sort() as string[], [allExercises]);
 
   const filtered = useMemo(() => {
     return allExercises.filter((ex) => {
       if (search && !ex.name.toLowerCase().includes(search.toLowerCase())) return false;
       if (filterMuscle && ex.target_muscle_group !== filterMuscle) return false;
-      if (filterEquipment && ex.primary_equipment !== filterEquipment) return false;
       if (filterBodyRegion && ex.body_region !== filterBodyRegion) return false;
-      if (filterDifficulty && ex.difficulty_level !== filterDifficulty) return false;
       return true;
     });
-  }, [allExercises, search, filterMuscle, filterEquipment, filterBodyRegion, filterDifficulty]);
+  }, [allExercises, search, filterMuscle, filterBodyRegion]);
 
-  const hasActiveFilters = filterMuscle || filterEquipment || filterBodyRegion || filterDifficulty;
+  const hasActiveFilters = filterMuscle || filterBodyRegion;
+
+  const resetFilters = () => {
+    setFilterMuscle(null);
+    setFilterBodyRegion(null);
+  };
 
   return (
     <div className="mx-auto max-w-5xl px-4 pt-6 pb-32 lg:pb-8 bg-primary-foreground">
@@ -86,7 +69,7 @@ export default function CatalogPage() {
           </button>
         </div>
 
-        {/* Filters */}
+        {/* Filters as dropdowns */}
         <AnimatePresence>
           {showFilters && (
             <motion.div
@@ -95,36 +78,48 @@ export default function CatalogPage() {
               exit={{ height: 0, opacity: 0 }}
               className="overflow-hidden mb-4"
             >
-              <div className="space-y-2 pb-2">
+              <div className="flex flex-col sm:flex-row gap-2 pb-2">
                 {bodyRegions.length > 0 && (
-                  <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground shrink-0">{t("exercisePicker.filterBodyRegion")}</span>
-                    <FilterChip label={t("exercisePicker.allFilters")} active={!filterBodyRegion} onClick={() => setFilterBodyRegion(null)} />
-                    {bodyRegions.map(v => <FilterChip key={v} label={v} active={filterBodyRegion === v} onClick={() => setFilterBodyRegion(filterBodyRegion === v ? null : v)} />)}
+                  <div className="flex-1">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1 block">
+                      {t("exercisePicker.filterBodyRegion")}
+                    </label>
+                    <select
+                      value={filterBodyRegion ?? ""}
+                      onChange={(e) => setFilterBodyRegion(e.target.value || null)}
+                      className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm font-bold text-foreground outline-none appearance-none"
+                    >
+                      <option value="">{t("exercisePicker.allFilters")}</option>
+                      {bodyRegions.map(v => <option key={v} value={v}>{v}</option>)}
+                    </select>
                   </div>
                 )}
                 {muscleGroups.length > 0 && (
-                  <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground shrink-0">{t("exercisePicker.filterMuscle")}</span>
-                    <FilterChip label={t("exercisePicker.allFilters")} active={!filterMuscle} onClick={() => setFilterMuscle(null)} />
-                    {muscleGroups.map(v => <FilterChip key={v} label={v} active={filterMuscle === v} onClick={() => setFilterMuscle(filterMuscle === v ? null : v)} />)}
-                  </div>
-                )}
-                {equipments.length > 0 && (
-                  <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground shrink-0">{t("exercisePicker.filterEquipment")}</span>
-                    <FilterChip label={t("exercisePicker.allFilters")} active={!filterEquipment} onClick={() => setFilterEquipment(null)} />
-                    {equipments.map(v => <FilterChip key={v} label={v} active={filterEquipment === v} onClick={() => setFilterEquipment(filterEquipment === v ? null : v)} />)}
-                  </div>
-                )}
-                {difficulties.length > 0 && (
-                  <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground shrink-0">{t("exercisePicker.filterDifficulty")}</span>
-                    <FilterChip label={t("exercisePicker.allFilters")} active={!filterDifficulty} onClick={() => setFilterDifficulty(null)} />
-                    {difficulties.map(v => <FilterChip key={v} label={v} active={filterDifficulty === v} onClick={() => setFilterDifficulty(filterDifficulty === v ? null : v)} />)}
+                  <div className="flex-1">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1 block">
+                      {t("exercisePicker.filterMuscle")}
+                    </label>
+                    <select
+                      value={filterMuscle ?? ""}
+                      onChange={(e) => setFilterMuscle(e.target.value || null)}
+                      className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm font-bold text-foreground outline-none appearance-none"
+                    >
+                      <option value="">{t("exercisePicker.allFilters")}</option>
+                      {muscleGroups.map(v => <option key={v} value={v}>{v}</option>)}
+                    </select>
                   </div>
                 )}
               </div>
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="flex items-center gap-1 text-[10px] font-bold text-primary hover:text-primary/80 transition-colors mt-1"
+                >
+                  <X size={12} />
+                  {t("exercisePicker.allFilters")}
+                </button>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -169,14 +164,9 @@ export default function CatalogPage() {
                                 {ex.target_muscle_group}
                               </span>
                             )}
-                            {ex.primary_equipment && (
+                            {ex.body_region && (
                               <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                                {ex.primary_equipment}
-                              </span>
-                            )}
-                            {ex.difficulty_level && (
-                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                                {ex.difficulty_level}
+                                {ex.body_region}
                               </span>
                             )}
                           </div>
