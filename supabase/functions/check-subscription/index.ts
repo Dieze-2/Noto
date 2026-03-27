@@ -47,8 +47,14 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims?.sub) {
+    let claimsData: any;
+    try {
+      const result = await authClient.auth.getClaims(token);
+      if (result.error || !result.data?.claims?.sub) {
+        return unsubscribedResponse();
+      }
+      claimsData = result.data;
+    } catch (_) {
       return unsubscribedResponse();
     }
 
