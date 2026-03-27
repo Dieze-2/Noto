@@ -892,22 +892,25 @@ export default function CoachAthleteViewPage() {
                       <thead>
                         <tr className="border-b border-border">
                           <th className="text-left px-2 py-2 font-black uppercase tracking-wider text-muted-foreground text-[9px]">{t("coach.date")}</th>
-                          <th className="text-center px-1 py-2"><Weight size={10} className="mx-auto text-metric-weight" /></th>
                           <th className="text-center px-1 py-2"><Footprints size={10} className="mx-auto text-metric-steps" /></th>
                           <th className="text-center px-1 py-2"><Flame size={10} className="mx-auto text-metric-kcal" /></th>
-                          <th className="text-center px-1 py-2"><Moon size={10} className="mx-auto text-primary" /></th>
+                          <th className="text-center px-1 py-2"><Weight size={10} className="mx-auto text-metric-weight" /></th>
+                          <th className="text-center px-1 py-2"><Dumbbell size={10} className="mx-auto text-primary" /></th>
                         </tr>
                       </thead>
                       <tbody>
-                        {visibleMetrics.map((m, i) => (
-                          <tr key={m.date} className={i % 2 === 0 ? "" : "bg-muted/20"}>
-                            <td className="px-2 py-2 font-bold text-foreground whitespace-nowrap">{format(new Date(m.date), "dd/MM")}</td>
-                            <td className="text-center px-1 py-2 font-bold text-foreground">{m.weight_g != null ? (m.weight_g / 1000).toFixed(1) : "—"}</td>
-                            <td className="text-center px-1 py-2 font-bold text-foreground">{m.steps != null ? m.steps.toLocaleString() : "—"}</td>
-                            <td className="text-center px-1 py-2 font-bold text-foreground">{m.kcal != null ? m.kcal.toLocaleString() : "—"}</td>
-                            <td className="text-center px-1 py-2 font-bold text-foreground">{"sleep_h" in m && (m as any).sleep_h != null ? (m as any).sleep_h : "—"}</td>
-                          </tr>
-                        ))}
+                        {visibleMetrics.map((m, i) => {
+                          const hasWorkout = workoutHistory.some((w) => w.date === m.date);
+                          return (
+                            <tr key={m.date} className={i % 2 === 0 ? "" : "bg-muted/20"}>
+                              <td className="px-2 py-2 font-bold text-foreground whitespace-nowrap">{format(new Date(m.date), "dd/MM")}</td>
+                              <td className="text-center px-1 py-2 font-bold text-foreground">{m.steps != null ? m.steps.toLocaleString() : "—"}</td>
+                              <td className="text-center px-1 py-2 font-bold text-foreground">{m.kcal != null ? m.kcal.toLocaleString() : "—"}</td>
+                              <td className="text-center px-1 py-2 font-bold text-foreground">{m.weight_g != null ? (m.weight_g / 1000).toFixed(1) : "—"}</td>
+                              <td className="text-center px-1 py-2 font-black text-primary">{hasWorkout ? "✓" : ""}</td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                     {metrics.length > 14 && (
