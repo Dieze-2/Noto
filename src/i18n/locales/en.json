@@ -76,7 +76,9 @@
     "noResult": "No exercise found",
     "empty": "Empty catalog",
     "seeNote": "Note",
-    "seeVideo": "See video"
+    "seeVideo": "See video",
+    "exerciseCount_one": "{{count}} exercise",
+    "exerciseCount_other": "{{count}} exercises"
   },
   "settings": {
     "title": "Settings",
@@ -280,7 +282,12 @@
     "title": "Exercise",
     "choose": "Choose…",
     "search": "Search…",
-    "noResult": "No exercise found"
+    "noResult": "No exercise found",
+    "allFilters": "All",
+    "filterMuscle": "Muscle",
+    "filterEquipment": "Equipment",
+    "filterDifficulty": "Difficulty",
+    "filterBodyRegion": "Region"
   },
   "invitation": {
     "coachInvite": "Coaching invitation",
