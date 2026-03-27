@@ -863,10 +863,451 @@ export default function CoachAthleteViewPage() {
               </GlassCard>
             </div>
 
+            {/* ── Metrics View Switcher ── */}
+            <div className="flex glass rounded-xl p-1">
+              {(["day", "week", "month"] as MetricsView[]).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => { setMetricsView(v); setMetricsExpanded(false); }}
+                  className={`flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors ${
+                    metricsView === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {t(`coach.view_${v}`)}
+                </button>
+              ))}
+            </div>
+
+            {/* Day view */}
+            {metricsView === "day" && (
+              <GlassCard className="p-5 rounded-3xl">
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">
+                  {t("coach.metricsHistory")} ({metrics.length})
+                </h3>
+                {metrics.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">{t("coach.noData")}</p>
+                ) : (
+                  <>
+                    <div className="space-y-1">
+                      {visibleMetrics.map((m) => (
+                        <div key={m.date} className="flex items-center gap-3 py-2 border-b border-border/30 last:border-0">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground w-16">{format(new Date(m.date), "dd/MM")}</span>
+                          <div className="flex items-center gap-4 flex-1">
+                            {m.weight_g != null && <div className="flex items-center gap-1 text-xs font-bold text-foreground"><Weight size={10} className="text-metric-weight" />{(m.weight_g / 1000).toFixed(1)}</div>}
+                            {m.steps != null && <div className="flex items-center gap-1 text-xs font-bold text-foreground"><Footprints size={10} className="text-metric-steps" />{m.steps.toLocaleString()}</div>}
+                            {m.kcal != null && <div className="flex items-center gap-1 text-xs font-bold text-foreground"><Flame size={10} className="text-metric-kcal" />{m.kcal.toLocaleString()}</div>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {metrics.length > 14 && (
+                      <button onClick={() => setMetricsExpanded(!metricsExpanded)} className="w-full flex items-center justify-center gap-1 mt-3 text-[10px] font-black uppercase tracking-widest text-primary">
+                        {metricsExpanded ? <><ChevronUp size={12} /> {t("coach.showLess")}</> : <><ChevronDown size={12} /> {t("coach.showAll")} ({metrics.length})</>}
+                      </button>
+                    )}
+                  </>
+                )}
+              </GlassCard>
+            )}
+
+            {/* Week view */}
+            {metricsView === "week" && (
+              <GlassCard className="p-4 rounded-3xl">
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">{t("coach.weeklyView")} ({weeklyRows.length})</h3>
+                {weeklyRows.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">{t("coach.noData")}</p>
+                ) : (
+                  <div className="overflow-x-auto -mx-2">
+                    <table className="w-full text-[11px]">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left px-2 py-2 font-black uppercase tracking-wider text-muted-foreground text-[9px]">{t("coach.period")}</th>
+                          <th className="text-center px-1 py-2"><Footprints size={10} className="mx-auto text-metric-steps" /></th>
+                          <th className="text-center px-1 py-2"><Flame size={10} className="mx-auto text-metric-kcal" /></th>
+                          <th className="text-center px-1 py-2"><Weight size={10} className="mx-auto text-metric-weight" /></th>
+                          <th className="text-center px-1 py-2 font-black uppercase tracking-wider text-muted-foreground text-[9px]">%</th>
+                          <th className="text-center px-1 py-2"><Dumbbell size={10} className="mx-auto text-primary" /></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(metricsExpanded ? weeklyRows : weeklyRows.slice(0, 8)).map((row, i) => (
+                          <tr key={row.startDate} className={i % 2 === 0 ? "" : "bg-muted/20"}>
+                            <td className="px-2 py-2 font-bold text-foreground whitespace-nowrap">{row.label}</td>
+                            <td className="text-center px-1 py-2 font-bold text-foreground">{row.avgSteps != null ? Math.round(row.avgSteps).toLocaleString() : "—"}</td>
+                            <td className="text-center px-1 py-2 font-bold text-foreground">{row.avgKcal != null ? Math.round(row.avgKcal) : "—"}</td>
+                            <td className="text-center px-1 py-2 font-bold text-foreground">{row.avgWeight != null ? row.avgWeight.toFixed(1) : "—"}</td>
+                            <td className="text-center px-1 py-2"><VariationBadge value={row.weightVariation} /></td>
+                            <td className="text-center px-1 py-2 font-black text-primary">{row.sessionsCount}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {weeklyRows.length > 8 && (
+                      <button onClick={() => setMetricsExpanded(!metricsExpanded)} className="w-full flex items-center justify-center gap-1 mt-3 text-[10px] font-black uppercase tracking-widest text-primary">
+                        {metricsExpanded ? <><ChevronUp size={12} /> {t("coach.showLess")}</> : <><ChevronDown size={12} /> {t("coach.showAll")} ({weeklyRows.length})</>}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </GlassCard>
+            )}
+
+            {/* Month view */}
+            {metricsView === "month" && (
+              <GlassCard className="p-4 rounded-3xl">
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">{t("coach.monthlyView")} ({monthlyRows.length})</h3>
+                {monthlyRows.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">{t("coach.noData")}</p>
+                ) : (
+                  <div className="overflow-x-auto -mx-2">
+                    <table className="w-full text-[11px]">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left px-2 py-2 font-black uppercase tracking-wider text-muted-foreground text-[9px]">{t("coach.period")}</th>
+                          <th className="text-center px-1 py-2"><Footprints size={10} className="mx-auto text-metric-steps" /></th>
+                          <th className="text-center px-1 py-2"><Flame size={10} className="mx-auto text-metric-kcal" /></th>
+                          <th className="text-center px-1 py-2"><Weight size={10} className="mx-auto text-metric-weight" /></th>
+                          <th className="text-center px-1 py-2 font-black uppercase tracking-wider text-muted-foreground text-[9px]">%</th>
+                          <th className="text-center px-1 py-2"><Dumbbell size={10} className="mx-auto text-primary" /></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {monthlyRows.map((row, i) => (
+                          <tr key={row.label} className={i % 2 === 0 ? "" : "bg-muted/20"}>
+                            <td className="px-2 py-2 font-bold text-foreground capitalize whitespace-nowrap">{row.label}</td>
+                            <td className="text-center px-1 py-2 font-bold text-foreground">{row.avgSteps != null ? Math.round(row.avgSteps).toLocaleString() : "—"}</td>
+                            <td className="text-center px-1 py-2 font-bold text-foreground">{row.avgKcal != null ? Math.round(row.avgKcal) : "—"}</td>
+                            <td className="text-center px-1 py-2 font-bold text-foreground">{row.avgWeight != null ? row.avgWeight.toFixed(1) : "—"}</td>
+                            <td className="text-center px-1 py-2"><VariationBadge value={row.weightVariation} /></td>
+                            <td className="text-center px-1 py-2 font-black text-primary">{row.sessionsCount}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </GlassCard>
+            )}
+
+            {/* ── Recent Workouts Detail ── */}
+            {workoutHistory.length > 0 && (
+              <GlassCard className="p-5 rounded-3xl space-y-3">
+                <div className="flex items-center gap-2">
+                  <Dumbbell size={16} className="text-primary" />
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex-1">
+                    {t("coach.workoutDetail", "Détail des entraînements")}
+                  </h3>
+                  <span className="text-[10px] font-bold text-muted-foreground">
+                    {workoutHistory.length} {t("coach.totalSessions")}
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  {workoutHistory.slice(0, 15).map((w) => (
+                    <div key={w.date}>
+                      <button
+                        onClick={() => {
+                          const next = expandedWorkoutDate === w.date ? null : w.date;
+                          setExpandedWorkoutDate(next);
+                          if (next) loadWorkoutDetail(next);
+                        }}
+                        className="w-full flex items-center gap-3 py-2.5 px-3 rounded-xl hover:bg-muted/50 transition-colors text-left"
+                      >
+                        <Calendar size={14} className="text-primary shrink-0" />
+                        <span className="text-xs font-bold text-foreground flex-1 capitalize">
+                          {format(parseISO(w.date), "EEEE dd MMM yyyy", { locale: fr })}
+                        </span>
+                        <span className="text-[10px] font-bold text-muted-foreground">
+                          {w.exercises.length} exo
+                        </span>
+                        {expandedWorkoutDate === w.date ? (
+                          <ChevronUp size={14} className="text-muted-foreground/40" />
+                        ) : (
+                          <ChevronDown size={14} className="text-muted-foreground/40" />
+                        )}
+                      </button>
+                      {expandedWorkoutDate === w.date && workoutDetails[w.date] && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="pl-10 pb-2 space-y-1.5"
+                        >
+                          {workoutDetails[w.date].exercises.map((ex, ei) => (
+                            <div key={ei} className="py-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-foreground">{ex.name}</span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  {loadDisplay(ex.load_type, ex.load_g)} {ex.load_type !== "TEXT" && ex.load_type !== "PDC" ? "kg" : ""}
+                                </span>
+                                <span className="text-[10px] font-bold text-primary">
+                                  {ex.reps} reps
+                                </span>
+                              </div>
+                              {ex.sets.length > 0 && (
+                                <div className="ml-4 mt-1 space-y-0.5">
+                                  {ex.sets.map((s, si) => (
+                                    <div key={si} className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                                      <span className="font-bold w-8">Set {si + 2}</span>
+                                      <span>{loadDisplay(s.load_type, s.load_g)} {s.load_type !== "TEXT" && s.load_type !== "PDC" ? "kg" : ""}</span>
+                                      <span className="text-primary font-bold">{s.reps} reps</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </motion.div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+            )}
+
+            {muscleGroups.length > 0 && (
+              <GlassCard className="p-5 rounded-3xl space-y-3">
+                <div className="flex items-center gap-2">
+                  <Dumbbell size={16} className="text-primary" />
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex-1">
+                    {t("coach.muscleGroups")}
+                  </h3>
+                  <span className="text-[10px] font-bold text-muted-foreground">
+                    {t("coach.last30days")}
+                  </span>
+                </div>
+                {muscleGroups.map((mg) => {
+                  const colors: Record<string, string> = {
+                    Push: "bg-[hsl(220,70%,55%)]",
+                    Pull: "bg-[hsl(156,100%,45%)]",
+                    Legs: "bg-[hsl(36,100%,55%)]",
+                    Core: "bg-[hsl(270,60%,60%)]",
+                    Autre: "bg-muted-foreground",
+                  };
+                  return (
+                    <div key={mg.name} className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-foreground">{mg.name}</span>
+                        <span className="text-xs font-black text-muted-foreground">{mg.count} · {mg.pct}%</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${colors[mg.name] ?? "bg-muted-foreground"}`}
+                          style={{ width: `${mg.pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </GlassCard>
+            )}
+
+            {/* ── Personal Records ── */}
+            {personalRecords.length > 0 && (
+              <GlassCard className="p-5 rounded-3xl space-y-3">
+                <div className="flex items-center gap-2">
+                  <TrendingUp size={16} className="text-primary" />
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex-1">
+                    {t("coach.personalRecords")}
+                  </h3>
+                </div>
+                <div className="space-y-1">
+                  {personalRecords.map((pr, i) => (
+                    <div key={pr.name} className="flex items-center gap-3 py-2 border-b border-border/20 last:border-0">
+                      <span className="text-[10px] font-black text-muted-foreground w-5 text-right">{i + 1}</span>
+                      <span className="text-xs font-bold text-foreground flex-1 truncate">{pr.name}</span>
+                      <span className="text-xs font-black text-primary">{pr.e1rm.toFixed(1)} kg</span>
+                      <span className="text-[10px] text-muted-foreground">{format(parseISO(pr.date), "dd/MM/yy")}</span>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+            )}
+
             {/* Data completion & consistency */}
             <GlassCard className="p-5 rounded-3xl space-y-4">
               <div className="flex items-center gap-2">
                 <CheckCircle2 size={16} className="text-primary" />
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  {t("coach.completionTitle")}
+                </h3>
+                <span className="text-[10px] font-bold text-muted-foreground ml-auto">
+                  {t("coach.last30days")}
+                </span>
+              </div>
+
+              {[
+                { label: t("dashboard.weight"), count: stats.completion.daysWithWeight, total: stats.completion.totalDays, color: "bg-[hsl(var(--metric-weight))]" },
+                { label: t("coach.avgSteps"), count: stats.completion.daysWithSteps, total: stats.completion.totalDays, color: "bg-[hsl(var(--metric-steps))]" },
+                { label: t("coach.avgKcal"), count: stats.completion.daysWithKcal, total: stats.completion.totalDays, color: "bg-[hsl(var(--metric-kcal))]" },
+              ].map(({ label, count, total, color }) => {
+                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                return (
+                  <div key={label} className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-foreground">{label}</span>
+                      <span className={`text-xs font-black ${pct >= 70 ? "text-primary" : pct >= 40 ? "text-warning" : "text-destructive"}`}>
+                        {count}/{total}j · {pct}%
+                      </span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${color}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+
+              <div className="pt-2 border-t border-border space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-foreground">{t("coach.trainingConsistency")}</span>
+                  <span className={`text-xs font-black ${stats.weeksWithTraining >= 3 ? "text-primary" : stats.weeksWithTraining >= 2 ? "text-warning" : "text-destructive"}`}>
+                    {stats.weeksWithTraining}/4 {t("coach.weeksActive")}
+                  </span>
+                </div>
+                <div className="flex gap-1.5">
+                  {[0, 1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className={`flex-1 h-3 rounded-full transition-colors ${
+                        i < stats.weeksWithTraining ? "bg-primary" : "bg-muted"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            </GlassCard>
+
+            {/* ── Training Frequency (last 8 weeks) ── */}
+            <GlassCard className="p-5 rounded-3xl space-y-3">
+              <div className="flex items-center gap-2">
+                <Calendar size={16} className="text-primary" />
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex-1">
+                  {t("coach.trainingFrequency")}
+                </h3>
+                <span className="text-xs font-black text-foreground">
+                  ø {frequencyByWeek.avgFreq.toFixed(1)} / {t("coach.perWeek")}
+                </span>
+              </div>
+              <div className="flex items-end gap-1 h-16">
+                {frequencyByWeek.weeks.map((w, i) => {
+                  const maxCount = Math.max(...frequencyByWeek.weeks.map((x) => x.count), 1);
+                  const h = w.count > 0 ? Math.max((w.count / maxCount) * 100, 12) : 4;
+                  return (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                      <span className="text-[9px] font-black text-foreground">{w.count || ""}</span>
+                      <div
+                        className={`w-full rounded-t-md transition-all ${w.count > 0 ? "bg-primary" : "bg-muted"}`}
+                        style={{ height: `${h}%` }}
+                      />
+                      <span className="text-[8px] text-muted-foreground">{w.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </GlassCard>
+
+            {/* ── Contract Date ── */}
+            <GlassCard className="p-5 rounded-3xl space-y-3">
+              <div className="flex items-center gap-2">
+                <CalendarClock size={16} className="text-primary" />
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex-1">
+                  {t("coach.contractDate", "Échéance contrat")}
+                </h3>
+              </div>
+              <div className="flex items-center gap-3">
+                <Popover open={contractPopoverOpen} onOpenChange={setContractPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <button
+                      className={cn(
+                        "flex-1 flex items-center gap-2 py-2.5 px-3 rounded-xl border border-border/50 bg-muted/30 text-left text-sm transition-colors hover:bg-muted/50",
+                        !contractDate && "text-muted-foreground"
+                      )}
+                    >
+                      <Calendar size={14} className="text-primary shrink-0" />
+                      {contractDate
+                        ? format(contractDate, "dd MMMM yyyy", { locale: fr })
+                        : t("coach.contractDatePlaceholder", "Définir une date d'échéance")}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={contractDate}
+                      onSelect={async (date) => {
+                        setContractDate(date ?? undefined);
+                        setContractPopoverOpen(false);
+                        if (coachAthleteRelation) {
+                          try {
+                            await updateContractDate(
+                              coachAthleteRelation.id,
+                              date ? format(date, "yyyy-MM-dd") : null
+                            );
+                            toast.success(t("coach.contractDateSaved", "Échéance enregistrée"));
+                          } catch (e: any) {
+                            toast.error(e.message);
+                          }
+                        }
+                      }}
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+                {contractDate && (
+                  <button
+                    onClick={async () => {
+                      setContractDate(undefined);
+                      if (coachAthleteRelation) {
+                        try {
+                          await updateContractDate(coachAthleteRelation.id, null);
+                          toast.success(t("coach.contractDateCleared", "Échéance supprimée"));
+                        } catch (e: any) {
+                          toast.error(e.message);
+                        }
+                      }
+                    }}
+                    className="p-2 rounded-lg text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    <XIcon size={14} />
+                  </button>
+                )}
+              </div>
+              {contractDate && (() => {
+                const days = differenceInDays(contractDate, new Date());
+                return (
+                  <p className={cn(
+                    "text-[10px] font-bold",
+                    days < 0 ? "text-destructive" : days <= 30 ? "text-[hsl(36,100%,55%)]" : "text-muted-foreground"
+                  )}>
+                    {days < 0
+                      ? t("coach.contractExpiredAgo", { days: Math.abs(days) })
+                      : days === 0
+                        ? t("coach.contractToday", "Échéance aujourd'hui")
+                        : t("coach.contractDaysLeft", { days })}
+                  </p>
+                );
+              })()}
+            </GlassCard>
+
+            {/* ── Coach Private Notes ── */}
+            <GlassCard className="p-5 rounded-3xl space-y-3">
+              <div className="flex items-center gap-2">
+                <StickyNote size={16} className="text-primary" />
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex-1">
+                  {t("coach.privateNotes")}
+                </h3>
+                <span className="text-[9px] font-bold text-muted-foreground">
+                  {noteSaving ? t("coach.notesSaving") : noteSaved ? t("coach.notesSaved") : t("coach.notesUnsaved")}
+                </span>
+              </div>
+              <textarea
+                value={noteContent}
+                onChange={(e) => handleNoteChange(e.target.value)}
+                placeholder={t("coach.notesPlaceholder")}
+                className="w-full min-h-[120px] bg-muted/30 border border-border/50 rounded-xl p-3 text-sm text-foreground placeholder:text-muted-foreground/50 resize-y focus:outline-none focus:ring-1 focus:ring-primary/30"
+              />
+            </GlassCard>
                 <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                   {t("coach.completionTitle")}
                 </h3>
