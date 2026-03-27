@@ -2,14 +2,44 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, Loader2, Weight, Footprints, Flame,
-  TrendingUp, TrendingDown, Minus, Dumbbell,
-  ClipboardList, Plus, ChevronRight, ChevronDown, ChevronUp,
-  Calendar, Trash2, CheckCircle2, AlertTriangle, Trophy, Moon,
-  FileDown, StickyNote, Save, X as XIcon, CalendarClock,
+  ArrowLeft,
+  Loader2,
+  Weight,
+  Footprints,
+  Flame,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Dumbbell,
+  ClipboardList,
+  Plus,
+  ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Calendar,
+  Trash2,
+  CheckCircle2,
+  AlertTriangle,
+  Trophy,
+  Moon,
+  FileDown,
+  StickyNote,
+  Save,
+  X as XIcon,
+  CalendarClock,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addWeeks, addMonths, isBefore, parseISO } from "date-fns";
+import {
+  format,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+  addWeeks,
+  addMonths,
+  isBefore,
+  parseISO,
+} from "date-fns";
 import { fr } from "date-fns/locale";
 
 import GlassCard from "@/components/GlassCard";
@@ -17,8 +47,13 @@ import CoachNotificationBell from "@/components/CoachNotificationBell";
 import { supabase } from "@/lib/supabaseClient";
 import { getProfile, displayName, Profile } from "@/db/profiles";
 import {
-  getCoachPrograms, Program, ProgramSessionWithExercises,
-  createProgram, deleteProgram, createSession, deleteSession,
+  getCoachPrograms,
+  Program,
+  ProgramSessionWithExercises,
+  createProgram,
+  deleteProgram,
+  createSession,
+  deleteSession,
   getProgramSessions,
 } from "@/db/programs";
 import ProgramEditor from "@/components/ProgramEditor";
@@ -105,7 +140,7 @@ function computeWeeklyRows(metrics: DailyMetric[], workouts: WorkoutDay[]): Week
   const sorted = [...metrics].sort((a, b) => a.date.localeCompare(b.date));
   const firstDate = parseISO(sorted[0].date);
   const lastDate = parseISO(sorted[sorted.length - 1].date);
-  const workoutDates = new Set(workouts.map(w => w.date));
+  const workoutDates = new Set(workouts.map((w) => w.date));
   const rows: WeeklyRow[] = [];
   let weekStart = startOfWeek(firstDate, { weekStartsOn: 1 });
 
@@ -113,19 +148,28 @@ function computeWeeklyRows(metrics: DailyMetric[], workouts: WorkoutDay[]): Week
     const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
     const from = format(weekStart, "yyyy-MM-dd");
     const to = format(weekEnd, "yyyy-MM-dd");
-    const days = sorted.filter(m => m.date >= from && m.date <= to);
+    const days = sorted.filter((m) => m.date >= from && m.date <= to);
     if (days.length > 0) {
-      const weights = days.filter(d => d.weight_g != null).map(d => d.weight_g! / 1000);
-      const steps = days.filter(d => d.steps != null).map(d => d.steps!);
-      const kcals = days.filter(d => d.kcal != null).map(d => d.kcal!);
-      const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+      const weights = days.filter((d) => d.weight_g != null).map((d) => d.weight_g! / 1000);
+      const steps = days.filter((d) => d.steps != null).map((d) => d.steps!);
+      const kcals = days.filter((d) => d.kcal != null).map((d) => d.kcal!);
+      const avg = (arr: number[]) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
       let sessCount = 0;
       let d = new Date(weekStart);
       while (d <= weekEnd) {
         if (workoutDates.has(format(d, "yyyy-MM-dd"))) sessCount++;
         d.setDate(d.getDate() + 1);
       }
-      rows.push({ label: `${format(weekStart, "dd/MM")} – ${format(weekEnd, "dd/MM")}`, startDate: from, days, avgWeight: avg(weights), avgSteps: avg(steps), avgKcal: avg(kcals), sessionsCount: sessCount, weightVariation: null });
+      rows.push({
+        label: `${format(weekStart, "dd/MM")} – ${format(weekEnd, "dd/MM")}`,
+        startDate: from,
+        days,
+        avgWeight: avg(weights),
+        avgSteps: avg(steps),
+        avgKcal: avg(kcals),
+        sessionsCount: sessCount,
+        weightVariation: null,
+      });
     }
     weekStart = addWeeks(weekStart, 1);
   }
@@ -142,7 +186,7 @@ function computeMonthlyRows(metrics: DailyMetric[], workouts: WorkoutDay[]): Mon
   const sorted = [...metrics].sort((a, b) => a.date.localeCompare(b.date));
   const firstDate = parseISO(sorted[0].date);
   const lastDate = parseISO(sorted[sorted.length - 1].date);
-  const workoutDates = new Set(workouts.map(w => w.date));
+  const workoutDates = new Set(workouts.map((w) => w.date));
   const rows: MonthlyRow[] = [];
   let monthStart = startOfMonth(firstDate);
 
@@ -150,19 +194,27 @@ function computeMonthlyRows(metrics: DailyMetric[], workouts: WorkoutDay[]): Mon
     const monthEnd = endOfMonth(monthStart);
     const from = format(monthStart, "yyyy-MM-dd");
     const to = format(monthEnd, "yyyy-MM-dd");
-    const days = sorted.filter(m => m.date >= from && m.date <= to);
+    const days = sorted.filter((m) => m.date >= from && m.date <= to);
     if (days.length > 0) {
-      const weights = days.filter(d => d.weight_g != null).map(d => d.weight_g! / 1000);
-      const steps = days.filter(d => d.steps != null).map(d => d.steps!);
-      const kcals = days.filter(d => d.kcal != null).map(d => d.kcal!);
-      const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+      const weights = days.filter((d) => d.weight_g != null).map((d) => d.weight_g! / 1000);
+      const steps = days.filter((d) => d.steps != null).map((d) => d.steps!);
+      const kcals = days.filter((d) => d.kcal != null).map((d) => d.kcal!);
+      const avg = (arr: number[]) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
       let sessCount = 0;
       let d = new Date(monthStart);
       while (d <= monthEnd) {
         if (workoutDates.has(format(d, "yyyy-MM-dd"))) sessCount++;
         d.setDate(d.getDate() + 1);
       }
-      rows.push({ label: format(monthStart, "MMMM yyyy", { locale: fr }), days, avgWeight: avg(weights), avgSteps: avg(steps), avgKcal: avg(kcals), sessionsCount: sessCount, weightVariation: null });
+      rows.push({
+        label: format(monthStart, "MMMM yyyy", { locale: fr }),
+        days,
+        avgWeight: avg(weights),
+        avgSteps: avg(steps),
+        avgKcal: avg(kcals),
+        sessionsCount: sessCount,
+        weightVariation: null,
+      });
     }
     monthStart = addMonths(monthStart, 1);
   }
@@ -211,18 +263,21 @@ export default function CoachAthleteViewPage() {
   const [contractDate, setContractDate] = useState<Date | undefined>(undefined);
   const [contractPopoverOpen, setContractPopoverOpen] = useState(false);
 
-  const handleNoteChange = useCallback((value: string) => {
-    setNoteContent(value);
-    setNoteSaved(false);
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(async () => {
-      if (!athleteId) return;
-      setNoteSaving(true);
-      await saveCoachNote(athleteId, value);
-      setNoteSaving(false);
-      setNoteSaved(true);
-    }, 1500);
-  }, [athleteId]);
+  const handleNoteChange = useCallback(
+    (value: string) => {
+      setNoteContent(value);
+      setNoteSaved(false);
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(async () => {
+        if (!athleteId) return;
+        setNoteSaving(true);
+        await saveCoachNote(athleteId, value);
+        setNoteSaving(false);
+        setNoteSaved(true);
+      }, 1500);
+    },
+    [athleteId],
+  );
 
   /** Get or create the single program for this athlete */
   const getOrCreateProgram = async (): Promise<Program> => {
@@ -310,7 +365,9 @@ export default function CoachAthleteViewPage() {
     setLoading(false);
   };
 
-  useEffect(() => { refresh(); }, [athleteId]);
+  useEffect(() => {
+    refresh();
+  }, [athleteId]);
 
   /** Load full workout detail with sets for a specific date */
   const loadWorkoutDetail = async (date: string) => {
@@ -332,14 +389,15 @@ export default function CoachAthleteViewPage() {
 
     if (!exercises) return;
 
-    const exerciseIds = exercises.map(e => e.id);
-    const { data: sets } = exerciseIds.length > 0
-      ? await supabase
-          .from("workout_exercise_sets")
-          .select("workout_exercise_id, reps, load_type, load_g, sort_order")
-          .in("workout_exercise_id", exerciseIds)
-          .order("sort_order")
-      : { data: [] };
+    const exerciseIds = exercises.map((e) => e.id);
+    const { data: sets } =
+      exerciseIds.length > 0
+        ? await supabase
+            .from("workout_exercise_sets")
+            .select("workout_exercise_id, reps, load_type, load_g, sort_order")
+            .in("workout_exercise_id", exerciseIds)
+            .order("sort_order")
+        : { data: [] };
 
     const setsMap = new Map<string, WorkoutDetailSet[]>();
     (sets ?? []).forEach((s: any) => {
@@ -359,7 +417,7 @@ export default function CoachAthleteViewPage() {
       })),
     };
 
-    setWorkoutDetails(prev => ({ ...prev, [date]: detail }));
+    setWorkoutDetails((prev) => ({ ...prev, [date]: detail }));
   };
 
   const stats = useMemo(() => {
@@ -367,16 +425,15 @@ export default function CoachAthleteViewPage() {
     const weights = last30.filter((m) => m.weight_g != null).map((m) => m.weight_g! / 1000);
     const stepsList = last30.filter((m) => m.steps != null).map((m) => m.steps!);
     const kcalList = last30.filter((m) => m.kcal != null).map((m) => m.kcal!);
-    const avg = (arr: number[]) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
-    const latest = (arr: number[]) => arr.length > 0 ? arr[0] : null;
+    const avg = (arr: number[]) => (arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
+    const latest = (arr: number[]) => (arr.length > 0 ? arr[0] : null);
     const thirtyDaysAgo = format(new Date(Date.now() - 30 * 86400000), "yyyy-MM-dd");
     const recentWorkouts = workoutHistory.filter((w) => w.date >= thirtyDaysAgo);
 
     // Weight variation since first ever entry (metrics sorted desc: [0]=latest, [last]=oldest)
     const allWeightsData = metrics.filter((m) => m.weight_g != null).map((m) => m.weight_g! / 1000);
-    const weightTrendSinceFirst = allWeightsData.length >= 2
-      ? allWeightsData[0] - allWeightsData[allWeightsData.length - 1]
-      : 0;
+    const weightTrendSinceFirst =
+      allWeightsData.length >= 2 ? allWeightsData[0] - allWeightsData[allWeightsData.length - 1] : 0;
 
     const daysWithWeight = last30.filter((m) => m.weight_g != null).length;
     const daysWithSteps = last30.filter((m) => m.steps != null).length;
@@ -385,17 +442,23 @@ export default function CoachAthleteViewPage() {
 
     const fourWeeksAgo = format(new Date(Date.now() - 28 * 86400000), "yyyy-MM-dd");
     const last4WeeksWorkouts = workoutHistory.filter((w) => w.date >= fourWeeksAgo);
-    const weeksWithTraining = Math.min(new Set(
-      last4WeeksWorkouts.map((w) => {
-        const d = parseISO(w.date);
-        return format(startOfWeek(d, { weekStartsOn: 1 }), "yyyy-MM-dd");
-      })
-    ).size, 4); // Cap at 4 weeks
+    const weeksWithTraining = Math.min(
+      new Set(
+        last4WeeksWorkouts.map((w) => {
+          const d = parseISO(w.date);
+          return format(startOfWeek(d, { weekStartsOn: 1 }), "yyyy-MM-dd");
+        }),
+      ).size,
+      4,
+    ); // Cap at 4 weeks
 
     return {
-      currentWeight: latest(weights), weightTrend: weightTrendSinceFirst,
-      avgSteps: avg(stepsList), avgKcal: avg(kcalList),
-      workoutCount: recentWorkouts.length, totalWorkouts: workoutHistory.length,
+      currentWeight: latest(weights),
+      weightTrend: weightTrendSinceFirst,
+      avgSteps: avg(stepsList),
+      avgKcal: avg(kcalList),
+      workoutCount: recentWorkouts.length,
+      totalWorkouts: workoutHistory.length,
       completion: { daysWithWeight, daysWithSteps, daysWithKcal, totalDays },
       weeksWithTraining,
     };
@@ -420,10 +483,27 @@ export default function CoachAthleteViewPage() {
   /* ── Muscle group distribution ── */
   const muscleGroups = useMemo(() => {
     const categories: Record<string, string[]> = {
-      "Push": ["bench", "press", "dips", "développé", "poussée", "pompe", "push", "pec", "épaule", "tricep", "overhead"],
-      "Pull": ["pull", "row", "tirage", "traction", "curl", "bicep", "dorsaux", "dos", "chin"],
-      "Legs": ["squat", "leg", "lunge", "fente", "jambe", "cuisse", "mollet", "calf", "deadlift", "soulevé", "hip thrust", "glute", "fessier", "presse", "extension jambe", "ischio"],
-      "Core": ["plank", "gainage", "crunch", "abdo", "abdominaux", "core", "oblique", "rotary"],
+      Push: ["bench", "press", "dips", "développé", "poussée", "pompe", "push", "pec", "épaule", "tricep", "overhead"],
+      Pull: ["pull", "row", "tirage", "traction", "curl", "bicep", "dorsaux", "dos", "chin"],
+      Legs: [
+        "squat",
+        "leg",
+        "lunge",
+        "fente",
+        "jambe",
+        "cuisse",
+        "mollet",
+        "calf",
+        "deadlift",
+        "soulevé",
+        "hip thrust",
+        "glute",
+        "fessier",
+        "presse",
+        "extension jambe",
+        "ischio",
+      ],
+      Core: ["plank", "gainage", "crunch", "abdo", "abdominaux", "core", "oblique", "rotary"],
     };
 
     const counts: Record<string, number> = { Push: 0, Pull: 0, Legs: 0, Core: 0, Autre: 0 };
@@ -544,7 +624,13 @@ export default function CoachAthleteViewPage() {
 
   /* ── Coach alerts (client-side) ── */
   const alerts = useMemo(() => {
-    const result: { type: "inactive" | "weightLoss" | "pr" | "contract"; icon: typeof AlertTriangle; color: string; bgColor: string; message: string }[] = [];
+    const result: {
+      type: "inactive" | "weightLoss" | "pr" | "contract";
+      icon: typeof AlertTriangle;
+      color: string;
+      bgColor: string;
+      message: string;
+    }[] = [];
     const today = format(new Date(), "yyyy-MM-dd");
     const sevenDaysAgo = format(new Date(Date.now() - 7 * 86400000), "yyyy-MM-dd");
 
@@ -559,9 +645,7 @@ export default function CoachAthleteViewPage() {
         icon: Moon,
         color: "text-[hsl(36,100%,55%)]",
         bgColor: "border-[hsl(36,100%,55%)]/30 bg-[hsl(36,100%,55%)]/10",
-        message: daysSince != null
-          ? t("coach.alertInactive", { days: daysSince })
-          : t("coach.alertNoWorkout"),
+        message: daysSince != null ? t("coach.alertInactive", { days: daysSince }) : t("coach.alertNoWorkout"),
       });
     }
 
@@ -586,9 +670,7 @@ export default function CoachAthleteViewPage() {
     // 3. PR truly beaten this week (compared to all history before this week)
     // Filter: only show PRs logged after the last dismiss AND after the coach's previous visit
     const cutoff = [prDismissedAt, coachLastVisit].filter(Boolean).sort().pop() ?? null;
-    const filteredPRs = cutoff
-      ? prsBeatenThisWeek.filter((p) => p.date > cutoff.slice(0, 10))
-      : prsBeatenThisWeek;
+    const filteredPRs = cutoff ? prsBeatenThisWeek.filter((p) => p.date > cutoff.slice(0, 10)) : prsBeatenThisWeek;
 
     if (filteredPRs.length > 0 && !prDismissed) {
       result.push({
@@ -596,7 +678,7 @@ export default function CoachAthleteViewPage() {
         icon: Trophy,
         color: "text-[hsl(156,100%,50%)]",
         bgColor: "border-[hsl(156,100%,50%)]/30 bg-[hsl(156,100%,50%)]/10",
-        message: t("coach.alertPR", { count: filteredPRs.length, exercise: filteredPRs.map(p => p.name).join(", ") }),
+        message: t("coach.alertPR", { count: filteredPRs.length, exercise: filteredPRs.map((p) => p.name).join(", ") }),
       });
     }
 
@@ -609,7 +691,10 @@ export default function CoachAthleteViewPage() {
           icon: CalendarClock,
           color: "text-destructive",
           bgColor: "border-destructive/30 bg-destructive/10",
-          message: t("coach.alertContractExpired", { date: format(contractDate, "dd/MM/yyyy"), days: Math.abs(daysUntil) }),
+          message: t("coach.alertContractExpired", {
+            date: format(contractDate, "dd/MM/yyyy"),
+            days: Math.abs(daysUntil),
+          }),
         });
       } else if (daysUntil <= 30) {
         result.push({
@@ -671,12 +756,22 @@ export default function CoachAthleteViewPage() {
       <div className="mx-auto max-w-5xl px-4 pt-6 pb-32 lg:pb-8">
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
           <button
-            onClick={() => { setEditingProgram(null); refreshSessions(); }}
+            onClick={() => {
+              setEditingProgram(null);
+              refreshSessions();
+            }}
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft size={16} /> {t("program.backToList")}
           </button>
-          <ProgramEditor program={editingProgram} onBack={() => { setEditingProgram(null); refreshSessions(); }} hideTitle />
+          <ProgramEditor
+            program={editingProgram}
+            onBack={() => {
+              setEditingProgram(null);
+              refreshSessions();
+            }}
+            hideTitle
+          />
         </motion.div>
       </div>
     );
@@ -698,7 +793,12 @@ export default function CoachAthleteViewPage() {
     if (value == null) return <span className="text-muted-foreground">—</span>;
     const positive = value > 0;
     const color = positive ? "text-destructive" : value < 0 ? "text-primary" : "text-muted-foreground";
-    return <span className={`text-xs font-black ${color}`}>{positive ? "+" : ""}{value.toFixed(2)}%</span>;
+    return (
+      <span className={`text-xs font-black ${color}`}>
+        {positive ? "+" : ""}
+        {value.toFixed(2)}%
+      </span>
+    );
   }
 
   const visibleMetrics = metricsExpanded ? metrics : metrics.slice(0, 14);
@@ -756,12 +856,14 @@ export default function CoachAthleteViewPage() {
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-colors ${
-                activeTab === tab
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                activeTab === tab ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {tab === "overview" ? t("coach.overview") : tab === "training" ? t("coach.training") : t("coach.sessionsTab")}
+              {tab === "overview"
+                ? t("coach.overview")
+                : tab === "training"
+                  ? t("coach.training")
+                  : t("coach.sessionsTab")}
             </button>
           ))}
         </div>
@@ -792,13 +894,18 @@ export default function CoachAthleteViewPage() {
                       }}
                       className={`flex items-center gap-3 p-3 rounded-2xl border ${alert.bgColor} ${isPR ? "cursor-grab active:cursor-grabbing touch-pan-y" : ""}`}
                     >
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${alert.color} bg-background/50`}>
+                      <div
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${alert.color} bg-background/50`}
+                      >
                         <Icon size={16} />
                       </div>
                       <p className="text-xs font-bold text-foreground flex-1">{alert.message}</p>
                       {isPR && (
                         <button
-                          onClick={() => { setPrDismissed(true); if (athleteId) dismissPRBanner(athleteId); }}
+                          onClick={() => {
+                            setPrDismissed(true);
+                            if (athleteId) dismissPRBanner(athleteId);
+                          }}
                           className="p-1 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors shrink-0"
                         >
                           <XIcon size={14} />
@@ -815,17 +922,24 @@ export default function CoachAthleteViewPage() {
               <GlassCard className="p-4 rounded-2xl space-y-1">
                 <div className="flex items-center gap-2">
                   <Weight size={16} className="text-metric-weight" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t("dashboard.weight")}</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    {t("dashboard.weight")}
+                  </span>
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-black text-foreground">{stats.currentWeight != null ? stats.currentWeight.toFixed(1) : "—"}</span>
+                  <span className="text-2xl font-black text-foreground">
+                    {stats.currentWeight != null ? stats.currentWeight.toFixed(1) : "—"}
+                  </span>
                   <span className="text-xs text-muted-foreground">kg</span>
                   {stats.currentWeight != null && <TrendIcon value={stats.weightTrend} />}
                 </div>
                 {stats.weightTrend !== 0 && stats.currentWeight != null && (
                   <p className="text-[10px] text-muted-foreground">
-                    {stats.weightTrend > 0 ? "+" : ""}{stats.weightTrend.toFixed(1)} kg
-                    <span className="text-muted-foreground/50 ml-1">{t("coach.sinceFirstEntry", "depuis 1ère saisie")}</span>
+                    {stats.weightTrend > 0 ? "+" : ""}
+                    {stats.weightTrend.toFixed(1)} kg
+                    <span className="text-muted-foreground/50 ml-1">
+                      {t("coach.sinceFirstEntry", "depuis 1ère saisie")}
+                    </span>
                   </p>
                 )}
               </GlassCard>
@@ -833,32 +947,44 @@ export default function CoachAthleteViewPage() {
               <GlassCard className="p-4 rounded-2xl space-y-1">
                 <div className="flex items-center gap-2">
                   <Dumbbell size={16} className="text-primary" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t("coach.workouts")}</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    {t("coach.workouts")}
+                  </span>
                 </div>
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-black text-foreground">{stats.workoutCount}</span>
                   <span className="text-xs text-muted-foreground">/ 30j</span>
                 </div>
-                <p className="text-[10px] text-muted-foreground">{stats.totalWorkouts} {t("coach.totalSessions")}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {stats.totalWorkouts} {t("coach.totalSessions")}
+                </p>
               </GlassCard>
 
               <GlassCard className="p-4 rounded-2xl space-y-1">
                 <div className="flex items-center gap-2">
                   <Footprints size={16} className="text-metric-steps" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t("coach.avgSteps")}</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    {t("coach.avgSteps")}
+                  </span>
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-black text-foreground">{stats.avgSteps != null ? Math.round(stats.avgSteps).toLocaleString() : "—"}</span>
+                  <span className="text-2xl font-black text-foreground">
+                    {stats.avgSteps != null ? Math.round(stats.avgSteps).toLocaleString() : "—"}
+                  </span>
                 </div>
               </GlassCard>
 
               <GlassCard className="p-4 rounded-2xl space-y-1">
                 <div className="flex items-center gap-2">
                   <Flame size={16} className="text-metric-kcal" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t("coach.avgKcal")}</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    {t("coach.avgKcal")}
+                  </span>
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-black text-foreground">{stats.avgKcal != null ? Math.round(stats.avgKcal).toLocaleString() : "—"}</span>
+                  <span className="text-2xl font-black text-foreground">
+                    {stats.avgKcal != null ? Math.round(stats.avgKcal).toLocaleString() : "—"}
+                  </span>
                 </div>
               </GlassCard>
             </div>
@@ -868,9 +994,14 @@ export default function CoachAthleteViewPage() {
               {(["day", "week", "month"] as MetricsView[]).map((v) => (
                 <button
                   key={v}
-                  onClick={() => { setMetricsView(v); setMetricsExpanded(false); }}
+                  onClick={() => {
+                    setMetricsView(v);
+                    setMetricsExpanded(false);
+                  }}
                   className={`flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors ${
-                    metricsView === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                    metricsView === v
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {t(`coach.view_${v}`)}
@@ -891,11 +1022,21 @@ export default function CoachAthleteViewPage() {
                     <table className="w-full text-[11px]">
                       <thead>
                         <tr className="border-b border-border">
-                          <th className="text-left px-2 py-2 font-black uppercase tracking-wider text-muted-foreground text-[9px]">{t("coach.date")}</th>
-                          <th className="text-center px-1 py-2"><Footprints size={10} className="mx-auto text-metric-steps" /></th>
-                          <th className="text-center px-1 py-2"><Flame size={10} className="mx-auto text-metric-kcal" /></th>
-                          <th className="text-center px-1 py-2"><Weight size={10} className="mx-auto text-metric-weight" /></th>
-                          <th className="text-center px-1 py-2"><Dumbbell size={10} className="mx-auto text-primary" /></th>
+                          <th className="text-left px-2 py-2 font-black uppercase tracking-wider text-muted-foreground text-[9px]">
+                            {t("date")}
+                          </th>
+                          <th className="text-center px-1 py-2">
+                            <Footprints size={10} className="mx-auto text-metric-steps" />
+                          </th>
+                          <th className="text-center px-1 py-2">
+                            <Flame size={10} className="mx-auto text-metric-kcal" />
+                          </th>
+                          <th className="text-center px-1 py-2">
+                            <Weight size={10} className="mx-auto text-metric-weight" />
+                          </th>
+                          <th className="text-center px-1 py-2">
+                            <Dumbbell size={10} className="mx-auto text-primary" />
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -903,10 +1044,18 @@ export default function CoachAthleteViewPage() {
                           const hasWorkout = workoutHistory.some((w) => w.date === m.date);
                           return (
                             <tr key={m.date} className={i % 2 === 0 ? "" : "bg-muted/20"}>
-                              <td className="px-2 py-2 font-bold text-foreground whitespace-nowrap">{format(new Date(m.date), "dd/MM")}</td>
-                              <td className="text-center px-1 py-2 font-bold text-foreground">{m.steps != null ? m.steps.toLocaleString() : "—"}</td>
-                              <td className="text-center px-1 py-2 font-bold text-foreground">{m.kcal != null ? m.kcal.toLocaleString() : "—"}</td>
-                              <td className="text-center px-1 py-2 font-bold text-foreground">{m.weight_g != null ? (m.weight_g / 1000).toFixed(1) : "—"}</td>
+                              <td className="px-2 py-2 font-bold text-foreground whitespace-nowrap">
+                                {format(new Date(m.date), "dd/MM")}
+                              </td>
+                              <td className="text-center px-1 py-2 font-bold text-foreground">
+                                {m.steps != null ? m.steps.toLocaleString() : "—"}
+                              </td>
+                              <td className="text-center px-1 py-2 font-bold text-foreground">
+                                {m.kcal != null ? m.kcal.toLocaleString() : "—"}
+                              </td>
+                              <td className="text-center px-1 py-2 font-bold text-foreground">
+                                {m.weight_g != null ? (m.weight_g / 1000).toFixed(1) : "—"}
+                              </td>
                               <td className="text-center px-1 py-2 font-black text-primary">{hasWorkout ? "✓" : ""}</td>
                             </tr>
                           );
@@ -914,8 +1063,19 @@ export default function CoachAthleteViewPage() {
                       </tbody>
                     </table>
                     {metrics.length > 14 && (
-                      <button onClick={() => setMetricsExpanded(!metricsExpanded)} className="w-full flex items-center justify-center gap-1 mt-3 text-[10px] font-black uppercase tracking-widest text-primary">
-                        {metricsExpanded ? <><ChevronUp size={12} /> {t("coach.showLess")}</> : <><ChevronDown size={12} /> {t("coach.showAll")} ({metrics.length})</>}
+                      <button
+                        onClick={() => setMetricsExpanded(!metricsExpanded)}
+                        className="w-full flex items-center justify-center gap-1 mt-3 text-[10px] font-black uppercase tracking-widest text-primary"
+                      >
+                        {metricsExpanded ? (
+                          <>
+                            <ChevronUp size={12} /> {t("coach.showLess")}
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown size={12} /> {t("coach.showAll")} ({metrics.length})
+                          </>
+                        )}
                       </button>
                     )}
                   </div>
@@ -926,7 +1086,9 @@ export default function CoachAthleteViewPage() {
             {/* Week view */}
             {metricsView === "week" && (
               <GlassCard className="p-4 rounded-3xl">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">{t("coach.weeklyView")} ({weeklyRows.length})</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">
+                  {t("coach.weeklyView")} ({weeklyRows.length})
+                </h3>
                 {weeklyRows.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">{t("coach.noData")}</p>
                 ) : (
@@ -934,30 +1096,61 @@ export default function CoachAthleteViewPage() {
                     <table className="w-full text-[11px]">
                       <thead>
                         <tr className="border-b border-border">
-                          <th className="text-left px-2 py-2 font-black uppercase tracking-wider text-muted-foreground text-[9px]">{t("coach.period")}</th>
-                          <th className="text-center px-1 py-2"><Footprints size={10} className="mx-auto text-metric-steps" /></th>
-                          <th className="text-center px-1 py-2"><Flame size={10} className="mx-auto text-metric-kcal" /></th>
-                          <th className="text-center px-1 py-2"><Weight size={10} className="mx-auto text-metric-weight" /></th>
-                          <th className="text-center px-1 py-2 font-black uppercase tracking-wider text-muted-foreground text-[9px]">%</th>
-                          <th className="text-center px-1 py-2"><Dumbbell size={10} className="mx-auto text-primary" /></th>
+                          <th className="text-left px-2 py-2 font-black uppercase tracking-wider text-muted-foreground text-[9px]">
+                            {t("coach.period")}
+                          </th>
+                          <th className="text-center px-1 py-2">
+                            <Footprints size={10} className="mx-auto text-metric-steps" />
+                          </th>
+                          <th className="text-center px-1 py-2">
+                            <Flame size={10} className="mx-auto text-metric-kcal" />
+                          </th>
+                          <th className="text-center px-1 py-2">
+                            <Weight size={10} className="mx-auto text-metric-weight" />
+                          </th>
+                          <th className="text-center px-1 py-2 font-black uppercase tracking-wider text-muted-foreground text-[9px]">
+                            %
+                          </th>
+                          <th className="text-center px-1 py-2">
+                            <Dumbbell size={10} className="mx-auto text-primary" />
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
                         {(metricsExpanded ? weeklyRows : weeklyRows.slice(0, 8)).map((row, i) => (
                           <tr key={row.startDate} className={i % 2 === 0 ? "" : "bg-muted/20"}>
                             <td className="px-2 py-2 font-bold text-foreground whitespace-nowrap">{row.label}</td>
-                            <td className="text-center px-1 py-2 font-bold text-foreground">{row.avgSteps != null ? Math.round(row.avgSteps).toLocaleString() : "—"}</td>
-                            <td className="text-center px-1 py-2 font-bold text-foreground">{row.avgKcal != null ? Math.round(row.avgKcal) : "—"}</td>
-                            <td className="text-center px-1 py-2 font-bold text-foreground">{row.avgWeight != null ? row.avgWeight.toFixed(1) : "—"}</td>
-                            <td className="text-center px-1 py-2"><VariationBadge value={row.weightVariation} /></td>
+                            <td className="text-center px-1 py-2 font-bold text-foreground">
+                              {row.avgSteps != null ? Math.round(row.avgSteps).toLocaleString() : "—"}
+                            </td>
+                            <td className="text-center px-1 py-2 font-bold text-foreground">
+                              {row.avgKcal != null ? Math.round(row.avgKcal) : "—"}
+                            </td>
+                            <td className="text-center px-1 py-2 font-bold text-foreground">
+                              {row.avgWeight != null ? row.avgWeight.toFixed(1) : "—"}
+                            </td>
+                            <td className="text-center px-1 py-2">
+                              <VariationBadge value={row.weightVariation} />
+                            </td>
                             <td className="text-center px-1 py-2 font-black text-primary">{row.sessionsCount}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                     {weeklyRows.length > 8 && (
-                      <button onClick={() => setMetricsExpanded(!metricsExpanded)} className="w-full flex items-center justify-center gap-1 mt-3 text-[10px] font-black uppercase tracking-widest text-primary">
-                        {metricsExpanded ? <><ChevronUp size={12} /> {t("coach.showLess")}</> : <><ChevronDown size={12} /> {t("coach.showAll")} ({weeklyRows.length})</>}
+                      <button
+                        onClick={() => setMetricsExpanded(!metricsExpanded)}
+                        className="w-full flex items-center justify-center gap-1 mt-3 text-[10px] font-black uppercase tracking-widest text-primary"
+                      >
+                        {metricsExpanded ? (
+                          <>
+                            <ChevronUp size={12} /> {t("coach.showLess")}
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown size={12} /> {t("coach.showAll")} ({weeklyRows.length})
+                          </>
+                        )}
                       </button>
                     )}
                   </div>
@@ -968,7 +1161,9 @@ export default function CoachAthleteViewPage() {
             {/* Month view */}
             {metricsView === "month" && (
               <GlassCard className="p-4 rounded-3xl">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">{t("coach.monthlyView")} ({monthlyRows.length})</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">
+                  {t("coach.monthlyView")} ({monthlyRows.length})
+                </h3>
                 {monthlyRows.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">{t("coach.noData")}</p>
                 ) : (
@@ -976,22 +1171,44 @@ export default function CoachAthleteViewPage() {
                     <table className="w-full text-[11px]">
                       <thead>
                         <tr className="border-b border-border">
-                          <th className="text-left px-2 py-2 font-black uppercase tracking-wider text-muted-foreground text-[9px]">{t("coach.period")}</th>
-                          <th className="text-center px-1 py-2"><Footprints size={10} className="mx-auto text-metric-steps" /></th>
-                          <th className="text-center px-1 py-2"><Flame size={10} className="mx-auto text-metric-kcal" /></th>
-                          <th className="text-center px-1 py-2"><Weight size={10} className="mx-auto text-metric-weight" /></th>
-                          <th className="text-center px-1 py-2 font-black uppercase tracking-wider text-muted-foreground text-[9px]">%</th>
-                          <th className="text-center px-1 py-2"><Dumbbell size={10} className="mx-auto text-primary" /></th>
+                          <th className="text-left px-2 py-2 font-black uppercase tracking-wider text-muted-foreground text-[9px]">
+                            {t("coach.period")}
+                          </th>
+                          <th className="text-center px-1 py-2">
+                            <Footprints size={10} className="mx-auto text-metric-steps" />
+                          </th>
+                          <th className="text-center px-1 py-2">
+                            <Flame size={10} className="mx-auto text-metric-kcal" />
+                          </th>
+                          <th className="text-center px-1 py-2">
+                            <Weight size={10} className="mx-auto text-metric-weight" />
+                          </th>
+                          <th className="text-center px-1 py-2 font-black uppercase tracking-wider text-muted-foreground text-[9px]">
+                            %
+                          </th>
+                          <th className="text-center px-1 py-2">
+                            <Dumbbell size={10} className="mx-auto text-primary" />
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
                         {monthlyRows.map((row, i) => (
                           <tr key={row.label} className={i % 2 === 0 ? "" : "bg-muted/20"}>
-                            <td className="px-2 py-2 font-bold text-foreground capitalize whitespace-nowrap">{row.label}</td>
-                            <td className="text-center px-1 py-2 font-bold text-foreground">{row.avgSteps != null ? Math.round(row.avgSteps).toLocaleString() : "—"}</td>
-                            <td className="text-center px-1 py-2 font-bold text-foreground">{row.avgKcal != null ? Math.round(row.avgKcal) : "—"}</td>
-                            <td className="text-center px-1 py-2 font-bold text-foreground">{row.avgWeight != null ? row.avgWeight.toFixed(1) : "—"}</td>
-                            <td className="text-center px-1 py-2"><VariationBadge value={row.weightVariation} /></td>
+                            <td className="px-2 py-2 font-bold text-foreground capitalize whitespace-nowrap">
+                              {row.label}
+                            </td>
+                            <td className="text-center px-1 py-2 font-bold text-foreground">
+                              {row.avgSteps != null ? Math.round(row.avgSteps).toLocaleString() : "—"}
+                            </td>
+                            <td className="text-center px-1 py-2 font-bold text-foreground">
+                              {row.avgKcal != null ? Math.round(row.avgKcal) : "—"}
+                            </td>
+                            <td className="text-center px-1 py-2 font-bold text-foreground">
+                              {row.avgWeight != null ? row.avgWeight.toFixed(1) : "—"}
+                            </td>
+                            <td className="text-center px-1 py-2">
+                              <VariationBadge value={row.weightVariation} />
+                            </td>
                             <td className="text-center px-1 py-2 font-black text-primary">{row.sessionsCount}</td>
                           </tr>
                         ))}
@@ -1029,9 +1246,7 @@ export default function CoachAthleteViewPage() {
                         <span className="text-xs font-bold text-foreground flex-1 capitalize">
                           {format(parseISO(w.date), "EEEE dd MMM yyyy", { locale: fr })}
                         </span>
-                        <span className="text-[10px] font-bold text-muted-foreground">
-                          {w.exercises.length} exo
-                        </span>
+                        <span className="text-[10px] font-bold text-muted-foreground">{w.exercises.length} exo</span>
                         {expandedWorkoutDate === w.date ? (
                           <ChevronUp size={14} className="text-muted-foreground/40" />
                         ) : (
@@ -1050,18 +1265,20 @@ export default function CoachAthleteViewPage() {
                               <div className="flex items-center gap-2">
                                 <span className="text-xs font-bold text-foreground">{ex.name}</span>
                                 <span className="text-[10px] text-muted-foreground">
-                                  {loadDisplay(ex.load_type, ex.load_g)} {ex.load_type !== "TEXT" && ex.load_type !== "PDC" ? "kg" : ""}
+                                  {loadDisplay(ex.load_type, ex.load_g)}{" "}
+                                  {ex.load_type !== "TEXT" && ex.load_type !== "PDC" ? "kg" : ""}
                                 </span>
-                                <span className="text-[10px] font-bold text-primary">
-                                  {ex.reps} reps
-                                </span>
+                                <span className="text-[10px] font-bold text-primary">{ex.reps} reps</span>
                               </div>
                               {ex.sets.length > 0 && (
                                 <div className="ml-4 mt-1 space-y-0.5">
                                   {ex.sets.map((s, si) => (
                                     <div key={si} className="flex items-center gap-2 text-[10px] text-muted-foreground">
                                       <span className="font-bold w-8">Set {si + 2}</span>
-                                      <span>{loadDisplay(s.load_type, s.load_g)} {s.load_type !== "TEXT" && s.load_type !== "PDC" ? "kg" : ""}</span>
+                                      <span>
+                                        {loadDisplay(s.load_type, s.load_g)}{" "}
+                                        {s.load_type !== "TEXT" && s.load_type !== "PDC" ? "kg" : ""}
+                                      </span>
                                       <span className="text-primary font-bold">{s.reps} reps</span>
                                     </div>
                                   ))}
@@ -1084,9 +1301,7 @@ export default function CoachAthleteViewPage() {
                   <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex-1">
                     {t("coach.muscleGroups")}
                   </h3>
-                  <span className="text-[10px] font-bold text-muted-foreground">
-                    {t("coach.last30days")}
-                  </span>
+                  <span className="text-[10px] font-bold text-muted-foreground">{t("coach.last30days")}</span>
                 </div>
                 {muscleGroups.map((mg) => {
                   const colors: Record<string, string> = {
@@ -1100,7 +1315,9 @@ export default function CoachAthleteViewPage() {
                     <div key={mg.name} className="space-y-1">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-foreground">{mg.name}</span>
-                        <span className="text-xs font-black text-muted-foreground">{mg.count} · {mg.pct}%</span>
+                        <span className="text-xs font-black text-muted-foreground">
+                          {mg.count} · {mg.pct}%
+                        </span>
                       </div>
                       <div className="h-2 rounded-full bg-muted overflow-hidden">
                         <div
@@ -1143,22 +1360,37 @@ export default function CoachAthleteViewPage() {
                 <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                   {t("coach.completionTitle")}
                 </h3>
-                <span className="text-[10px] font-bold text-muted-foreground ml-auto">
-                  {t("coach.last30days")}
-                </span>
+                <span className="text-[10px] font-bold text-muted-foreground ml-auto">{t("coach.last30days")}</span>
               </div>
 
               {[
-                { label: t("dashboard.weight"), count: stats.completion.daysWithWeight, total: stats.completion.totalDays, color: "bg-[hsl(var(--metric-weight))]" },
-                { label: t("coach.avgSteps"), count: stats.completion.daysWithSteps, total: stats.completion.totalDays, color: "bg-[hsl(var(--metric-steps))]" },
-                { label: t("coach.avgKcal"), count: stats.completion.daysWithKcal, total: stats.completion.totalDays, color: "bg-[hsl(var(--metric-kcal))]" },
+                {
+                  label: t("dashboard.weight"),
+                  count: stats.completion.daysWithWeight,
+                  total: stats.completion.totalDays,
+                  color: "bg-[hsl(var(--metric-weight))]",
+                },
+                {
+                  label: t("coach.avgSteps"),
+                  count: stats.completion.daysWithSteps,
+                  total: stats.completion.totalDays,
+                  color: "bg-[hsl(var(--metric-steps))]",
+                },
+                {
+                  label: t("coach.avgKcal"),
+                  count: stats.completion.daysWithKcal,
+                  total: stats.completion.totalDays,
+                  color: "bg-[hsl(var(--metric-kcal))]",
+                },
               ].map(({ label, count, total, color }) => {
                 const pct = total > 0 ? Math.round((count / total) * 100) : 0;
                 return (
                   <div key={label} className="space-y-1">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-foreground">{label}</span>
-                      <span className={`text-xs font-black ${pct >= 70 ? "text-primary" : pct >= 40 ? "text-warning" : "text-destructive"}`}>
+                      <span
+                        className={`text-xs font-black ${pct >= 70 ? "text-primary" : pct >= 40 ? "text-warning" : "text-destructive"}`}
+                      >
                         {count}/{total}j · {pct}%
                       </span>
                     </div>
@@ -1175,7 +1407,9 @@ export default function CoachAthleteViewPage() {
               <div className="pt-2 border-t border-border space-y-1">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-foreground">{t("coach.trainingConsistency")}</span>
-                  <span className={`text-xs font-black ${stats.weeksWithTraining >= 3 ? "text-primary" : stats.weeksWithTraining >= 2 ? "text-warning" : "text-destructive"}`}>
+                  <span
+                    className={`text-xs font-black ${stats.weeksWithTraining >= 3 ? "text-primary" : stats.weeksWithTraining >= 2 ? "text-warning" : "text-destructive"}`}
+                  >
                     {stats.weeksWithTraining}/4 {t("coach.weeksActive")}
                   </span>
                 </div>
@@ -1235,7 +1469,7 @@ export default function CoachAthleteViewPage() {
                     <button
                       className={cn(
                         "flex-1 flex items-center gap-2 py-2.5 px-3 rounded-xl border border-border/50 bg-muted/30 text-left text-sm transition-colors hover:bg-muted/50",
-                        !contractDate && "text-muted-foreground"
+                        !contractDate && "text-muted-foreground",
                       )}
                     >
                       <Calendar size={14} className="text-primary shrink-0" />
@@ -1253,10 +1487,7 @@ export default function CoachAthleteViewPage() {
                         setContractPopoverOpen(false);
                         if (coachAthleteRelation) {
                           try {
-                            await updateContractDate(
-                              coachAthleteRelation.id,
-                              date ? format(date, "yyyy-MM-dd") : null
-                            );
+                            await updateContractDate(coachAthleteRelation.id, date ? format(date, "yyyy-MM-dd") : null);
                             toast.success(t("coach.contractDateSaved", "Échéance enregistrée"));
                           } catch (e: any) {
                             toast.error(e.message);
@@ -1286,21 +1517,28 @@ export default function CoachAthleteViewPage() {
                   </button>
                 )}
               </div>
-              {contractDate && (() => {
-                const days = differenceInDays(contractDate, new Date());
-                return (
-                  <p className={cn(
-                    "text-[10px] font-bold",
-                    days < 0 ? "text-destructive" : days <= 30 ? "text-[hsl(36,100%,55%)]" : "text-muted-foreground"
-                  )}>
-                    {days < 0
-                      ? t("coach.contractExpiredAgo", { days: Math.abs(days) })
-                      : days === 0
-                        ? t("coach.contractToday", "Échéance aujourd'hui")
-                        : t("coach.contractDaysLeft", { days })}
-                  </p>
-                );
-              })()}
+              {contractDate &&
+                (() => {
+                  const days = differenceInDays(contractDate, new Date());
+                  return (
+                    <p
+                      className={cn(
+                        "text-[10px] font-bold",
+                        days < 0
+                          ? "text-destructive"
+                          : days <= 30
+                            ? "text-[hsl(36,100%,55%)]"
+                            : "text-muted-foreground",
+                      )}
+                    >
+                      {days < 0
+                        ? t("coach.contractExpiredAgo", { days: Math.abs(days) })
+                        : days === 0
+                          ? t("coach.contractToday", "Échéance aujourd'hui")
+                          : t("coach.contractDaysLeft", { days })}
+                    </p>
+                  );
+                })()}
             </GlassCard>
 
             {/* ── Coach Private Notes ── */}
