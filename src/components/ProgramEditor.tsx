@@ -81,9 +81,21 @@ function CatalogPicker({ catalog, onSelect, onClose }: {
 }) {
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
-  const filtered = catalog.filter((ex) =>
-    ex.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const [filterMuscle, setFilterMuscle] = useState<string | null>(null);
+  const [filterEquipment, setFilterEquipment] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+
+  const muscleGroups = useMemo(() => [...new Set(catalog.map(e => e.target_muscle_group).filter(Boolean))].sort() as string[], [catalog]);
+  const equipments = useMemo(() => [...new Set(catalog.map(e => e.primary_equipment).filter(Boolean))].sort() as string[], [catalog]);
+
+  const filtered = useMemo(() => catalog.filter((ex) => {
+    if (search && !ex.name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (filterMuscle && ex.target_muscle_group !== filterMuscle) return false;
+    if (filterEquipment && ex.primary_equipment !== filterEquipment) return false;
+    return true;
+  }), [catalog, search, filterMuscle, filterEquipment]);
+
+  const hasActiveFilters = filterMuscle || filterEquipment;
 
   return (
     <>
@@ -104,9 +116,15 @@ function CatalogPicker({ catalog, onSelect, onClose }: {
               <h2 className="text-sm font-black uppercase tracking-widest text-muted-foreground">
                 {t("exercisePicker.title")}
               </h2>
-              <button type="button" onClick={onClose} className="p-2 text-muted-foreground hover:text-foreground">
-                <X size={18} />
-              </button>
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={() => setShowFilters(!showFilters)}
+                  className={`p-2 transition-colors ${showFilters || hasActiveFilters ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                  <Filter size={16} />
+                </button>
+                <button type="button" onClick={onClose} className="p-2 text-muted-foreground hover:text-foreground">
+                  <X size={18} />
+                </button>
+              </div>
             </div>
             <div className="px-5 pb-3">
               <div className="flex items-center gap-2 bg-muted rounded-xl px-3 py-2.5">
@@ -119,6 +137,45 @@ function CatalogPicker({ catalog, onSelect, onClose }: {
                 />
               </div>
             </div>
+            {/* Filters */}
+            <AnimatePresence>
+              {showFilters && (
+                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                  <div className="px-5 pb-3 space-y-2">
+                    {muscleGroups.length > 0 && (
+                      <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground shrink-0">{t("exercisePicker.filterMuscle")}</span>
+                        <button type="button" onClick={() => setFilterMuscle(null)}
+                          className={`shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border transition-colors ${!filterMuscle ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground border-border"}`}>
+                          {t("exercisePicker.allFilters")}
+                        </button>
+                        {muscleGroups.map(v => (
+                          <button key={v} type="button" onClick={() => setFilterMuscle(filterMuscle === v ? null : v)}
+                            className={`shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border transition-colors ${filterMuscle === v ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground border-border"}`}>
+                            {v}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {equipments.length > 0 && (
+                      <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground shrink-0">{t("exercisePicker.filterEquipment")}</span>
+                        <button type="button" onClick={() => setFilterEquipment(null)}
+                          className={`shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border transition-colors ${!filterEquipment ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground border-border"}`}>
+                          {t("exercisePicker.allFilters")}
+                        </button>
+                        {equipments.map(v => (
+                          <button key={v} type="button" onClick={() => setFilterEquipment(filterEquipment === v ? null : v)}
+                            className={`shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border transition-colors ${filterEquipment === v ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground border-border"}`}>
+                            {v}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
             <div className="px-5 pb-6 max-h-[50vh] overflow-auto space-y-1">
               {filtered.length === 0 ? (
                 <p className="text-center text-sm text-muted-foreground py-8">{t("exercisePicker.noResult")}</p>
@@ -129,7 +186,10 @@ function CatalogPicker({ catalog, onSelect, onClose }: {
                     onClick={() => onSelect(ex)}
                     className="w-full text-left px-4 py-3 rounded-xl text-sm font-bold text-foreground hover:bg-muted border border-transparent transition-colors"
                   >
-                    {ex.name}
+                    <span>{ex.name}</span>
+                    {ex.target_muscle_group && (
+                      <span className="ml-2 text-[10px] font-medium text-muted-foreground">{ex.target_muscle_group}</span>
+                    )}
                   </button>
                 ))
               )}
