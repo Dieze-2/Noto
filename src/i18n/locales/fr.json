@@ -307,7 +307,12 @@
     "title": "Exercice",
     "choose": "Choisir…",
     "search": "Rechercher…",
-    "noResult": "Aucun exercice trouvé"
+    "noResult": "Aucun exercice trouvé",
+    "allFilters": "Tous",
+    "filterMuscle": "Muscle",
+    "filterEquipment": "Équipement",
+    "filterDifficulty": "Difficulté",
+    "filterBodyRegion": "Région"
   },
   "invitation": {
     "coachInvite": "Invitation coaching",
