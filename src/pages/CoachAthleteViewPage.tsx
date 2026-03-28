@@ -1002,8 +1002,8 @@ export default function CoachAthleteViewPage() {
                   </span>
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-black text-foreground">{stats.workoutCount}</span>
-                  <span className="text-xs text-muted-foreground">/ 30j</span>
+                  <span className="text-2xl font-black text-foreground">{frequencyByWeek.avgFreq.toFixed(1)}</span>
+                  <span className="text-xs text-muted-foreground">/ {t("coach.perWeek")}</span>
                 </div>
                 <p className="text-[10px] text-muted-foreground">
                   {stats.totalWorkouts} {t("coach.totalSessions")}
