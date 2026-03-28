@@ -7,6 +7,12 @@ function ascii(str: string): string {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
+// Format number with space as thousands separator (ASCII-safe for jsPDF)
+function fmtNum(n: number): string {
+  const s = Math.round(n).toString();
+  return s.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+}
+
 interface PDFSession {
   name: string;
   exercises: { exercise_name: string; sets: number | string; reps: string; rest: string; work_type: string; note: string | null }[];
@@ -99,9 +105,9 @@ export function generateAthletePDF(data: AthletePDFData) {
   const cardW = (pageWidth - margin * 2 - 12) / 4;
   const cards = [
     { label: ascii(t("dashboard.weight")), value: stats.currentWeight != null ? `${stats.currentWeight.toFixed(1)} kg` : "--", sub: stats.weightTrend !== 0 ? `${stats.weightTrend > 0 ? "+" : ""}${stats.weightTrend.toFixed(1)} kg` : "" },
-    { label: ascii(t("coach.workouts")), value: `${stats.workoutCount}`, sub: `/ 30j - ${stats.totalWorkouts} total` },
-    { label: ascii(t("coach.avgSteps")), value: stats.avgSteps != null ? Math.round(stats.avgSteps).toLocaleString() : "--", sub: "" },
-    { label: ascii(t("coach.avgKcal")), value: stats.avgKcal != null ? Math.round(stats.avgKcal).toLocaleString() : "--", sub: "" },
+    { label: ascii(t("coach.workouts")), value: `${frequencyAvg.toFixed(1)}`, sub: `/ ${ascii(t("coach.perWeek"))} - ${stats.totalWorkouts} total` },
+    { label: ascii(t("coach.avgSteps")), value: stats.avgSteps != null ? fmtNum(stats.avgSteps) : "--", sub: "" },
+    { label: ascii(t("coach.avgKcal")), value: stats.avgKcal != null ? fmtNum(stats.avgKcal) : "--", sub: "" },
   ];
 
   cards.forEach((card, i) => {
@@ -145,7 +151,7 @@ export function generateAthletePDF(data: AthletePDFData) {
       head: [[ascii(t("coach.period")), ascii(t("coach.avgSteps")), ascii(t("coach.avgKcal")), ascii(t("dashboard.weight")), "%", ascii(t("coach.workouts"))]],
       body: weeklyRows.slice(0, 12).map((r) => [
         r.label,
-        r.avgSteps != null ? Math.round(r.avgSteps).toLocaleString() : "--",
+        r.avgSteps != null ? fmtNum(r.avgSteps) : "--",
         r.avgKcal != null ? Math.round(r.avgKcal).toString() : "--",
         r.avgWeight != null ? r.avgWeight.toFixed(1) : "--",
         r.weightVariation != null ? `${r.weightVariation > 0 ? "+" : ""}${r.weightVariation.toFixed(2)}%` : "--",
