@@ -875,6 +875,7 @@ export default function CoachAthleteViewPage() {
                 weeklyRows,
                 muscleGroups,
                 personalRecords,
+                topProgressions,
                 sessions: sessions.map((s) => ({
                   name: s.name,
                   exercises: s.exercises.map((ex) => ({
