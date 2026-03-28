@@ -423,12 +423,20 @@ export default function CoachAthleteViewPage() {
   const stats = useMemo(() => {
     const last30 = metrics.slice(0, 30);
     const weights = last30.filter((m) => m.weight_g != null).map((m) => m.weight_g! / 1000);
-    const stepsList = last30.filter((m) => m.steps != null).map((m) => m.steps!);
-    const kcalList = last30.filter((m) => m.kcal != null).map((m) => m.kcal!);
     const avg = (arr: number[]) => (arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
     const latest = (arr: number[]) => (arr.length > 0 ? arr[0] : null);
     const thirtyDaysAgo = format(new Date(Date.now() - 30 * 86400000), "yyyy-MM-dd");
     const recentWorkouts = workoutHistory.filter((w) => w.date >= thirtyDaysAgo);
+
+    // Avg steps/kcal since coaching start (accepted_at) or all time
+    const coachingStart = coachAthleteRelation?.accepted_at
+      ? format(parseISO(coachAthleteRelation.accepted_at), "yyyy-MM-dd")
+      : null;
+    const metricsForAvg = coachingStart
+      ? metrics.filter((m) => m.date >= coachingStart)
+      : metrics;
+    const stepsList = metricsForAvg.filter((m) => m.steps != null).map((m) => m.steps!);
+    const kcalList = metricsForAvg.filter((m) => m.kcal != null).map((m) => m.kcal!);
 
     // Weight variation since first ever entry (metrics sorted desc: [0]=latest, [last]=oldest)
     const allWeightsData = metrics.filter((m) => m.weight_g != null).map((m) => m.weight_g! / 1000);
@@ -462,7 +470,7 @@ export default function CoachAthleteViewPage() {
       completion: { daysWithWeight, daysWithSteps, daysWithKcal, totalDays },
       weeksWithTraining,
     };
-  }, [metrics, workoutHistory]);
+  }, [metrics, workoutHistory, coachAthleteRelation]);
 
   /* ── Training frequency: sessions per week (last 8 weeks) ── */
   const frequencyByWeek = useMemo(() => {
