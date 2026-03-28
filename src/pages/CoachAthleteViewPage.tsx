@@ -577,7 +577,48 @@ export default function CoachAthleteViewPage() {
     return records.sort((a, b) => b.e1rm - a.e1rm).slice(0, 10);
   }, [workoutHistory, metrics]);
 
-  /* ── PRs truly beaten this week (new best vs all history before this week) ── */
+  /* ── Top exercise progressions (first e1RM vs best e1RM) ── */
+  const topProgressions = useMemo(() => {
+    const allWeights = metrics
+      .filter((m) => m.weight_g != null)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map((m) => ({ date: m.date, weight_g: m.weight_g! }));
+
+    const getBW = (date: string) => {
+      const before = allWeights.filter((w) => w.date <= date);
+      return before.length > 0 ? before[before.length - 1].weight_g / 1000 : 0;
+    };
+
+    // Track first and best e1RM per exercise
+    const firstE1RM = new Map<string, number>();
+    const bestE1RM = new Map<string, number>();
+
+    // Process in chronological order
+    const sorted = [...workoutHistory].sort((a, b) => a.date.localeCompare(b.date));
+    sorted.forEach((w) => {
+      w.exercises.forEach((ex) => {
+        const load = (ex.load_g ?? 0) / 1000;
+        const isPDC = ex.load_type === "PDC" || ex.load_type === "PDC_PLUS";
+        const totalLoad = isPDC ? load + getBW(w.date) : load;
+        if (totalLoad <= 0) return;
+        const e1rm = totalLoad * (1 + ex.reps / 30);
+        if (!firstE1RM.has(ex.name)) firstE1RM.set(ex.name, e1rm);
+        const prev = bestE1RM.get(ex.name) ?? 0;
+        if (e1rm > prev) bestE1RM.set(ex.name, e1rm);
+      });
+    });
+
+    const progs: { name: string; progressionPct: number }[] = [];
+    firstE1RM.forEach((first, name) => {
+      const best = bestE1RM.get(name) ?? first;
+      if (first > 0 && best > first) {
+        progs.push({ name, progressionPct: ((best - first) / first) * 100 });
+      }
+    });
+
+    return progs.sort((a, b) => b.progressionPct - a.progressionPct).slice(0, 3);
+  }, [workoutHistory, metrics]);
+
   const prsBeatenThisWeek = useMemo(() => {
     const sevenDaysAgo = format(new Date(Date.now() - 7 * 86400000), "yyyy-MM-dd");
 
