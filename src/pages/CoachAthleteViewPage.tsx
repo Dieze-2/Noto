@@ -423,12 +423,20 @@ export default function CoachAthleteViewPage() {
   const stats = useMemo(() => {
     const last30 = metrics.slice(0, 30);
     const weights = last30.filter((m) => m.weight_g != null).map((m) => m.weight_g! / 1000);
-    const stepsList = last30.filter((m) => m.steps != null).map((m) => m.steps!);
-    const kcalList = last30.filter((m) => m.kcal != null).map((m) => m.kcal!);
     const avg = (arr: number[]) => (arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
     const latest = (arr: number[]) => (arr.length > 0 ? arr[0] : null);
     const thirtyDaysAgo = format(new Date(Date.now() - 30 * 86400000), "yyyy-MM-dd");
     const recentWorkouts = workoutHistory.filter((w) => w.date >= thirtyDaysAgo);
+
+    // Avg steps/kcal since coaching start (accepted_at) or all time
+    const coachingStart = coachAthleteRelation?.accepted_at
+      ? format(parseISO(coachAthleteRelation.accepted_at), "yyyy-MM-dd")
+      : null;
+    const metricsForAvg = coachingStart
+      ? metrics.filter((m) => m.date >= coachingStart)
+      : metrics;
+    const stepsList = metricsForAvg.filter((m) => m.steps != null).map((m) => m.steps!);
+    const kcalList = metricsForAvg.filter((m) => m.kcal != null).map((m) => m.kcal!);
 
     // Weight variation since first ever entry (metrics sorted desc: [0]=latest, [last]=oldest)
     const allWeightsData = metrics.filter((m) => m.weight_g != null).map((m) => m.weight_g! / 1000);
@@ -462,7 +470,7 @@ export default function CoachAthleteViewPage() {
       completion: { daysWithWeight, daysWithSteps, daysWithKcal, totalDays },
       weeksWithTraining,
     };
-  }, [metrics, workoutHistory]);
+  }, [metrics, workoutHistory, coachAthleteRelation]);
 
   /* ── Training frequency: sessions per week (last 8 weeks) ── */
   const frequencyByWeek = useMemo(() => {
@@ -569,7 +577,48 @@ export default function CoachAthleteViewPage() {
     return records.sort((a, b) => b.e1rm - a.e1rm).slice(0, 10);
   }, [workoutHistory, metrics]);
 
-  /* ── PRs truly beaten this week (new best vs all history before this week) ── */
+  /* ── Top exercise progressions (first e1RM vs best e1RM) ── */
+  const topProgressions = useMemo(() => {
+    const allWeights = metrics
+      .filter((m) => m.weight_g != null)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map((m) => ({ date: m.date, weight_g: m.weight_g! }));
+
+    const getBW = (date: string) => {
+      const before = allWeights.filter((w) => w.date <= date);
+      return before.length > 0 ? before[before.length - 1].weight_g / 1000 : 0;
+    };
+
+    // Track first and best e1RM per exercise
+    const firstE1RM = new Map<string, number>();
+    const bestE1RM = new Map<string, number>();
+
+    // Process in chronological order
+    const sorted = [...workoutHistory].sort((a, b) => a.date.localeCompare(b.date));
+    sorted.forEach((w) => {
+      w.exercises.forEach((ex) => {
+        const load = (ex.load_g ?? 0) / 1000;
+        const isPDC = ex.load_type === "PDC" || ex.load_type === "PDC_PLUS";
+        const totalLoad = isPDC ? load + getBW(w.date) : load;
+        if (totalLoad <= 0) return;
+        const e1rm = totalLoad * (1 + ex.reps / 30);
+        if (!firstE1RM.has(ex.name)) firstE1RM.set(ex.name, e1rm);
+        const prev = bestE1RM.get(ex.name) ?? 0;
+        if (e1rm > prev) bestE1RM.set(ex.name, e1rm);
+      });
+    });
+
+    const progs: { name: string; progressionPct: number }[] = [];
+    firstE1RM.forEach((first, name) => {
+      const best = bestE1RM.get(name) ?? first;
+      if (first > 0 && best > first) {
+        progs.push({ name, progressionPct: ((best - first) / first) * 100 });
+      }
+    });
+
+    return progs.sort((a, b) => b.progressionPct - a.progressionPct).slice(0, 3);
+  }, [workoutHistory, metrics]);
+
   const prsBeatenThisWeek = useMemo(() => {
     const sevenDaysAgo = format(new Date(Date.now() - 7 * 86400000), "yyyy-MM-dd");
 
@@ -826,6 +875,7 @@ export default function CoachAthleteViewPage() {
                 weeklyRows,
                 muscleGroups,
                 personalRecords,
+                topProgressions,
                 sessions: sessions.map((s) => ({
                   name: s.name,
                   exercises: s.exercises.map((ex) => ({
