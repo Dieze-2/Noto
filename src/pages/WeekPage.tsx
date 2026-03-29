@@ -44,6 +44,7 @@ type EditState = {
 function SwipeDeleteEventRow({ ev, isEditing, onDelete, children }: {
   ev: EventRow; isEditing: boolean; onDelete: (id: string) => void; children: React.ReactNode;
 }) {
+  const gesturesOn = useContext(GesturesCtx);
   const x = useMotionValue(0);
   const bgOpacity = useTransform(x, [-120, 0], [1, 0]);
 
@@ -59,7 +60,7 @@ function SwipeDeleteEventRow({ ev, isEditing, onDelete, children }: {
       <motion.div style={{ opacity: bgOpacity }} className="absolute inset-0 bg-destructive rounded-3xl flex items-center justify-end px-6">
         <Trash2 size={18} className="text-destructive-foreground" />
       </motion.div>
-      <motion.div drag="x" dragConstraints={{ left: -120, right: 0 }} style={{ x }}
+      <motion.div drag={gesturesOn ? "x" : false} dragConstraints={{ left: -120, right: 0 }} style={{ x }}
         onDragEnd={(_, info) => { if (info.offset.x < -70) onDelete(ev.id); }}
         className="relative">
         {children}
