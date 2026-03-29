@@ -397,6 +397,9 @@ export default function SettingsPage() {
   const [prefsOpen, setPrefsOpen] = useState(false);
   const [tutorialOpen, setTutorialOpen] = useState(false);
 
+  /* Gestures */
+  const [gesturesEnabled, setGesturesEnabled] = useGestures();
+
   /* Theme */
   const [dark, setDark] = useState(() => !document.documentElement.classList.contains("light"));
   const toggleTheme = () => {
