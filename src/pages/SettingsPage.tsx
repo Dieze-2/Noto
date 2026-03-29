@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   User, Target, LogOut, Download, Upload, Check, Weight,
   Footprints, Flame, X, Lock, ChevronRight, Database, Sun, Moon, Globe,
-  Shield, Crown, Loader2, Type, HelpCircle } from
+  Shield, Crown, Loader2, Type, HelpCircle, SlidersHorizontal, Info, Hand } from
 "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -24,6 +24,7 @@ import { getMyCoachRequest, submitCoachRequest, CoachRequest } from "@/db/coachR
 import { createNotification } from "@/db/notifications";
 import { getProfile, displayName } from "@/db/profiles";
 import OnboardingTutorial from "@/components/OnboardingTutorial";
+import { useGestures } from "@/hooks/useGestures";
 
 /* ── Workouts Export ── */
 async function exportWorkoutsCSV() {
