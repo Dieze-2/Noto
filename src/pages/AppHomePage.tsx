@@ -219,6 +219,7 @@ export default function AppHomePage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [gesturesEnabled] = useGestures();
 
   /* If there's no explicit ?date= param, recompute "today" on every render
      so that resuming the app after midnight picks up the new day. */
@@ -448,7 +449,7 @@ export default function AppHomePage() {
 
         {/* ── Date navigation ── */}
         <motion.div
-          drag="x" dragConstraints={{ left: 0, right: 0 }}
+          drag={gesturesEnabled ? "x" : false} dragConstraints={{ left: 0, right: 0 }}
           onDragEnd={(_, info) => {
             if (info.offset.x > 50) changeDate(-1);
             if (info.offset.x < -50) changeDate(1);
