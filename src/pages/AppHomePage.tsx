@@ -622,5 +622,6 @@ export default function AppHomePage() {
         </div>
       </Drawer>
     </div>
+    </GesturesCtx.Provider>
   );
 }
