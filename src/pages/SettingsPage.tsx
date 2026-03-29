@@ -394,6 +394,8 @@ export default function SettingsPage() {
   const [goalsOpen, setGoalsOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [dataOpen, setDataOpen] = useState(false);
+  const [prefsOpen, setPrefsOpen] = useState(false);
+  const [tutorialOpen, setTutorialOpen] = useState(false);
   const [tutorialOpen, setTutorialOpen] = useState(false);
 
   /* Theme */
