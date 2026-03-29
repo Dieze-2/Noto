@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, createContext, useContext } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { startOfWeek, addDays, format, isToday, subDays, parseISO } from "date-fns";
 import { useTranslation } from "react-i18next";
@@ -18,6 +18,9 @@ import {
   EventRow,
 } from "@/db/events";
 import { getUserGoals, UserGoals } from "@/db/goals";
+import { useGestures } from "@/hooks/useGestures";
+
+const GesturesCtx = createContext(true);
 
 /* ── Constants ── */
 const EVENT_COLORS = [
