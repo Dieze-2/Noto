@@ -180,11 +180,12 @@ export default function WeekPage() {
 
   /* ═══ RENDER ═══ */
   return (
+    <GesturesCtx.Provider value={gesturesEnabled}>
     <div className="max-w-5xl mx-auto px-4 pt-8 pb-32 lg:pb-8">
       {/* ── Header ── */}
       <header className="flex flex-col items-center mb-8">
         <motion.div
-          drag="x" dragConstraints={{ left: 0, right: 0 }}
+          drag={gesturesEnabled ? "x" : false} dragConstraints={{ left: 0, right: 0 }}
           onDragEnd={(_, info) => {
             if (info.offset.x > 50) setAnchorDate(subDays(anchorDate, 7));
             if (info.offset.x < -50) setAnchorDate(addDays(anchorDate, 7));
