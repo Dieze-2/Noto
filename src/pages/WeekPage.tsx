@@ -600,5 +600,6 @@ export default function WeekPage() {
         )}
       </AnimatePresence>
     </div>
+    </GesturesCtx.Provider>
   );
 }
