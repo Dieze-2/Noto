@@ -444,6 +444,7 @@ export default function AppHomePage() {
 
   /* ═══ RENDER ═══ */
   return (
+    <GesturesCtx.Provider value={gesturesEnabled}>
     <div className="max-w-5xl mx-auto px-4 pt-8 pb-32 lg:pb-8">
       <header className="flex flex-col items-center mb-8">
 
