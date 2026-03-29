@@ -76,6 +76,7 @@ export default function WeekPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [gesturesEnabled] = useGestures();
 
   const [anchorDate, setAnchorDate] = useState(new Date());
   const [currentWeekData, setCurrentWeekData] = useState<DailyMetrics[]>([]);
