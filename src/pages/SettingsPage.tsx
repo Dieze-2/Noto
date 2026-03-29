@@ -819,6 +819,124 @@ export default function SettingsPage() {
         </div>
       </SettingsDrawer>
 
+      {/* ═══ DRAWER PRÉFÉRENCES ═══ */}
+      <SettingsDrawer open={prefsOpen} onClose={() => setPrefsOpen(false)} title={t("settings.preferences")}>
+        <div className="space-y-4">
+          {/* Theme */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="w-full flex items-center gap-3 p-4 rounded-2xl glass hover:bg-muted/50 transition-colors text-left">
+            <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-primary">
+              {dark ? <Moon size={18} /> : <Sun size={18} />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-black uppercase tracking-wider text-foreground">{t("settings.theme")}</p>
+              <p className="text-[10px] text-muted-foreground font-bold">{dark ? t("settings.darkMode") : t("settings.lightMode")}</p>
+            </div>
+            <div className={`w-12 h-7 rounded-full p-1 transition-colors ${dark ? "bg-primary" : "bg-muted-foreground/30"}`}>
+              <motion.div
+                className="w-5 h-5 rounded-full bg-primary-foreground shadow"
+                animate={{ x: dark ? 20 : 0 }}
+                transition={{ type: "spring", stiffness: 500, damping: 30 }} />
+            </div>
+          </button>
+
+          {/* Font size */}
+          {(() => {
+            const sizes = ["small", "normal", "large"] as const;
+            const stored = localStorage.getItem("fontScale") || "normal";
+            const cycleFontSize = () => {
+              const idx = sizes.indexOf(stored as any);
+              const next = sizes[(idx + 1) % sizes.length];
+              localStorage.setItem("fontScale", next);
+              document.documentElement.classList.remove("font-small", "font-normal", "font-large");
+              document.documentElement.classList.add(`font-${next}`);
+              window.dispatchEvent(new Event("fontsizechange"));
+            };
+            return (
+              <button
+                type="button"
+                onClick={cycleFontSize}
+                className="w-full flex items-center gap-3 p-4 rounded-2xl glass hover:bg-muted/50 transition-colors text-left">
+                <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-primary">
+                  <Type size={18} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-black uppercase tracking-wider text-foreground">{t("settings.fontSize")}</p>
+                  <p className="text-[10px] text-muted-foreground font-bold">{t(`settings.fontSize_${stored}`)}</p>
+                </div>
+                <div className="flex gap-1 items-end">
+                  {sizes.map((s) =>
+                    <span key={s} className={`font-black transition-colors ${s === "small" ? "text-[11px]" : s === "normal" ? "text-[14px]" : "text-[18px]"} ${stored === s ? "text-primary" : "text-muted-foreground/30"}`}>
+                      A
+                    </span>
+                  )}
+                </div>
+              </button>);
+          })()}
+
+          {/* Language */}
+          <button
+            type="button"
+            onClick={() => {
+              const langs = ["fr", "en", "es"] as const;
+              const idx = langs.indexOf(i18n.language as any);
+              const next = langs[(idx + 1) % langs.length];
+              i18n.changeLanguage(next);
+              localStorage.setItem("lang", next);
+            }}
+            className="w-full flex items-center gap-3 p-4 rounded-2xl glass hover:bg-muted/50 transition-colors text-left">
+            <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-primary">
+              <Globe size={18} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-black uppercase tracking-wider text-foreground">{t("settings.language")}</p>
+              <p className="text-[10px] text-muted-foreground font-bold">
+                {i18n.language === "fr" ? t("settings.langFr") : i18n.language === "en" ? t("settings.langEn") : t("settings.langEs")}
+              </p>
+            </div>
+            <div className="flex gap-1">
+              {(["fr", "en", "es"] as const).map((l) =>
+                <span key={l} className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${i18n.language === l ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                  {l}
+                </span>
+              )}
+            </div>
+          </button>
+
+          {/* Touch gestures */}
+          <button
+            type="button"
+            onClick={() => setGesturesEnabled(!gesturesEnabled)}
+            className="w-full flex items-center gap-3 p-4 rounded-2xl glass hover:bg-muted/50 transition-colors text-left">
+            <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-primary">
+              <Hand size={18} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-black uppercase tracking-wider text-foreground">{t("settings.touchGestures")}</p>
+              <p className="text-[10px] text-muted-foreground font-bold">
+                {gesturesEnabled ? t("settings.touchGesturesOn") : t("settings.touchGesturesOff")}
+              </p>
+            </div>
+            <div className={`w-12 h-7 rounded-full p-1 transition-colors ${gesturesEnabled ? "bg-primary" : "bg-muted-foreground/30"}`}>
+              <motion.div
+                className="w-5 h-5 rounded-full bg-primary-foreground shadow"
+                animate={{ x: gesturesEnabled ? 20 : 0 }}
+                transition={{ type: "spring", stiffness: 500, damping: 30 }} />
+            </div>
+          </button>
+
+          {/* Info */}
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-muted/50">
+            <Info size={14} className="text-muted-foreground mt-0.5 shrink-0" />
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              {t("settings.touchGesturesInfo")}
+            </p>
+          </div>
+        </div>
+      </SettingsDrawer>
+
       <OnboardingTutorial open={tutorialOpen} onClose={() => setTutorialOpen(false)} />
     </div>);
 
