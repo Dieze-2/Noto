@@ -55,13 +55,14 @@ function SetRow({ setRow, onDelete, onEdit }: {
   onDelete: (id: string) => void;
   onEdit: (s: WorkoutExerciseSetRow) => void;
 }) {
+  const gesturesOn = useContext(GesturesCtx);
   const x = useMotionValue(0);
   const bgOpacity = useTransform(x, [-90, 0], [1, 0]);
   return (
     <motion.div layout className="relative">
       <motion.div style={{ opacity: bgOpacity }} className="absolute inset-0 bg-destructive rounded-2xl" />
       <motion.div
-        drag="x" dragConstraints={{ left: -90, right: 0 }} style={{ x }}
+        drag={gesturesOn ? "x" : false} dragConstraints={{ left: -90, right: 0 }} style={{ x }}
         onDragEnd={(_, info) => { if (info.offset.x < -60) onDelete(setRow.id); }}
         className="relative"
       >
