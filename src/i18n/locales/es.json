@@ -148,7 +148,13 @@
     "fontSize": "Tamaño de fuente",
     "fontSize_small": "Pequeña",
     "fontSize_normal": "Normal",
-    "fontSize_large": "Grande"
+    "fontSize_large": "Grande",
+    "preferences": "Preferencias",
+    "preferencesDesc": "Idioma, tema, fuente, táctil",
+    "touchGestures": "Gestos táctiles",
+    "touchGesturesOn": "Activados",
+    "touchGesturesOff": "Desactivados",
+    "touchGesturesInfo": "Permite deslizar para eliminar ejercicios y navegar entre días o semanas deslizando."
   },
   "coach": {
     "title": "Panel del Coach",

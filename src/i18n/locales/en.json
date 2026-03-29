@@ -148,7 +148,13 @@
     "fontSize": "Font size",
     "fontSize_small": "Small",
     "fontSize_normal": "Normal",
-    "fontSize_large": "Large"
+    "fontSize_large": "Large",
+    "preferences": "Preferences",
+    "preferencesDesc": "Language, theme, font, touch",
+    "touchGestures": "Touch gestures",
+    "touchGesturesOn": "Enabled",
+    "touchGesturesOff": "Disabled",
+    "touchGesturesInfo": "Allows swiping to delete exercises, and navigating between days or weeks by swiping."
   },
   "coach": {
     "title": "Coach Dashboard",

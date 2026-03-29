@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, createContext, useContext } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence, useTransform, useMotionValue } from "framer-motion";
 import { format, addDays, parseISO, isValid } from "date-fns";
@@ -21,6 +21,9 @@ import {
 import { listCatalogExercises, CatalogExercise } from "@/db/catalog";
 import { getEventsOverlappingRange, EventRow } from "@/db/events";
 import CoachSessionCard from "@/components/CoachSessionCard";
+import { useGestures } from "@/hooks/useGestures";
+
+const GesturesCtx = createContext(true);
 
 const MAX_DOTS = 4;
 const METRICS_DEBOUNCE_MS = 600;
@@ -52,13 +55,14 @@ function SetRow({ setRow, onDelete, onEdit }: {
   onDelete: (id: string) => void;
   onEdit: (s: WorkoutExerciseSetRow) => void;
 }) {
+  const gesturesOn = useContext(GesturesCtx);
   const x = useMotionValue(0);
   const bgOpacity = useTransform(x, [-90, 0], [1, 0]);
   return (
     <motion.div layout className="relative">
       <motion.div style={{ opacity: bgOpacity }} className="absolute inset-0 bg-destructive rounded-2xl" />
       <motion.div
-        drag="x" dragConstraints={{ left: -90, right: 0 }} style={{ x }}
+        drag={gesturesOn ? "x" : false} dragConstraints={{ left: -90, right: 0 }} style={{ x }}
         onDragEnd={(_, info) => { if (info.offset.x < -60) onDelete(setRow.id); }}
         className="relative"
       >
@@ -89,13 +93,14 @@ function MasterRow({ ex, sets, onDeleteMaster, onDeleteSet, onOpenAddSet, onEdit
   onEditMaster: (ex: WorkoutExerciseRow) => void;
   onEditSet: (s: WorkoutExerciseSetRow) => void;
 }) {
+  const gesturesOn = useContext(GesturesCtx);
   const x = useMotionValue(0);
   const bgOpacity = useTransform(x, [-100, 0], [1, 0]);
   return (
     <motion.div layout className="relative">
       <motion.div style={{ opacity: bgOpacity }} className="absolute inset-0 bg-destructive rounded-[1.5rem]" />
       <motion.div
-        drag="x" dragConstraints={{ left: -100, right: 0 }} style={{ x }}
+        drag={gesturesOn ? "x" : false} dragConstraints={{ left: -100, right: 0 }} style={{ x }}
         onDragEnd={(_, info) => { if (info.offset.x < -70) onDeleteMaster(ex.id); }}
         className="relative"
       >
@@ -214,6 +219,7 @@ export default function AppHomePage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [gesturesEnabled] = useGestures();
 
   /* If there's no explicit ?date= param, recompute "today" on every render
      so that resuming the app after midnight picks up the new day. */
@@ -438,12 +444,13 @@ export default function AppHomePage() {
 
   /* ═══ RENDER ═══ */
   return (
+    <GesturesCtx.Provider value={gesturesEnabled}>
     <div className="max-w-5xl mx-auto px-4 pt-8 pb-32 lg:pb-8">
       <header className="flex flex-col items-center mb-8">
 
         {/* ── Date navigation ── */}
         <motion.div
-          drag="x" dragConstraints={{ left: 0, right: 0 }}
+          drag={gesturesEnabled ? "x" : false} dragConstraints={{ left: 0, right: 0 }}
           onDragEnd={(_, info) => {
             if (info.offset.x > 50) changeDate(-1);
             if (info.offset.x < -50) changeDate(1);
@@ -615,5 +622,6 @@ export default function AppHomePage() {
         </div>
       </Drawer>
     </div>
+    </GesturesCtx.Provider>
   );
 }

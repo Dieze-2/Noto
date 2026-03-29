@@ -148,7 +148,13 @@
     "fontSize": "Taille de police",
     "fontSize_small": "Petite",
     "fontSize_normal": "Normale",
-    "fontSize_large": "Grande"
+    "fontSize_large": "Grande",
+    "preferences": "Préférences",
+    "preferencesDesc": "Langue, thème, police, tactile",
+    "touchGestures": "Commandes tactiles",
+    "touchGesturesOn": "Activées",
+    "touchGesturesOff": "Désactivées",
+    "touchGesturesInfo": "Permet de glisser pour supprimer un exercice, naviguer entre les jours ou les semaines par swipe."
   },
   "coach": {
     "title": "Espace Coach",

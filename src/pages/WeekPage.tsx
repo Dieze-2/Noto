@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, createContext, useContext } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { startOfWeek, addDays, format, isToday, subDays, parseISO } from "date-fns";
 import { useTranslation } from "react-i18next";
@@ -18,6 +18,9 @@ import {
   EventRow,
 } from "@/db/events";
 import { getUserGoals, UserGoals } from "@/db/goals";
+import { useGestures } from "@/hooks/useGestures";
+
+const GesturesCtx = createContext(true);
 
 /* ── Constants ── */
 const EVENT_COLORS = [
@@ -41,6 +44,7 @@ type EditState = {
 function SwipeDeleteEventRow({ ev, isEditing, onDelete, children }: {
   ev: EventRow; isEditing: boolean; onDelete: (id: string) => void; children: React.ReactNode;
 }) {
+  const gesturesOn = useContext(GesturesCtx);
   const x = useMotionValue(0);
   const bgOpacity = useTransform(x, [-120, 0], [1, 0]);
 
@@ -56,7 +60,7 @@ function SwipeDeleteEventRow({ ev, isEditing, onDelete, children }: {
       <motion.div style={{ opacity: bgOpacity }} className="absolute inset-0 bg-destructive rounded-3xl flex items-center justify-end px-6">
         <Trash2 size={18} className="text-destructive-foreground" />
       </motion.div>
-      <motion.div drag="x" dragConstraints={{ left: -120, right: 0 }} style={{ x }}
+      <motion.div drag={gesturesOn ? "x" : false} dragConstraints={{ left: -120, right: 0 }} style={{ x }}
         onDragEnd={(_, info) => { if (info.offset.x < -70) onDelete(ev.id); }}
         className="relative">
         {children}
@@ -72,6 +76,7 @@ export default function WeekPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [gesturesEnabled] = useGestures();
 
   const [anchorDate, setAnchorDate] = useState(new Date());
   const [currentWeekData, setCurrentWeekData] = useState<DailyMetrics[]>([]);
@@ -175,11 +180,12 @@ export default function WeekPage() {
 
   /* ═══ RENDER ═══ */
   return (
+    <GesturesCtx.Provider value={gesturesEnabled}>
     <div className="max-w-5xl mx-auto px-4 pt-8 pb-32 lg:pb-8">
       {/* ── Header ── */}
       <header className="flex flex-col items-center mb-8">
         <motion.div
-          drag="x" dragConstraints={{ left: 0, right: 0 }}
+          drag={gesturesEnabled ? "x" : false} dragConstraints={{ left: 0, right: 0 }}
           onDragEnd={(_, info) => {
             if (info.offset.x > 50) setAnchorDate(subDays(anchorDate, 7));
             if (info.offset.x < -50) setAnchorDate(addDays(anchorDate, 7));
@@ -594,5 +600,6 @@ export default function WeekPage() {
         )}
       </AnimatePresence>
     </div>
+    </GesturesCtx.Provider>
   );
 }
