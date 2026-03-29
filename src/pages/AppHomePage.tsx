@@ -93,13 +93,14 @@ function MasterRow({ ex, sets, onDeleteMaster, onDeleteSet, onOpenAddSet, onEdit
   onEditMaster: (ex: WorkoutExerciseRow) => void;
   onEditSet: (s: WorkoutExerciseSetRow) => void;
 }) {
+  const gesturesOn = useContext(GesturesCtx);
   const x = useMotionValue(0);
   const bgOpacity = useTransform(x, [-100, 0], [1, 0]);
   return (
     <motion.div layout className="relative">
       <motion.div style={{ opacity: bgOpacity }} className="absolute inset-0 bg-destructive rounded-[1.5rem]" />
       <motion.div
-        drag="x" dragConstraints={{ left: -100, right: 0 }} style={{ x }}
+        drag={gesturesOn ? "x" : false} dragConstraints={{ left: -100, right: 0 }} style={{ x }}
         onDragEnd={(_, info) => { if (info.offset.x < -70) onDeleteMaster(ex.id); }}
         className="relative"
       >
